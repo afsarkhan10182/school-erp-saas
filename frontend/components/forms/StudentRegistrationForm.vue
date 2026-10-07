@@ -24,125 +24,35 @@
         @clear-errors="clearErrors"
       />
 
-      <!-- School and Branch Selection -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+      <!-- Branch / School Context Info -->
+      <div
+        v-if="currentBranch || currentSchool"
+        class="bg-blue-50 dark:bg-gray-800 p-4 rounded-lg border border-blue-200 dark:border-gray-700 shadow-sm flex items-center justify-between"
+      >
+        <div class="flex items-center space-x-3">
           <span
-            class="w-6 h-6 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center mr-3"
-            >1</span
+            class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-base shadow-sm"
           >
-          {{
-            userRole === 'super_admin'
-              ? 'Select School & Branch'
-              : userRole === 'admin'
-                ? 'Select Branch'
-                : 'Academic Details'
-          }}
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- School Dropdown (Super Admin Only) -->
-          <div v-if="userRole === 'super_admin'">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              School <span class="text-red-500">*</span>
-            </label>
-            <select
-              v-model="form.school_id"
-              @change="onSchoolChange"
-              required
-              class="input-field"
-              :class="{
-                'opacity-50': loadingSchools,
-                'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('school_id')
-              }"
-              :disabled="loadingSchools"
-            >
-              <option value="">Loading schools...</option>
-              <option v-for="school in schools" :key="school.id" :value="school.id">
-                {{ school.name }}
-              </option>
-            </select>
-            <div
-              v-if="getFieldError('school_id')"
-              class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start"
-            >
-              <svg
-                class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+            {{ (currentBranch?.name || currentSchool?.name || 'S').charAt(0).toUpperCase() }}
+          </span>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                {{ currentBranch?.name || 'Active Branch' }}
+              </h3>
+              <span
+                class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-full font-medium"
               >
-                <path
-                  fill-rule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              {{ getFieldError('school_id') }}
+                Active Branch
+              </span>
             </div>
-            <p v-if="schools.length === 0 && !loadingSchools" class="mt-1 text-sm text-red-600">
-              No schools found
+            <p v-if="currentSchool" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {{ currentSchool.name }}
             </p>
           </div>
-
-          <!-- Branch Dropdown (Super Admin & Admin) -->
-          <div v-if="userRole !== 'branch_admin'">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Branch <span class="text-red-500">*</span>
-            </label>
-            <select
-              v-model="form.branch_id"
-              @change="onBranchChange"
-              required
-              class="input-field"
-              :class="{
-                'opacity-50': loadingBranches,
-                'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('branch_id')
-              }"
-              :disabled="!form.school_id || loadingBranches"
-            >
-              <option value="">
-                {{ loadingBranches ? 'Loading branches...' : 'Select Branch' }}
-              </option>
-              <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-                {{ branch.name }}
-              </option>
-            </select>
-            <div
-              v-if="getFieldError('branch_id')"
-              class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start"
-            >
-              <svg
-                class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              {{ getFieldError('branch_id') }}
-            </div>
-            <p
-              v-if="branches.length === 0 && !loadingBranches && form.school_id"
-              class="mt-1 text-sm text-red-600"
-            >
-              No branches found for this school
-            </p>
-          </div>
-
-          <!-- Auto-selected Branch Info (Branch Admin) -->
-          <div v-if="userRole === 'branch_admin' && userBranch">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >Branch</label
-            >
-            <div class="p-2 bg-gray-100 dark:bg-gray-700 rounded-md">
-              <p class="text-gray-800 dark:text-gray-200">{{ userBranch.name }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">
-                Auto-selected based on your role
-              </p>
-            </div>
-          </div>
+        </div>
+        <div class="text-xs text-gray-500 dark:text-gray-400 italic hidden sm:block">
+          Branch context selected from Top Navigation
         </div>
       </div>
 
@@ -342,11 +252,7 @@
               }"
             >
               <option value="">Select Category</option>
-              <option
-                v-for="category in studentCategories"
-                :key="category.id"
-                :value="category.id"
-              >
+              <option v-for="category in studentCategories" :key="category.id" :value="category.id">
                 {{ category.name }}
               </option>
             </select>
@@ -726,9 +632,7 @@
         </div>
 
         <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">
-            Sibling Details
-          </h3>
+          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">Sibling Details</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -756,35 +660,51 @@
         </div>
 
         <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">
-            Transport Details
-          </h3>
+          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">Transport Details</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Route
               </label>
-              <select v-model="form.student.transport_route_id" class="input-field" @change="syncTransportLabels">
+              <select
+                v-model="form.student.transport_route_id"
+                class="input-field"
+                @change="syncTransportLabels"
+              >
                 <option value="">No transport route</option>
-                <option v-for="item in transportRoutes" :key="item.id" :value="item.id">{{ item.title }}</option>
+                <option v-for="item in transportRoutes" :key="item.id" :value="item.id">
+                  {{ item.title }}
+                </option>
               </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Vehicle
               </label>
-              <select v-model="form.student.transport_vehicle_id" class="input-field" @change="syncTransportLabels">
+              <select
+                v-model="form.student.transport_vehicle_id"
+                class="input-field"
+                @change="syncTransportLabels"
+              >
                 <option value="">No vehicle</option>
-                <option v-for="item in transportVehicles" :key="item.id" :value="item.id">{{ item.title }}</option>
+                <option v-for="item in transportVehicles" :key="item.id" :value="item.id">
+                  {{ item.title }}
+                </option>
               </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Stoppage
               </label>
-              <select v-model="form.student.transport_stop_id" class="input-field" @change="syncTransportLabels">
+              <select
+                v-model="form.student.transport_stop_id"
+                class="input-field"
+                @change="syncTransportLabels"
+              >
                 <option value="">No stoppage</option>
-                <option v-for="item in transportStops" :key="item.id" :value="item.id">{{ item.title }}</option>
+                <option v-for="item in transportStops" :key="item.id" :value="item.id">
+                  {{ item.title }}
+                </option>
               </select>
             </div>
           </div>
@@ -1379,8 +1299,15 @@
               rows="2"
               :class="{ 'border-red-500': getFieldError(`custom_fields.${field.id}`) }"
             ></textarea>
-            <label v-else-if="field.field_type === 'checkbox'" class="inline-flex items-center gap-2 mt-2">
-              <input v-model="form.custom_fields[field.id]" type="checkbox" class="rounded border-gray-300" />
+            <label
+              v-else-if="field.field_type === 'checkbox'"
+              class="inline-flex items-center gap-2 mt-2"
+            >
+              <input
+                v-model="form.custom_fields[field.id]"
+                type="checkbox"
+                class="rounded border-gray-300"
+              />
               <span class="text-sm text-gray-700 dark:text-gray-300">Yes</span>
             </label>
             <input
@@ -1452,11 +1379,17 @@ import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
 import { Students } from '~/api';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { StudentCategories } from '~/api/students';
 import { useRoute, useRouter } from 'vue-router';
 import FormField from '~/components/ui/FormField.vue';
 import FormValidationSummary from '~/components/ui/FormValidationSummary.vue';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
+
+// Global Branch Context
+const authStore = useAuthStore();
+const { selectedBranchId, currentBranch, currentSchool } = useGlobalBranch();
 
 // Props
 const props = defineProps({
@@ -1856,7 +1789,8 @@ watch(
       form.student.sibling_admission_number = admissionExtras.sibling_admission_number || '';
       form.student.sibling_details = admissionExtras.sibling_details || '';
       form.student.previous_school_name = admissionExtras.previous_school_name || '';
-      form.student.previous_school_qualification = admissionExtras.previous_school_qualification || '';
+      form.student.previous_school_qualification =
+        admissionExtras.previous_school_qualification || '';
       form.student.previous_school_remarks = admissionExtras.previous_school_remarks || '';
       form.student.transport_route_id = admissionExtras.transport_route_id || '';
       form.student.transport_route = admissionExtras.transport_route || '';
@@ -2270,7 +2204,7 @@ const loadAcademicData = async () => {
 const loadCustomFields = async () => {
   if (!form.school_id) return;
   try {
-    const res = await SchoolOps.list('custom_field', {
+    const res = await DynamicEntities.list('custom_field', {
       school_id: form.school_id,
       ...(form.branch_id ? { branch_id: form.branch_id } : {})
     });
@@ -2290,9 +2224,9 @@ const loadTransportOptions = async () => {
   const params = { school_id: form.school_id };
   try {
     const [routes, vehicles, stops] = await Promise.all([
-      SchoolOps.list('transport_route', params),
-      SchoolOps.list('transport_vehicle', params),
-      SchoolOps.list('transport_stop', params)
+      DynamicEntities.list('transport_route', params),
+      DynamicEntities.list('transport_vehicle', params),
+      DynamicEntities.list('transport_stop', params)
     ]);
     transportRoutes.value = routes.data?.records || [];
     transportVehicles.value = vehicles.data?.records || [];
@@ -2306,9 +2240,13 @@ const loadTransportOptions = async () => {
 };
 
 const syncTransportLabels = () => {
-  form.student.transport_route = transportRoutes.value.find(item => item.id === form.student.transport_route_id)?.title || '';
-  form.student.transport_vehicle = transportVehicles.value.find(item => item.id === form.student.transport_vehicle_id)?.title || '';
-  form.student.transport_stop = transportStops.value.find(item => item.id === form.student.transport_stop_id)?.title || '';
+  form.student.transport_route =
+    transportRoutes.value.find(item => item.id === form.student.transport_route_id)?.title || '';
+  form.student.transport_vehicle =
+    transportVehicles.value.find(item => item.id === form.student.transport_vehicle_id)?.title ||
+    '';
+  form.student.transport_stop =
+    transportStops.value.find(item => item.id === form.student.transport_stop_id)?.title || '';
 };
 
 // Validation functions for numeric fields
@@ -3296,67 +3234,36 @@ onMounted(async () => {
       return;
     }
 
-    // If editing, wait for initial data to be loaded first
-    if (props.isEditing) {
-      // Wait a bit for the initial data to be populated
+    // Auto-sync with global branch and school
+    if (!props.isEditing) {
+      form.school_id =
+        currentSchool.value?.id ||
+        authStore.currentBranch?.school_id ||
+        user.value?.school_id ||
+        '';
+      form.branch_id =
+        selectedBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
+      if (form.branch_id) {
+        await onBranchChange();
+      }
+    } else {
+      // If editing, wait for initial data to be loaded first
       await new Promise(resolve => setTimeout(resolve, 200));
       console.log('🔍 onMounted: After delay, initial data:', props.initialData);
-    } else {
-      form.branch_id = '';
     }
 
-    if (userRole.value === 'super_admin') {
-      await loadSchools();
-    } else if (userRole.value === 'admin') {
-      if (user.value?.school_id) {
-        form.school_id = user.value.school_id;
-        loadingBranches.value = true;
-        try {
-          await fetchBranches(user.value.school_id);
-          if (branches.value?.length > 0) {
-            // Only auto-select branch if in edit mode
-            if (branches.value.length === 1 && props.isEditing) {
-              const branch = branches.value[0];
-              form.branch_id = branch.id;
-              // Use onBranchChange to ensure proper flow
-              await onBranchChange();
-            } else {
-              // ✅ CREATE MODE → keep empty → forces placeholder
-            }
-          } else {
-            showError('No branches found for your school');
-          }
-        } catch (error) {
-          showError('Failed to load branch data');
-        } finally {
-          loadingBranches.value = false;
-        }
-      } else {
-        showError('School information not found');
+    // Watch top bar branch switch for create mode
+    watch(selectedBranchId, async newVal => {
+      if (!props.isEditing && newVal && newVal !== form.branch_id) {
+        form.school_id =
+          currentSchool.value?.id ||
+          authStore.currentBranch?.school_id ||
+          user.value?.school_id ||
+          '';
+        form.branch_id = newVal;
+        await onBranchChange();
       }
-    } else if (userRole.value === 'branch_admin') {
-      if (user.value?.branch_id && user.value?.school_id) {
-        form.school_id = user.value.school_id;
-        // Only auto-select branch if in edit mode
-        if (props.isEditing) {
-          form.branch_id = user.value.branch_id;
-          userBranch.value = {
-            id: user.value.branch_id,
-            name: user.value.branch_name || 'Your Branch'
-          };
-          // Use onBranchChange to ensure proper flow
-          await onBranchChange();
-        } else {
-          // In create mode, just set the user branch info but don't auto-select
-          userBranch.value = {
-            id: user.value.branch_id,
-            name: user.value.branch_name || 'Your Branch'
-          };
-        }
-      } else {
-        showError('Branch information not found');
-      }
-    }
+    });
 
     // If editing, map class and section names to IDs
     if (

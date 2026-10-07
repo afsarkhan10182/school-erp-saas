@@ -2,7 +2,7 @@ import { ref, computed } from 'vue';
 import { useAuth } from '~/composables/useAuth';
 import { Saas } from '~/api/administration/saas';
 import { Schools } from '~/api/administration/schools';
-import { SCHOOL_OPS_ENTITIES } from '~/config/school-ops';
+import { MODULE_ENTITY_DEFINITIONS } from '~/config/entity-definitions';
 import { ROUTE_MODULE_MAP } from '~/config/modules';
 
 // Global state to prevent multiple API calls
@@ -47,10 +47,15 @@ export function useModuleAccess() {
       return true;
     }
 
+    // If module loading failed, allow all modules (fail open for UX)
     if (globalModuleLoadFailed) return true;
 
-    const enabled = userModules.value.includes(moduleCode);
-    return enabled;
+    // If no modules loaded yet (empty list), allow all modules
+    // This handles: new schools, schools without a subscription plan,
+    // or schools whose plan has no modules configured yet
+    if (userModules.value.length === 0) return true;
+
+    return userModules.value.includes(moduleCode);
   };
 
   // Load user's enabled modules from their school's subscription plan
@@ -116,10 +121,7 @@ export function useModuleAccess() {
             sessionStorage.setItem('user-modules', JSON.stringify(allModules));
             sessionStorage.setItem('user-modules-time', globalLastFetch.toString());
           }
-
-          console.log('✅ Super admin modules loaded:', allModules);
         } else {
-          console.warn('❌ Failed to load super admin modules:', response.message);
           // Set empty modules to prevent blocking
           globalUserModules = [];
           userModules.value = [];
@@ -155,7 +157,6 @@ export function useModuleAccess() {
             sessionStorage.setItem('modules-updated-at', response.data.modules_updated_at);
           }
         } else {
-          console.warn('❌ Failed to load modules:', response.message);
           // Set empty modules to prevent blocking
           globalUserModules = [];
           userModules.value = [];
@@ -208,15 +209,15 @@ export function useModuleAccess() {
     // Normalize route path (remove trailing slash for consistent matching)
     const normalizedPath = routePath.replace(/\/$/, '');
 
-    // Route → module (shared catalog). Ops screens use SCHOOL_OPS_ENTITIES.module.
+    // Route → module (shared catalog). Dynamic screens use MODULE_ENTITY_DEFINITIONS.module.
     const routeModuleMap: Record<string, string> = { ...ROUTE_MODULE_MAP };
 
     // Check for exact match first
     let requiredModule = routeModuleMap[normalizedPath];
 
-    if (!requiredModule && normalizedPath.startsWith('/ops/')) {
+    if (!requiredModule && normalizedPath.match(/^\/[^/]+\/[^/]+$/)) {
       const entity = normalizedPath.split('/')[2];
-      const meta = SCHOOL_OPS_ENTITIES[entity];
+      const meta = MODULE_ENTITY_DEFINITIONS[entity];
       if (meta) requiredModule = meta.module;
     }
 
@@ -251,7 +252,7 @@ export function useModuleAccess() {
   };
 
   // Clear module cache (useful for logout or when subscription changes)
-  const clearModuleCache = () => {
+  const clearModuleCacheLocal = () => {
     globalUserModules = [];
     globalLastFetch = 0;
     userModules.value = [];
@@ -265,7 +266,7 @@ export function useModuleAccess() {
 
   // Refresh modules (useful when subscription changes)
   const refreshModules = async () => {
-    clearModuleCache();
+    clearModuleCacheLocal();
     await loadUserModules(true);
   };
 
@@ -282,14 +283,14 @@ export function useModuleAccess() {
 
         // If timestamp changed, clear cache and reload silently
         if (serverTimestamp !== cachedTimestamp) {
-          clearModuleCache();
+          clearModuleCacheLocal();
           sessionStorage.setItem('modules-updated-at', serverTimestamp);
           await loadUserModules(true);
           // No toast notification - silent update
         }
       }
     } catch (error) {
-      console.warn('Failed to check module updates:', error);
+      // Silently fail - module check is non-critical
     }
   };
 
@@ -327,9 +328,7 @@ export function useModuleAccess() {
           globalLastFetch = parseInt(cachedTime);
           userModules.value = globalUserModules;
           return true;
-        } else {
         }
-      } else {
       }
     }
     return false;
@@ -341,7 +340,7 @@ export function useModuleAccess() {
     isModuleEnabled,
     loadUserModules,
     areModulesLoaded,
-    clearModuleCache,
+    clearModuleCache: clearModuleCacheLocal,
     refreshModules,
     initializeFromCache,
     filterMenuByModules,

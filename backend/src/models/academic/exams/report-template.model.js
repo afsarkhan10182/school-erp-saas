@@ -94,6 +94,7 @@ const ReportTemplate = sequelize => {
     {
       tableName: 'report_templates',
       timestamps: true,
+      underscored: true,
       paranoid: false,
       indexes: [
         {

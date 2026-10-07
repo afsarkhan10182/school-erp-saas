@@ -24,7 +24,7 @@ router.use(verifyToken, setSchoolContext, requireModuleAccess('exams'));
  * @access Private (EXAM_ROLES)
  * @query {number} page, {number} limit, {string} report_type, {string} status
  */
-router.get('/exams/:examId/reports', requireRole(EXAM_ROLES), ExamReportController.getByExamId);
+router.get('/exams/:examId/reports', requireRole(...EXAM_ROLES), ExamReportController.getByExamId);
 
 /**
  * @route POST /api/exams/:examId/reports/preview
@@ -34,7 +34,7 @@ router.get('/exams/:examId/reports', requireRole(EXAM_ROLES), ExamReportControll
  */
 router.post(
   '/exams/:examId/reports/preview',
-  requireRole(EXAM_ROLES),
+  requireRole(...EXAM_ROLES),
   ExamReportController.preview
 );
 
@@ -46,7 +46,7 @@ router.post(
  */
 router.post(
   '/exams/:examId/reports/generate',
-  requireRole(EXAM_ADMIN_ROLES),
+  requireRole(...EXAM_ADMIN_ROLES),
   ExamReportController.generate
 );
 
@@ -55,14 +55,14 @@ router.post(
  * @desc Download report
  * @access Private (EXAM_ROLES)
  */
-router.get('/:reportId/download', requireRole(EXAM_ROLES), ExamReportController.download);
+router.get('/:reportId/download', requireRole(...EXAM_ROLES), ExamReportController.download);
 
 /**
  * @route DELETE /api/exam-reports/:reportId
  * @desc Delete report
  * @access Private (EXAM_ADMIN_ROLES)
  */
-router.delete('/:reportId', requireRole(EXAM_ADMIN_ROLES), ExamReportController.delete);
+router.delete('/:reportId', requireRole(...EXAM_ADMIN_ROLES), ExamReportController.delete);
 
 /**
  * @route GET /api/exam-reports/:reportId
@@ -70,7 +70,7 @@ router.delete('/:reportId', requireRole(EXAM_ADMIN_ROLES), ExamReportController.
  * @access Private (EXAM_ROLES)
  * @note This catch-all route should not match /download/:reportId which is handled in exam-reports.js
  */
-router.get('/:reportId', requireRole(EXAM_ROLES), (req, res, next) => {
+router.get('/:reportId', requireRole(...EXAM_ROLES), (req, res, next) => {
   // Skip if this is a download request (should be handled by exam-reports.js)
   // Check if the original URL contains /download/ to avoid matching download routes
   const originalUrl = req.originalUrl || req.url;

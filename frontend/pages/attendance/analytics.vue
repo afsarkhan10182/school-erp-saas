@@ -44,17 +44,6 @@
           />
         </div>
 
-        <!-- Branch (for Super Admin and Admin) -->
-        <div v-if="isSuperAdmin || isAdmin">
-          <EnhancedDropdown
-            v-model="filters.branch_id"
-            :options="branchOptions"
-            label="Branch"
-            placeholder="All Branches"
-            @change="onBranchChange"
-          />
-        </div>
-
         <!-- Period -->
         <div>
           <EnhancedDropdown
@@ -103,7 +92,7 @@
           <button
             @click="loadAnalyticsData"
             :disabled="loading"
-            class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             <svg
               v-if="loading"
@@ -148,7 +137,7 @@
           <input
             v-model="filters.custom_start_date"
             type="date"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
             @change="loadAnalyticsData"
           />
         </div>
@@ -159,7 +148,7 @@
           <input
             v-model="filters.custom_end_date"
             type="date"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
             @change="loadAnalyticsData"
           />
         </div>
@@ -177,7 +166,7 @@
             ? 'bg-red-50 border-red-400 text-red-700 dark:bg-red-900/20 dark:text-red-400'
             : alert.type === 'warning'
               ? 'bg-yellow-50 border-yellow-400 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
-              : 'bg-blue-50 border-blue-400 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+              : 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400'
         ]"
       >
         <div class="flex">
@@ -230,10 +219,10 @@
         <div class="flex items-center">
           <div class="flex-shrink-0">
             <div
-              class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center"
+              class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center"
             >
               <svg
-                class="w-5 h-5 text-blue-600 dark:text-blue-400"
+                class="w-5 h-5 text-indigo-600 dark:text-indigo-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -475,9 +464,9 @@
           >
             <div class="flex items-center">
               <div
-                class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-3"
+                class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center mr-3"
               >
-                <span class="text-sm font-medium text-blue-600 dark:text-blue-400">{{
+                <span class="text-sm font-medium text-indigo-600 dark:text-indigo-400">{{
                   index + 1
                 }}</span>
               </div>
@@ -496,7 +485,7 @@
               </p>
               <div class="w-20 bg-gray-200 dark:bg-gray-600 rounded-full h-2 mt-1">
                 <div
-                  class="bg-blue-600 h-2 rounded-full"
+                  class="bg-indigo-600 h-2 rounded-full"
                   :style="{ width: `${classData.attendanceRate}%` }"
                 ></div>
               </div>
@@ -586,20 +575,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
-import { useBranches } from '~/composables/useBranches';
 import { useAttendance } from '~/composables/useAttendance';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { showToast } = useToast();
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { schools, fetchSchools } = useSchools();
-const { branches, fetchAllBranches } = useBranches();
 const {
   classOptions,
   sectionOptions,
@@ -616,12 +605,22 @@ const { analytics, analyticsLoading: loading, loadAnalytics, exportAnalytics } =
 const filters = ref({
   period: 'this_month',
   school_id: '',
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   class_id: '',
   section_id: '',
   academic_year: '',
   custom_start_date: '',
   custom_end_date: ''
+});
+
+watch(selectedBranchId, async newBranchId => {
+  filters.value.branch_id = newBranchId || '';
+  filters.value.class_id = '';
+  filters.value.section_id = '';
+  if (newBranchId) {
+    await fetchClasses({ branchId: newBranchId });
+  }
+  await loadAnalyticsData();
 });
 
 // Computed options for dropdowns
@@ -632,12 +631,6 @@ const schoolOptions = computed(() =>
   }))
 );
 
-const branchOptions = computed(() =>
-  branches.value.map((branch: any) => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
 
 const periodOptions = computed(() => [
   { value: 'today', label: 'Today' },
@@ -663,10 +656,8 @@ const onSchoolChange = async () => {
   filters.value.section_id = '';
 
   if (filters.value.school_id) {
-    await fetchAllBranches({ school_id: filters.value.school_id });
   } else {
-    branches.value = [];
-  }
+      }
 };
 
 const onBranchChange = async () => {
@@ -743,7 +734,6 @@ onMounted(async () => {
     } else if (isAdmin.value) {
       // Admin: Load branches for their school directly
       filters.value.school_id = user.value?.school_id || '';
-      await fetchAllBranches({ school_id: filters.value.school_id });
     } else if (isBranchAdmin.value) {
       // Branch Admin: Load classes for their branch directly
       filters.value.school_id = user.value?.school_id || '';

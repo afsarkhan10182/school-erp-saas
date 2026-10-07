@@ -628,47 +628,121 @@
             </div>
 
             <!-- Student history mirrors the operational tabs in the legacy profile. -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+            <div
+              class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+            >
+              <div
+                class="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"
+              >
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Student History</h3>
               </div>
               <div class="p-4 sm:p-6 space-y-6">
                 <section>
                   <h4 class="font-medium text-gray-900 dark:text-white mb-2">Promotion History</h4>
-                  <p v-if="!student.promotion_history?.length" class="text-sm text-gray-500">No information available</p>
+                  <p v-if="!student.promotion_history?.length" class="text-sm text-gray-500">
+                    No information available
+                  </p>
                   <div v-else class="overflow-x-auto">
                     <table class="min-w-full text-sm">
-                      <thead><tr class="text-left text-gray-500"><th class="py-2">From session</th><th>Promoted session</th><th>Action</th><th>Date</th></tr></thead>
-                      <tbody><tr v-for="item in student.promotion_history" :key="item.id" class="border-t dark:border-gray-700"><td class="py-2">{{ item.from_academic_year || '—' }}</td><td>{{ item.to_academic_year || '—' }}</td><td class="capitalize">{{ item.action }}</td><td>{{ formatDate(item.createdAt) }}</td></tr></tbody>
+                      <thead>
+                        <tr class="text-left text-gray-500">
+                          <th class="py-2">From session</th>
+                          <th>Promoted session</th>
+                          <th>Action</th>
+                          <th>Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="item in student.promotion_history"
+                          :key="item.id"
+                          class="border-t dark:border-gray-700"
+                        >
+                          <td class="py-2">{{ item.from_academic_year || '—' }}</td>
+                          <td>{{ item.to_academic_year || '—' }}</td>
+                          <td class="capitalize">{{ item.action }}</td>
+                          <td>{{ formatDate(item.createdAt) }}</td>
+                        </tr>
+                      </tbody>
                     </table>
                   </div>
                 </section>
                 <section>
                   <h4 class="font-medium text-gray-900 dark:text-white mb-2">Book Issues</h4>
-                  <p v-if="!student.book_issues?.length" class="text-sm text-gray-500">No information available</p>
+                  <p v-if="!student.book_issues?.length" class="text-sm text-gray-500">
+                    No information available
+                  </p>
                   <div v-else class="overflow-x-auto">
                     <table class="min-w-full text-sm">
-                      <thead><tr class="text-left text-gray-500"><th class="py-2">Book</th><th>Issued</th><th>Due</th><th>Status</th></tr></thead>
-                      <tbody><tr v-for="item in student.book_issues" :key="item.id" class="border-t dark:border-gray-700"><td class="py-2">{{ item.book?.title || '—' }}</td><td>{{ formatDate(item.issue_date) }}</td><td>{{ formatDate(item.due_date) }}</td><td class="capitalize">{{ item.status }}</td></tr></tbody>
+                      <thead>
+                        <tr class="text-left text-gray-500">
+                          <th class="py-2">Book</th>
+                          <th>Issued</th>
+                          <th>Due</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="item in student.book_issues"
+                          :key="item.id"
+                          class="border-t dark:border-gray-700"
+                        >
+                          <td class="py-2">{{ item.book?.title || '—' }}</td>
+                          <td>{{ formatDate(item.issue_date) }}</td>
+                          <td>{{ formatDate(item.due_date) }}</td>
+                          <td class="capitalize">{{ item.status }}</td>
+                        </tr>
+                      </tbody>
                     </table>
                   </div>
                 </section>
                 <section v-if="isModuleEnabled('exams')">
                   <h4 class="font-medium text-gray-900 dark:text-white mb-2">Exam Results</h4>
-                  <p v-if="!examHistory.length" class="text-sm text-gray-500">No information available</p>
+                  <p v-if="!examHistory.length" class="text-sm text-gray-500">
+                    No information available
+                  </p>
                   <div v-else class="overflow-x-auto">
                     <table class="min-w-full text-sm">
-                      <thead><tr class="text-left text-gray-500"><th class="py-2">Exam</th><th>Marks</th><th>Percentage</th><th>Grade</th></tr></thead>
-                      <tbody><tr v-for="item in examHistory" :key="item.id" class="border-t dark:border-gray-700"><td class="py-2">{{ item.exam?.name || '—' }}</td><td>{{ item.is_absent ? 'Absent' : item.marks_obtained }}</td><td>{{ item.percentage }}%</td><td>{{ item.grade || '—' }}</td></tr></tbody>
+                      <thead>
+                        <tr class="text-left text-gray-500">
+                          <th class="py-2">Exam</th>
+                          <th>Marks</th>
+                          <th>Percentage</th>
+                          <th>Grade</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="item in examHistory"
+                          :key="item.id"
+                          class="border-t dark:border-gray-700"
+                        >
+                          <td class="py-2">{{ item.exam?.name || '—' }}</td>
+                          <td>{{ item.is_absent ? 'Absent' : item.marks_obtained }}</td>
+                          <td>{{ item.percentage }}%</td>
+                          <td>{{ item.grade || '—' }}</td>
+                        </tr>
+                      </tbody>
                     </table>
                   </div>
                 </section>
                 <section>
-                  <h4 class="font-medium text-gray-900 dark:text-white mb-2">Sibling Information</h4>
-                  <p v-if="!student.siblings?.length" class="text-sm text-gray-500">No information available</p>
+                  <h4 class="font-medium text-gray-900 dark:text-white mb-2">
+                    Sibling Information
+                  </h4>
+                  <p v-if="!student.siblings?.length" class="text-sm text-gray-500">
+                    No information available
+                  </p>
                   <div v-else class="flex flex-wrap gap-2">
-                    <NuxtLink v-for="item in student.siblings" :key="item.id" :to="`/students/${item.id}`" class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-700 text-sm text-indigo-600 dark:text-indigo-300">
-                      {{ item.first_name }} {{ item.last_name }} · {{ item.current_class || 'No class' }}
+                    <NuxtLink
+                      v-for="item in student.siblings"
+                      :key="item.id"
+                      :to="`/students/${item.id}`"
+                      class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-700 text-sm text-indigo-600 dark:text-indigo-300"
+                    >
+                      {{ item.first_name }} {{ item.last_name }} ·
+                      {{ item.current_class || 'No class' }}
                     </NuxtLink>
                   </div>
                 </section>
@@ -702,28 +776,40 @@
               </div>
               <div class="p-4 sm:p-6">
                 <div v-if="student.documents.admission_extras" class="mb-4">
-                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Admission Details</h4>
+                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                    Admission Details
+                  </h4>
                   <div class="grid grid-cols-1 gap-2">
                     <div
                       v-for="[key, value] in visibleAdmissionExtras"
                       :key="key"
                       class="flex items-start justify-between gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded"
                     >
-                      <span class="text-sm text-gray-700 dark:text-gray-300 capitalize">{{ key.replace(/_/g, ' ') }}</span>
-                      <span class="text-sm text-gray-900 dark:text-white text-right">{{ value || '—' }}</span>
+                      <span class="text-sm text-gray-700 dark:text-gray-300 capitalize">{{
+                        key.replace(/_/g, ' ')
+                      }}</span>
+                      <span class="text-sm text-gray-900 dark:text-white text-right">{{
+                        value || '—'
+                      }}</span>
                     </div>
                   </div>
                 </div>
                 <div v-if="student.documents.custom_fields" class="mb-4">
-                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Custom Fields</h4>
+                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                    Custom Fields
+                  </h4>
                   <div class="grid grid-cols-1 gap-2">
                     <div
                       v-for="(value, key) in student.documents.custom_fields"
                       :key="key"
                       class="flex items-start justify-between gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded"
                     >
-                      <span class="text-sm text-gray-700 dark:text-gray-300">{{ student.documents.custom_field_labels?.[key] || key }}</span>
-                      <span class="text-sm text-gray-900 dark:text-white text-right">{{ value === true ? 'Yes' : value || '—' }}</span>
+                      <span class="text-sm text-gray-700 dark:text-gray-300">{{
+                        student.documents.custom_field_labels?.[key] || key
+                      }}</span>
+                      <span class="text-sm text-gray-900 dark:text-white text-right">{{
+                        value === true ? 'Yes' : value || '—'
+                      }}</span>
                     </div>
                   </div>
                 </div>
@@ -784,7 +870,7 @@ import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { CreditCard } from 'lucide-vue-next';
 import { Exams, Students } from '~/api';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useAuthStore } from '~/stores/auth';
 import { useModuleAccess } from '~/composables/useModuleAccess';
 import UserAvatar from '~/components/shared/UserAvatar.vue';
@@ -799,7 +885,9 @@ const student = ref(null);
 const examHistory = ref([]);
 const isLoading = ref(false);
 const visibleAdmissionExtras = computed(() =>
-  Object.entries(student.value?.documents?.admission_extras || {}).filter(([key]) => !key.endsWith('_id'))
+  Object.entries(student.value?.documents?.admission_extras || {}).filter(
+    ([key]) => !key.endsWith('_id')
+  )
 );
 
 const fetchStudent = async () => {
@@ -854,8 +942,9 @@ const createLogin = async () => {
   try {
     const email = student.value?.email || window.prompt('Login email');
     if (!email) return;
-    const password = window.prompt('Password for student login (blank = auto-generate)') || undefined;
-    const res = await SchoolOps.createStudentLogin(studentId, { email, password });
+    const password =
+      window.prompt('Password for student login (blank = auto-generate)') || undefined;
+    const res = await DynamicEntities.createStudentLogin(studentId, { email, password });
     await fetchStudent();
     window.alert(`Login created. Email: ${res.data?.email} Password: ${res.data?.password}`);
   } catch (error) {
@@ -902,7 +991,7 @@ const getStatusClass = status => {
   const classes = {
     active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     inactive: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-    graduated: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    graduated: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
     dropped: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
     transferred: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
   };

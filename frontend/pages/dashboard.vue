@@ -1,328 +1,432 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Module Access Error Alert -->
-      <div
-        v-if="$route.query.error === 'module_access_denied'"
-        class="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
-      >
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </div>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Module Access Denied</h3>
-            <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-              You don't have access to <strong>{{ getModuleName($route.query.module) }}</strong
-              >. This feature requires a higher subscription plan. Please contact your administrator
-              to upgrade your subscription.
-            </p>
-          </div>
+  <div class="w-full space-y-6">
+    <!-- Module Access Error Alert -->
+    <div
+      v-if="$route.query.error === 'module_access_denied'"
+      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 shadow-sm"
+    >
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Module Access Denied</h3>
+          <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+            You don't have access to <strong>{{ getModuleName($route.query.module) }}</strong
+            >. This feature requires a higher subscription plan. Please contact your administrator
+            to upgrade your subscription.
+          </p>
         </div>
       </div>
+    </div>
 
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+    <!-- Header & Branch Selector -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
           {{ dashboardTitle }}
         </h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Welcome back, {{ authStore.currentUser?.first_name || 'User' }}! Here's what's happening
           today.
         </p>
       </div>
+    </div>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-        <span class="ml-3 text-lg text-gray-600 dark:text-gray-400">Loading dashboard...</span>
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-16">
+      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
+      <span class="ml-3 text-base text-gray-600 dark:text-gray-400">Loading dashboard...</span>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div v-else class="space-y-6">
+      <!-- Row 1: Quick Stats -->
+      <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <!-- Total Students -->
+        <div class="stat-card flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Total Students</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+            >
+              <Users class="w-5 h-5" />
+            </div>
+          </div>
+          <div class="mt-3">
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.totalStudents || 0 }}</span
+            >
+          </div>
+        </div>
+
+        <!-- Total Parents -->
+        <div class="stat-card flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Total Parents</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+            >
+              <UserCheck class="w-5 h-5" />
+            </div>
+          </div>
+          <div class="mt-3">
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.totalParents || 0 }}</span
+            >
+          </div>
+        </div>
+
+        <!-- Total Teachers -->
+        <div class="stat-card flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Total Teachers</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
+            >
+              <BookOpen class="w-5 h-5" />
+            </div>
+          </div>
+          <div class="mt-3">
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.totalTeachers || 0 }}</span
+            >
+          </div>
+        </div>
+
+        <!-- Total Staff -->
+        <div class="stat-card flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Total Staff</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+            >
+              <Activity class="w-5 h-5" />
+            </div>
+          </div>
+          <div class="mt-3">
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.totalEmployees || 0 }}</span
+            >
+          </div>
+        </div>
+
+        <!-- New Students -->
+        <div class="stat-card flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            >
+              New Students ({{ stats.newStudentsDays || dashboardConfig.newStudentsDays }}d)
+            </span>
+            <div
+              class="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+            >
+              <UserPlus class="w-5 h-5" />
+            </div>
+          </div>
+          <div class="mt-3">
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.newStudents || 0 }}</span
+            >
+          </div>
+        </div>
+
+        <!-- This Month Collection -->
+        <div v-if="isModuleEnabled('fees')" class="stat-card flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >This Month Fees</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+            >
+              <DollarSign class="w-5 h-5" />
+            </div>
+          </div>
+          <div class="mt-3">
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >₹{{ formatCurrency(stats.feeCollection || 0) }}</span
+            >
+          </div>
+        </div>
+
+        <!-- Pending Fees -->
+        <div v-if="isModuleEnabled('fees')" class="stat-card flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Pending Fees</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"
+            >
+              <AlertTriangle class="w-5 h-5" />
+            </div>
+          </div>
+          <div class="mt-3">
+            <span
+              class="text-2xl lg:text-3xl font-bold text-rose-600 dark:text-rose-400 tracking-tight"
+            >
+              {{ (stats.pendingFees || 0) + (stats.overdueFees || 0) }}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <!-- Dashboard Content -->
-      <div v-else class="space-y-8">
-        <!-- Row 1: Quick Stats + Branch Filter -->
-        <div :class="['grid gap-4', gridLayout]">
-          <!-- Total Students -->
-          <div class="stat-card bg-blue-500 text-white">
-            <Users class="w-5 h-5" />
-            <p class="mt-1 text-xs font-medium">Total Students</p>
-            <p class="text-xl font-bold">{{ stats.totalStudents || 0 }}</p>
-          </div>
-
-          <!-- New Students -->
-          <div class="stat-card bg-green-500 text-white">
-            <UserPlus class="w-5 h-5" />
-            <p class="mt-1 text-xs font-medium">
-              New Students ({{ stats.newStudentsDays || dashboardConfig.newStudentsDays }}d)
-            </p>
-            <p class="text-xl font-bold">{{ stats.newStudents || 0 }}</p>
-          </div>
-
-          <!-- This Month Collection -->
-          <div v-if="isModuleEnabled('fees')" class="stat-card bg-purple-500 text-white">
-            <DollarSign class="w-5 h-5" />
-            <p class="mt-1 text-xs font-medium">This Month Collection</p>
-            <p class="text-xl font-bold">₹{{ formatCurrency(stats.feeCollection || 0) }}</p>
-          </div>
-
-          <!-- Pending Fees -->
-          <div v-if="isModuleEnabled('fees')" class="stat-card bg-red-500 text-white">
-            <AlertTriangle class="w-5 h-5" />
-            <p class="mt-1 text-xs font-medium">Pending Fees</p>
-            <p class="text-xl font-bold">
-              {{ (stats.pendingFees || 0) + (stats.overdueFees || 0) }}
-            </p>
-          </div>
-
-          <!-- Branch Filter - Only show for Super Admin or Admin with multiple branches -->
-          <div
-            v-if="shouldShowBranchFilter"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4"
-          >
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-base font-semibold text-gray-900 dark:text-white">Branch Filter</h3>
-              <select
-                v-model="selectedBranch"
-                @change="onBranchChange"
-                class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                :disabled="loadingBranches"
+      <!-- Row 2: Core Insights -->
+      <div :class="['grid gap-6 min-w-0', row2GridLayout]">
+        <!-- Fee Collection Summary + Pie Chart -->
+        <div
+          v-if="isModuleEnabled('fees')"
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-sm p-5 sm:p-6 min-w-0"
+        >
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+              Fee Collection Summary
+              <span
+                v-if="loadingAcademicYears"
+                class="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1"
+                >(Loading...)</span
               >
-                <option value="">All Branches</option>
-                <option v-if="loadingBranches" value="" disabled>Loading branches...</option>
-                <option v-else-if="branches.length === 0" value="" disabled>
-                  No branches available
-                </option>
-                <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                  {{ branch.name }}
-                </option>
-              </select>
-            </div>
-            <p class="text-xs text-gray-600 dark:text-gray-400">Filter dashboard data by branch</p>
-          </div>
-        </div>
-
-        <!-- Row 2: Core Insights -->
-        <div :class="['grid gap-8', row2GridLayout]">
-          <!-- Fee Collection Summary + Pie Chart -->
-          <div
-            v-if="isModuleEnabled('fees')"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-          >
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                Fee Collection Summary
-                <span v-if="loadingAcademicYears" class="text-gray-500 dark:text-gray-400"
-                  >(Loading...)</span
-                >
-                <span
-                  v-else-if="feeCollectionSummary.academic_year"
-                  class="text-gray-900 dark:text-white"
-                  >({{ feeCollectionSummary.academic_year }})</span
-                >
-                <span v-else class="text-gray-500 dark:text-gray-400">(No data)</span>
-              </h2>
-              <div class="flex items-center space-x-2">
-                <select
-                  v-model="selectedAcademicYear"
-                  :disabled="loadingAcademicYears || academicYears.length === 0"
-                  class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option v-if="loadingAcademicYears" value="">Loading academic years...</option>
-                  <option v-else-if="academicYears.length === 0" value="">
-                    No academic years available
-                  </option>
-                  <option v-for="year in academicYears" :key="year.id" :value="year.name">
-                    {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <div v-if="loadingFeeSummary" class="flex items-center justify-center py-8">
-              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400"
-                >Loading fee summary...</span
+              <span
+                v-else-if="feeCollectionSummary.academic_year"
+                class="text-xs text-indigo-600 dark:text-indigo-400 font-medium ml-1"
+                >({{ feeCollectionSummary.academic_year }})</span
               >
+              <span v-else class="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1"
+                >(No data)</span
+              >
+            </h2>
+            <div class="flex items-center space-x-2">
+              <EnhancedDropdown
+                v-model="selectedAcademicYear"
+                :options="academicYears.map(year => ({ value: year.name, label: `${year.name}${year.is_current ? ' (Current)' : ''}` }))"
+                placeholder="Select academic year"
+                id="dashboard-academic-year"
+                :disabled="loadingAcademicYears || academicYears.length === 0"
+              />
             </div>
+          </div>
 
-            <div v-else class="space-y-6">
-              <!-- Summary Cards -->
-              <div class="grid grid-cols-2 gap-4">
-                <div
-                  class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4"
-                >
-                  <div class="flex items-center">
-                    <CheckCircle class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
-                    <span class="text-sm font-medium text-green-800 dark:text-green-200"
-                      >Total Collected</span
-                    >
-                  </div>
-                  <p class="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
-                    ₹{{ formatCurrency(feeCollectionSummary.total_collected || 0) }}
-                  </p>
-                </div>
+          <div v-if="loadingFeeSummary" class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400"
+              >Loading fee summary...</span
+            >
+          </div>
 
-                <div
-                  class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
-                >
-                  <div class="flex items-center">
-                    <AlertTriangle class="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
-                    <span class="text-sm font-medium text-red-800 dark:text-red-200"
-                      >Total Pending</span
-                    >
-                  </div>
-                  <p class="text-2xl font-bold text-red-900 dark:text-red-100 mt-1">
-                    ₹{{ formatCurrency(feeCollectionSummary.total_pending || 0) }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Fee Collection Chart -->
-              <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-48">
-                <canvas ref="feesChart"></canvas>
-              </div>
-
-              <!-- Additional Stats -->
+          <div v-else class="space-y-6">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-2 gap-3 sm:gap-4">
               <div
-                class="grid grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+                class="bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/60 rounded-xl p-3.5 sm:p-4"
               >
-                <div class="text-center">
-                  <p class="text-lg font-semibold text-gray-900 dark:text-white">
-                    {{ feeCollectionSummary.total_invoices || 0 }}
-                  </p>
-                  <p class="text-xs text-gray-600 dark:text-gray-400">Total Invoices</p>
+                <div class="flex items-center gap-1.5">
+                  <CheckCircle class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span
+                    class="text-xs font-semibold text-emerald-800 dark:text-emerald-200 uppercase tracking-wider"
+                    >Collected</span
+                  >
                 </div>
-                <div class="text-center">
-                  <p class="text-lg font-semibold text-green-600 dark:text-green-400">
-                    {{ feeCollectionSummary.paid_invoices || 0 }}
-                  </p>
-                  <p class="text-xs text-gray-600 dark:text-gray-400">Paid</p>
-                </div>
-                <div class="text-center">
-                  <p class="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
-                    {{ feeCollectionSummary.pending_invoices || 0 }}
-                  </p>
-                  <p class="text-xs text-gray-600 dark:text-gray-400">Pending</p>
-                </div>
-                <div class="text-center">
-                  <p class="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                    {{ feeCollectionSummary.collection_rate || 0 }}%
-                  </p>
-                  <p class="text-xs text-gray-600 dark:text-gray-400">Collection Rate</p>
-                </div>
+                <p
+                  class="text-xl sm:text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-1"
+                >
+                  ₹{{ formatCurrency(feeCollectionSummary.total_collected || 0) }}
+                </p>
               </div>
-            </div>
-          </div>
 
-          <!-- Student Distribution + Monthly Trends -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-              Student Distribution & Trends
-            </h2>
-
-            <!-- Student Distribution Chart -->
-            <div class="mb-6">
-              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                Student Distribution
-              </h3>
-              <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-48">
-                <canvas ref="studentDistributionChart"></canvas>
+              <div
+                class="bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-800/60 rounded-xl p-3.5 sm:p-4"
+              >
+                <div class="flex items-center gap-1.5">
+                  <AlertTriangle class="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                  <span
+                    class="text-xs font-semibold text-rose-800 dark:text-rose-200 uppercase tracking-wider"
+                    >Pending</span
+                  >
+                </div>
+                <p class="text-xl sm:text-2xl font-bold text-rose-900 dark:text-rose-100 mt-1">
+                  ₹{{ formatCurrency(feeCollectionSummary.total_pending || 0) }}
+                </p>
               </div>
             </div>
 
-            <!-- Monthly Trends -->
-            <div>
-              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Monthly Trends</h3>
-              <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-48">
-                <canvas ref="studentsChart"></canvas>
+            <!-- Fee Collection Chart -->
+            <div
+              class="relative w-full h-48 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0"
+            >
+              <canvas ref="feesChart"></canvas>
+            </div>
+
+            <!-- Additional Stats -->
+            <div
+              class="grid grid-cols-4 gap-2 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700/80 text-center"
+            >
+              <div>
+                <p class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                  {{ feeCollectionSummary.total_invoices || 0 }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Invoices</p>
+              </div>
+              <div>
+                <p class="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {{ feeCollectionSummary.paid_invoices || 0 }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Paid</p>
+              </div>
+              <div>
+                <p class="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400">
+                  {{ feeCollectionSummary.pending_invoices || 0 }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+              </div>
+              <div>
+                <p class="text-base sm:text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                  {{ feeCollectionSummary.collection_rate || 0 }}%
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Rate</p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Row 3: Extra Insights -->
-        <div :class="['grid gap-8', row2GridLayout]">
-          <!-- Fee Collection Trend (6 months) -->
-          <div
-            v-if="isModuleEnabled('fees')"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+        <!-- Student Distribution + Monthly Trends -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-sm p-5 sm:p-6 min-w-0"
+        >
+          <h2
+            class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-6"
           >
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-              Fee Collection Trend ({{ dashboardConfig.feeTrendMonths }} Months)
-            </h2>
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-64">
-              <canvas ref="feeTrendChart"></canvas>
+            Student Distribution & Trends
+          </h2>
+
+          <!-- Student Distribution Chart -->
+          <div class="mb-6">
+            <h3
+              class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3"
+            >
+              Distribution by Class
+            </h3>
+            <div
+              class="relative w-full h-44 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0"
+            >
+              <canvas ref="studentDistributionChart"></canvas>
             </div>
           </div>
 
-          <!-- Upcoming Events + Recent Activities -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-              Recent Activities
-            </h2>
+          <!-- Monthly Trends -->
+          <div>
+            <h3
+              class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3"
+            >
+              Monthly Enrollment Trends
+            </h3>
+            <div
+              class="relative w-full h-44 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0"
+            >
+              <canvas ref="studentsChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <!-- Recent Activities Section -->
-            <div class="space-y-4">
-              <div v-if="loadingActivities" class="flex items-center justify-center py-8">
-                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400"
-                  >Loading activities...</span
-                >
+      <!-- Row 3: Extra Insights -->
+      <div :class="['grid gap-6 min-w-0', row2GridLayout]">
+        <!-- Fee Collection Trend (6 months) -->
+        <div
+          v-if="isModuleEnabled('fees')"
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-sm p-5 sm:p-6 min-w-0"
+        >
+          <h2
+            class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-6"
+          >
+            Fee Collection Trend ({{ dashboardConfig.feeTrendMonths }} Months)
+          </h2>
+          <div
+            class="relative w-full h-60 sm:h-64 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0"
+          >
+            <canvas ref="feeTrendChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-sm p-5 sm:p-6 min-w-0"
+        >
+          <h2
+            class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-6"
+          >
+            Recent Activities
+          </h2>
+
+          <div class="space-y-3">
+            <div v-if="loadingActivities" class="flex items-center justify-center py-12">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400"
+                >Loading activities...</span
+              >
+            </div>
+
+            <div v-else-if="recentActivities.length === 0" class="text-center py-10">
+              <div
+                class="w-12 h-12 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3"
+              >
+                <Activity class="w-6 h-6 text-gray-400" />
               </div>
+              <p class="text-sm text-gray-500 dark:text-gray-400">No recent activities</p>
+            </div>
 
-              <div v-else-if="recentActivities.length === 0" class="text-center py-8">
-                <div
-                  class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4"
-                >
-                  <svg
-                    class="w-8 h-8 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+            <div v-else class="space-y-2.5">
+              <div
+                v-for="activity in recentActivities"
+                :key="activity.id"
+                class="flex items-start space-x-3 p-3 bg-gray-50/80 dark:bg-gray-700/40 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-700/60 transition-colors"
+              >
+                <div class="flex-shrink-0">
+                  <div
+                    class="w-8 h-8 rounded-lg flex items-center justify-center"
+                    :class="getActivityIcon(activity.type).bg"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    <component
+                      :is="getActivityIcon(activity.type).icon"
+                      class="w-4 h-4"
+                      :class="getActivityIcon(activity.type).text"
                     />
-                  </svg>
+                  </div>
                 </div>
-                <p class="text-gray-500 dark:text-gray-400">No recent activities</p>
-              </div>
-
-              <div v-else class="space-y-3">
-                <div
-                  v-for="activity in recentActivities"
-                  :key="activity.id"
-                  class="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                >
-                  <div class="flex-shrink-0">
-                    <div
-                      class="w-8 h-8 rounded-full flex items-center justify-center"
-                      :class="getActivityIcon(activity.type).bg"
-                    >
-                      <component
-                        :is="getActivityIcon(activity.type).icon"
-                        class="w-4 h-4"
-                        :class="getActivityIcon(activity.type).text"
-                      />
-                    </div>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">
-                      {{ activity.description }}
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                      {{ formatDate(activity.created_at) }}
-                    </p>
-                  </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {{ activity.description }}
+                  </p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ formatDate(activity.created_at) }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -341,6 +445,7 @@ import { useBranches } from '~/composables/useBranches';
 import { useModuleAccess } from '~/composables/useModuleAccess';
 import { Dashboard } from '~/api';
 import { useToast } from '~/composables/useToast';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Chart from 'chart.js/auto';
 
 // Icons
@@ -359,6 +464,7 @@ import {
 
 // Auth store
 const authStore = useAuthStore();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 
 // Module access
 const { isModuleEnabled, loadUserModules } = useModuleAccess();
@@ -385,7 +491,7 @@ const gridLayout = computed(() => {
   const hasMultipleBranches = branches.value.length > 1;
 
   // Calculate total number of items
-  let totalItems = 2; // Total Students + New Students (always present)
+  let totalItems = 5; // Students, Parents, Teachers, Staff, New Students
 
   if (hasFeesModule) {
     totalItems += 2; // Collection + Pending Fees
@@ -396,14 +502,10 @@ const gridLayout = computed(() => {
   }
 
   // Return responsive grid based on total items
-  if (totalItems <= 2) {
-    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2';
-  } else if (totalItems <= 3) {
-    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3';
-  } else if (totalItems <= 4) {
-    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4';
+  if (totalItems <= 4) {
+    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4';
   } else {
-    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5';
+    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7';
   }
 });
 
@@ -423,7 +525,7 @@ const loading = ref(true);
 const loadingFeeSummary = ref(false);
 const loadingAcademicYears = ref(false);
 const loadingActivities = ref(false);
-const selectedBranch = ref('');
+const selectedBranch = ref(selectedBranchId.value || '');
 const selectedAcademicYear = ref('');
 
 // Stats and data
@@ -1069,18 +1171,22 @@ watch(
   { deep: true }
 );
 
-// Handle branch change
-const onBranchChange = async event => {
-  const branchId = event.target.value;
-  selectedBranch.value = branchId;
-  authStore.setCurrentBranch(availableBranches.value.find(branch => branch.id === branchId) || null);
-  // Refresh dashboard data with new branch filter
+// Watch for changes in global selected branch
+watch(selectedBranchId, async newVal => {
+  selectedBranch.value = newVal || '';
   await fetchDashboardData();
-  // Refresh fee collection summary with new branch filter
   if (selectedAcademicYear.value) {
     await fetchFeeCollectionSummary();
   }
-};
+});
+
+watch(currentSchool, async () => {
+  selectedBranch.value = selectedBranchId.value || '';
+  await fetchDashboardData();
+  if (selectedAcademicYear.value) {
+    await fetchFeeCollectionSummary();
+  }
+});
 
 // Cleanup charts on component unmount
 onUnmounted(() => {

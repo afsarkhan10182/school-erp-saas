@@ -1,233 +1,257 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Online admission</h1>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Share the QR / form link and review applications (approve or reject)
-        </p>
-      </div>
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Online admission</h1>
+      <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        Share the QR / form link and review applications (approve or reject)
+      </p>
+    </div>
 
-      <!-- Admission Form QR -->
-      <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg overflow-hidden">
-        <header
-          class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100"
+    <!-- Admission Form QR -->
+    <section class="card">
+      <header
+        class="pb-3 border-b border-gray-200/80 dark:border-gray-700/80 text-sm font-semibold text-gray-900 dark:text-white"
+      >
+        Admission Form QR
+      </header>
+      <div class="pt-4">
+        <div
+          v-if="!canShowQr"
+          class="rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 px-4 py-3 text-sm text-indigo-800 dark:text-indigo-200"
         >
-          Admission Form QR
-        </header>
-        <div class="p-6">
-          <div
-            v-if="!canShowQr"
-            class="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-4 py-3 text-sm text-blue-800 dark:text-blue-200"
-          >
-            {{
-              isSuperAdmin
-                ? 'Select a school below and click Filter to generate that school’s admission QR.'
-                : 'Waiting for school context…'
-            }}
+          {{
+            isSuperAdmin
+              ? 'Select a school below and click Filter to generate that school’s admission QR.'
+              : 'Waiting for school context…'
+          }}
+        </div>
+        <div v-else class="text-center max-w-md mx-auto">
+          <div id="admission-qr-print">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
+              {{ qrSchoolLabel }} Admission Form
+            </h2>
+            <img
+              :src="qrImageUrl"
+              alt="Admission Form QR"
+              class="mx-auto w-[220px] h-[220px] bg-white p-2 rounded-xl border border-gray-200 dark:border-gray-700"
+            />
           </div>
-          <div v-else class="text-center max-w-md mx-auto">
-            <div id="admission-qr-print">
-              <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
-                {{ qrSchoolLabel }} Admission Form
-              </h2>
-              <img
-                :src="qrImageUrl"
-                alt="Admission Form QR"
-                class="mx-auto w-[220px] h-[220px] bg-white p-2 rounded border border-gray-200"
-              />
-            </div>
-            <div class="mt-4 flex flex-wrap justify-center gap-3">
-              <a
-                :href="applyUrl"
-                target="_blank"
-                rel="noopener"
-                class="inline-flex items-center px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                Open Form
-              </a>
-              <button
-                type="button"
-                class="inline-flex items-center px-4 py-2 text-sm rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
-                @click="printQr"
-              >
-                Print QR
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md"
-                @click="copyLink"
-              >
-                {{ copied ? 'Copied' : 'Copy link' }}
-              </button>
-            </div>
-            <p class="mt-3 text-xs text-gray-500 break-all font-mono">{{ applyUrl }}</p>
+          <div class="mt-4 flex flex-wrap justify-center gap-3">
+            <a
+              :href="applyUrl"
+              target="_blank"
+              rel="noopener"
+              class="btn-secondary"
+            >
+              Open Form
+            </a>
+            <button
+              type="button"
+              class="btn-primary"
+              @click="printQr"
+            >
+              Print QR
+            </button>
+            <button
+              type="button"
+              class="btn-secondary"
+              @click="copyLink"
+            >
+              {{ copied ? 'Copied!' : 'Copy link' }}
+            </button>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- Filters — real /branches/dropdown + /classes/dropdown -->
-      <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg overflow-hidden">
-        <header
-          class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100"
-        >
-          Select ground
-        </header>
-        <div class="p-4 space-y-3">
-          <p v-if="lookupError" class="text-sm text-red-600">
-            {{ lookupError }}
-            <button type="button" class="ml-2 underline" @click="bootLookups">Retry</button>
-          </p>
-          <div
-            class="grid grid-cols-1 gap-4"
-            :class="filterColsClass"
-          >
+    <!-- Scope filter -->
+    <section class="card space-y-4">
+      <header class="pb-3 border-b border-gray-200/80 dark:border-gray-700/80 text-sm font-semibold text-gray-900 dark:text-white">
+        Filter applications
+      </header>
+      <div class="space-y-4">
+        <div class="grid grid-cols-1 gap-4" :class="filterColsClass">
+          <div v-if="showSchoolDropdown">
             <EnhancedDropdown
-              v-if="showSchoolDropdown"
               v-model="selectedSchoolId"
               :options="schoolOptions"
               label="School"
               placeholder="Select school"
-              required
-              :loading="schoolsLoading"
+              :disabled="schoolsLoading"
               @change="onSchoolChange"
             />
+          </div>
+
+          <div v-if="showBranchDropdown">
             <EnhancedDropdown
-              v-if="showBranchDropdown"
-              v-model="selectedBranchId"
+              v-model="selectedBranchFilter"
               :options="branchOptions"
               label="Branch"
-              placeholder="Select branch"
-              required
-              :loading="branchesLoading"
+              placeholder="All branches"
+              :disabled="branchesLoading"
               @change="onBranchChange"
             />
+          </div>
+
+          <div>
             <EnhancedDropdown
               v-model="selectedClassId"
               :options="classOptions"
               label="Class"
               placeholder="All classes"
-              :loading="classesLoading"
-              :helper-text="
-                classOptions.length
-                  ? `${classOptions.length} classes loaded`
-                  : classesLoading
-                    ? 'Loading classes…'
-                    : 'No classes found for this scope'
-              "
+              :disabled="classesLoading"
+              @change="filter"
             />
-          </div>
-          <div class="flex justify-end">
-            <button
-              type="button"
-              class="inline-flex items-center px-4 py-2 text-sm rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-              :disabled="filtering || (showSchoolDropdown && !selectedSchoolId)"
-              @click="filter"
-            >
-              {{ filtering ? 'Loading…' : 'Filter' }}
-            </button>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ classOptions.length ? `${classOptions.length} classes loaded` : classesLoading ? 'Loading classes…' : 'No classes found for this scope' }}
+            </p>
           </div>
         </div>
-      </section>
-
-      <!-- Applications list — real /school-ops/admission_application -->
-      <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg overflow-hidden">
-        <header
-          class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2"
-        >
-          <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-100">
-            Online admission list
-          </h2>
-          <input
-            v-model="search"
-            type="search"
-            placeholder="Search…"
-            class="border rounded-md px-3 py-1.5 text-sm dark:bg-gray-900 dark:border-gray-600 w-full sm:w-56"
-          />
-        </header>
-
-        <div
-          v-if="listError"
-          class="mx-4 mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          {{ listError }}
-          <button class="ml-3 underline" type="button" @click="filter">Retry</button>
-        </div>
-
-        <div class="overflow-x-auto">
-          <div v-if="filtering" class="p-6 text-sm text-gray-500">Loading applications…</div>
-          <table v-else class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700/60">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">#</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Applicant</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Phone</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Class</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Applied</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="(row, idx) in filteredRows" :key="row.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
-                <td class="px-4 py-3 text-sm">{{ idx + 1 }}</td>
-                <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                  {{ applicantName(row) }}
-                </td>
-                <td class="px-4 py-3 text-sm">{{ row.phone || row.payload?.phone || '—' }}</td>
-                <td class="px-4 py-3 text-sm">{{ classLabel(row) }}</td>
-                <td class="px-4 py-3 text-sm">{{ row.date_value || formatDate(row.createdAt) }}</td>
-                <td class="px-4 py-3 text-sm capitalize">{{ row.status || 'pending' }}</td>
-                <td class="px-4 py-3 text-sm whitespace-nowrap">
-                  <template v-if="row.status === 'pending' || !row.status">
-                    <button
-                      type="button"
-                      class="mr-3 text-sm font-medium text-green-600 hover:text-green-700 disabled:opacity-50"
-                      :disabled="actingId === row.id"
-                      @click="runAction(row.id, 'approve')"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      class="text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
-                      :disabled="actingId === row.id"
-                      @click="runAction(row.id, 'reject')"
-                    >
-                      Reject
-                    </button>
-                  </template>
-                  <span v-else class="text-gray-400">—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p
-            v-if="!filtering && !filteredRows.length && !listError"
-            class="p-6 text-sm text-gray-500"
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class="btn-primary disabled:opacity-50"
+            :disabled="filtering || (showSchoolDropdown && !selectedSchoolId)"
+            @click="filter"
           >
-            No applications for this filter. Share the form link or adjust class/branch.
-          </p>
+            {{ filtering ? 'Loading…' : 'Filter' }}
+          </button>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
+
+    <!-- Applications list -->
+    <section class="card space-y-4">
+      <header
+        class="pb-3 border-b border-gray-200/80 dark:border-gray-700/80 flex flex-wrap items-center justify-between gap-3"
+      >
+        <h2 class="text-base font-bold text-gray-900 dark:text-white">
+          Online admission list
+        </h2>
+        <input
+          v-model="search"
+          type="search"
+          placeholder="Search applicants..."
+          class="input-field w-full sm:w-64"
+        />
+      </header>
+
+      <div
+        v-if="listError"
+        class="rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300"
+      >
+        {{ listError }}
+        <button class="ml-3 underline font-medium" type="button" @click="filter">Retry</button>
+      </div>
+
+      <div class="table-container">
+        <div v-if="filtering" class="p-6 text-sm text-gray-500">Loading applications…</div>
+        <table v-else class="table">
+          <thead>
+            <tr>
+              <th class="w-12">#</th>
+              <th>Applicant</th>
+              <th>Phone</th>
+              <th>Class</th>
+              <th>Applied Date</th>
+              <th>Status</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700/60">
+            <tr
+              v-for="(row, idx) in filteredRows"
+              :key="row.id"
+              class="table-row-hover"
+            >
+              <td class="px-6 py-4 text-sm text-gray-500">{{ idx + 1 }}</td>
+              <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
+                {{ applicantName(row) }}
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{{ row.phone || row.payload?.phone || '—' }}</td>
+              <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{{ classLabel(row) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{{ row.date_value || formatDate(row.createdAt) }}</td>
+              <td class="px-6 py-4 text-sm">
+                <span
+                  class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider"
+                  :class="[
+                    row.status === 'approved'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                      : row.status === 'rejected'
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                        : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                  ]"
+                >
+                  {{ row.status || 'pending' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-right whitespace-nowrap">
+                <template v-if="row.status === 'pending' || !row.status">
+                  <button
+                    type="button"
+                    class="mr-3 text-sm font-semibold text-green-600 hover:text-green-700 dark:text-green-400 disabled:opacity-50"
+                    :disabled="actingId === row.id"
+                    @click="requestAction(row.id, 'approve')"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    class="text-sm font-semibold text-red-600 hover:text-red-700 dark:text-red-400 disabled:opacity-50"
+                    :disabled="actingId === row.id"
+                    @click="requestAction(row.id, 'reject')"
+                  >
+                    Reject
+                  </button>
+                </template>
+                <span v-else class="text-gray-400">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p
+          v-if="!filtering && !filteredRows.length && !listError"
+          class="p-8 text-center text-sm text-gray-500 dark:text-gray-400"
+        >
+          No applications for this filter. Share the form link or adjust class/branch.
+        </p>
+      </div>
+    </section>
+    <ConfirmDialog
+      :show="Boolean(pendingAction)"
+      :title="pendingAction?.action === 'approve' ? 'Approve application?' : 'Reject application?'"
+      :message="
+        pendingAction?.action === 'approve'
+          ? 'This will approve the application and create a student record.'
+          : 'This will reject the admission application.'
+      "
+      :confirm-label="pendingAction?.action === 'approve' ? 'Approve' : 'Reject'"
+      :danger="pendingAction?.action !== 'approve'"
+      @close="pendingAction = null"
+      @confirm="confirmAction"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { Schools } from '~/api/administration/schools';
 import { Branches } from '~/api/administration/branches';
 import { Classes } from '~/api/academic/classes';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 type Opt = { value: string; label: string; description?: string };
 
 const { user, currentSchool, isSuperAdmin } = useAuth();
+const authStore = useAuthStore();
+const { selectedBranchId, currentSchool: globalCurrentSchool } = useGlobalBranch();
 const { showToast } = useToast();
 
 const schoolOptions = ref<Opt[]>([]);
@@ -241,7 +265,7 @@ const classesLoading = ref(false);
 const lookupError = ref('');
 
 const selectedSchoolId = ref('');
-const selectedBranchId = ref('');
+const selectedBranchFilter = ref('');
 const selectedClassId = ref('');
 
 const rows = ref<any[]>([]);
@@ -250,10 +274,11 @@ const listError = ref('');
 const search = ref('');
 const copied = ref(false);
 const actingId = ref('');
+const pendingAction = ref<{ id: string; action: 'approve' | 'reject' } | null>(null);
 
 const showSchoolDropdown = computed(() => !!isSuperAdmin.value);
 
-/** Multi-branch only (school admin). Super admin: after school, only if >1 branch. */
+/** Show an explicit branch filter only when the current school has multiple branches. */
 const showBranchDropdown = computed(() => branchOptions.value.length > 1);
 
 const filterColsClass = computed(() => {
@@ -267,23 +292,22 @@ const activeSchool = computed(() => {
   if (isSuperAdmin.value) {
     return schoolsRaw.value.find((s: any) => s.id === selectedSchoolId.value) || null;
   }
-  return currentSchool.value || { id: user.value?.school_id, code: user.value?.school?.code, name: user.value?.school?.name };
+  return (
+    currentSchool.value || {
+      id: user.value?.school_id,
+      code: user.value?.school?.code,
+      name: user.value?.school?.name
+    }
+  );
 });
 
 const schoolCode = computed(
-  () =>
-    activeSchool.value?.code ||
-    currentSchool.value?.code ||
-    user.value?.school?.code ||
-    ''
+  () => activeSchool.value?.code || currentSchool.value?.code || user.value?.school?.code || ''
 );
 
 const qrSchoolLabel = computed(
   () =>
-    activeSchool.value?.name ||
-    currentSchool.value?.name ||
-    user.value?.school?.name ||
-    'School'
+    activeSchool.value?.name || currentSchool.value?.name || user.value?.school?.name || 'School'
 );
 
 const applyUrl = computed(() => {
@@ -357,36 +381,6 @@ const loadSchools = async () => {
   }
 };
 
-/** GET /api/branches/dropdown */
-const loadBranches = async (schoolId?: string) => {
-  branchesLoading.value = true;
-  lookupError.value = '';
-  try {
-    const params: { school_id?: string } = {};
-    if (schoolId) params.school_id = schoolId;
-    else if (user.value?.school_id) params.school_id = user.value.school_id;
-
-    const res: any = await Branches.getForDropdown(params);
-    const list = extractList(res, ['branches']);
-    // dropdown often returns data as a plain array
-    const branches = list.length ? list : Array.isArray(res?.data) ? res.data : [];
-    branchOptions.value = toOpts(branches);
-
-    if (branchOptions.value.length === 1) {
-      selectedBranchId.value = branchOptions.value[0].value;
-    } else if (
-      user.value?.branch_id &&
-      branchOptions.value.some(b => b.value === user.value?.branch_id)
-    ) {
-      selectedBranchId.value = user.value.branch_id;
-    }
-  } catch (error: any) {
-    lookupError.value = apiErrorMessage(error, 'Failed to load branches');
-    branchOptions.value = [];
-  } finally {
-    branchesLoading.value = false;
-  }
-};
 
 /** GET /api/classes/dropdown */
 const loadClasses = async () => {
@@ -396,7 +390,9 @@ const loadClasses = async () => {
     const schoolId =
       selectedSchoolId.value || activeSchool.value?.id || user.value?.school_id || '';
     if (schoolId) qs.set('school_id', schoolId);
-    if (selectedBranchId.value) qs.set('branch_id', selectedBranchId.value);
+    if (selectedBranchFilter.value || selectedBranchId.value) {
+      qs.set('branch_id', selectedBranchFilter.value || selectedBranchId.value);
+    }
 
     const res: any = await Classes.getDropdown(qs.toString());
     const list = extractList(res, ['classes']);
@@ -411,22 +407,39 @@ const loadClasses = async () => {
 };
 
 const onSchoolChange = async () => {
-  selectedBranchId.value = '';
   selectedClassId.value = '';
+  selectedBranchFilter.value = '';
   rows.value = [];
   branchOptions.value = [];
   classOptions.value = [];
   if (!selectedSchoolId.value) return;
-  await loadBranches(selectedSchoolId.value);
+  await loadBranches();
   await loadClasses();
+};
+
+const loadBranches = async () => {
+  branchesLoading.value = true;
+  try {
+    const params: { school_id?: string; status?: string } = { status: 'active' };
+    const schoolId = selectedSchoolId.value || activeSchool.value?.id || user.value?.school_id;
+    if (schoolId) params.school_id = schoolId;
+    const res: any = await Branches.getForDropdown(params);
+    branchOptions.value = toOpts(extractList(res, ['branches', 'rows']));
+  } catch (error: any) {
+    lookupError.value = apiErrorMessage(error, 'Failed to load branches');
+    branchOptions.value = [];
+  } finally {
+    branchesLoading.value = false;
+  }
 };
 
 const onBranchChange = async () => {
   selectedClassId.value = '';
   await loadClasses();
+  await filter();
 };
 
-/** GET /api/school-ops/admission_application */
+/** GET /api/entities/admission_application */
 const filter = async () => {
   if (showSchoolDropdown.value && !selectedSchoolId.value) {
     showToast('Select a school first', 'error');
@@ -437,11 +450,13 @@ const filter = async () => {
   try {
     const params: Record<string, string> = {};
     if (selectedClassId.value) params.class_id = selectedClassId.value;
-    if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
+    if (selectedBranchFilter.value || selectedBranchId.value) {
+      params.branch_id = selectedBranchFilter.value || selectedBranchId.value;
+    }
     if (isSuperAdmin.value && selectedSchoolId.value) {
       params.school_id = selectedSchoolId.value;
     }
-    const res: any = await SchoolOps.list('admission_application', params);
+    const res: any = await DynamicEntities.list('admission_application', params);
     rows.value = extractList(res, ['records']);
   } catch (error: any) {
     listError.value = apiErrorMessage(error);
@@ -451,11 +466,17 @@ const filter = async () => {
   }
 };
 
-const runAction = async (id: string, action: 'approve' | 'reject') => {
-  if (!window.confirm(action === 'approve' ? 'Approve this application and create a student?' : 'Reject this application?')) return;
+const requestAction = (id: string, action: 'approve' | 'reject') => {
+  pendingAction.value = { id, action };
+};
+
+const confirmAction = async () => {
+  if (!pendingAction.value) return;
+  const { id, action } = pendingAction.value;
+  pendingAction.value = null;
   actingId.value = id;
   try {
-    await SchoolOps.action('admission_application', id, action);
+    await DynamicEntities.action('admission_application', id, action);
     showToast(action === 'approve' ? 'Approved — student created' : 'Rejected', 'success');
     await filter();
   } catch (error: any) {
@@ -495,12 +516,17 @@ const bootLookups = async () => {
   lookupError.value = '';
   if (isSuperAdmin.value) {
     await loadSchools();
-    return;
   }
-  await loadBranches(user.value?.school_id);
-  await loadClasses();
-  await filter();
+  await loadBranches();
 };
 
 onMounted(bootLookups);
+
+watch(selectedBranchId, async newVal => {
+  if (isSuperAdmin.value && !selectedSchoolId.value) return;
+  if (!selectedBranchFilter.value) selectedBranchFilter.value = newVal || '';
+  selectedClassId.value = '';
+  await loadClasses();
+  await filter();
+}, { immediate: true });
 </script>

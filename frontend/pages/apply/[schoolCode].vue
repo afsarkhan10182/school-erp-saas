@@ -1,14 +1,20 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 px-4 py-8">
     <main class="mx-auto w-full max-w-2xl">
-      <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+      <section
+        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden"
+      >
         <header class="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
           <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Online admission</h1>
-          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ schoolName || schoolCode }}</p>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            {{ schoolName || schoolCode }}
+          </p>
         </header>
 
         <div v-if="submitted" class="p-6">
-          <div class="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-4 py-3 text-sm text-green-800 dark:text-green-200">
+          <div
+            class="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-4 py-3 text-sm text-green-800 dark:text-green-200"
+          >
             Application submitted. The school office will contact you.
           </div>
         </div>
@@ -114,8 +120,15 @@
                 :required="field.is_required"
                 class="input min-h-20"
               />
-              <label v-else-if="field.field_type === 'checkbox'" class="inline-flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300">
-                <input v-model="form.custom_fields[field.id]" type="checkbox" class="rounded border-gray-300" />
+              <label
+                v-else-if="field.field_type === 'checkbox'"
+                class="inline-flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300"
+              >
+                <input
+                  v-model="form.custom_fields[field.id]"
+                  type="checkbox"
+                  class="rounded border-gray-300"
+                />
                 Yes
               </label>
               <input
@@ -133,11 +146,18 @@
             <textarea v-model.trim="form.notes" class="input min-h-24" />
           </div>
 
-          <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+          <div
+            v-if="error"
+            class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300"
+          >
             {{ error }}
           </div>
 
-          <button class="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50" :disabled="submitting" type="submit">
+          <button
+            class="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+            :disabled="submitting"
+            type="submit"
+          >
             {{ submitting ? 'Submitting...' : 'Submit application' }}
           </button>
         </form>
@@ -149,7 +169,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { PublicAdmission } from '~/api/shared/school-ops';
+import { PublicAdmission } from '~/api/shared/dynamic-entities';
 import { apiErrorMessage } from '~/utils/list-response';
 
 definePageMeta({ layout: false });

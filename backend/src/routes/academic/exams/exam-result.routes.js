@@ -24,7 +24,7 @@ router.use(verifyToken, setSchoolContext, requireModuleAccess('exams'));
  * @access Private (EXAM_ROLES)
  * @query {number} page, {number} limit, {string} search, {string} grade, {string} sort_by, {string} sort_order
  */
-router.get('/exams/:examId/results', requireRole(EXAM_ROLES), ExamResultController.getByExamId);
+router.get('/exams/:examId/results', requireRole(...EXAM_ROLES), ExamResultController.getByExamId);
 
 /**
  * @route POST /api/exams/:examId/results/bulk
@@ -34,7 +34,7 @@ router.get('/exams/:examId/results', requireRole(EXAM_ROLES), ExamResultControll
  */
 router.post(
   '/exams/:examId/results/bulk',
-  requireRole(EXAM_ADMIN_ROLES),
+  requireRole(...EXAM_ADMIN_ROLES),
   ExamResultController.createBulk
 );
 
@@ -45,7 +45,7 @@ router.post(
  */
 router.post(
   '/exams/:examId/calculate-grades',
-  requireRole(EXAM_ADMIN_ROLES),
+  requireRole(...EXAM_ADMIN_ROLES),
   ExamResultController.calculateGrades
 );
 
@@ -57,7 +57,7 @@ router.post(
  */
 router.get(
   '/exams/:examId/results/export',
-  requireRole(EXAM_ROLES),
+  requireRole(...EXAM_ROLES),
   ExamResultController.exportResults
 );
 
@@ -66,20 +66,20 @@ router.get(
  * @desc Get single result
  * @access Private (EXAM_ROLES)
  */
-router.get('/:id', requireRole(EXAM_ROLES), ExamResultController.getById);
+router.get('/:id', requireRole(...EXAM_ROLES), ExamResultController.getById);
 
 /**
  * @route PUT /api/exam-results/:id
  * @desc Update result
  * @access Private (EXAM_ADMIN_ROLES)
  */
-router.put('/:id', requireRole(EXAM_ADMIN_ROLES), ExamResultController.update);
+router.put('/:id', requireRole(...EXAM_ADMIN_ROLES), ExamResultController.update);
 
 /**
  * @route DELETE /api/exam-results/:id
  * @desc Delete result
  * @access Private (EXAM_ADMIN_ROLES)
  */
-router.delete('/:id', requireRole(EXAM_ADMIN_ROLES), ExamResultController.delete);
+router.delete('/:id', requireRole(...EXAM_ADMIN_ROLES), ExamResultController.delete);
 
 module.exports = router;

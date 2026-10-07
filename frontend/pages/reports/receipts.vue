@@ -235,35 +235,6 @@
             />
           </div>
 
-          <!-- School dropdown for super admin -->
-          <div v-if="userRole === 'super_admin'" class="flex-1 min-w-[150px]">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >School</label
-            >
-            <EnhancedDropdown
-              v-model="filters.school_id"
-              :options="schoolOptions"
-              placeholder="All Schools"
-              @change="onSchoolChange"
-            />
-          </div>
-
-          <!-- Branch dropdown for super admin (when school selected) and school admin -->
-          <div
-            v-if="(userRole === 'super_admin' && filters.school_id) || userRole === 'admin'"
-            class="flex-1 min-w-[150px]"
-          >
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Branch</label
-            >
-            <EnhancedDropdown
-              v-model="filters.branch_id"
-              :options="branchOptions"
-              placeholder="All Branches"
-              @change="onBranchChange"
-            />
-          </div>
-
           <!-- Student Search -->
           <div class="flex-1 min-w-[200px]">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -410,7 +381,7 @@
             <div class="text-sm text-gray-600 dark:text-gray-300 font-medium">Total Collected</div>
           </div>
           <div
-            class="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700"
+            class="text-center p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-lg border border-indigo-200 dark:border-indigo-700"
           >
             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
               {{ summary.total_receipts }}
@@ -659,13 +630,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
-import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
 import Pagination from '~/components/ui/Pagination.vue';
@@ -684,7 +656,6 @@ const { printReport: printReportCommon } = usePrintReport();
 
 // Academic composables
 const { classes, sections, fetchClasses, fetchSections } = useAcademics();
-const { branches, fetchBranches } = useBranches();
 const { schools, fetchSchools } = useSchools();
 
 // Dropdown options
@@ -716,12 +687,6 @@ const schoolOptions = computed(() => [
   }))
 ]);
 
-const branchOptions = computed(() => [
-  ...branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-]);
 
 const classOptions = computed(() => [
   ...classes.value.map(cls => ({
@@ -776,17 +741,36 @@ const displayedColumns = computed(() => {
 // User role for conditional filtering
 const userRole = computed(() => user.value?.role || 'branch_admin');
 
+const { selectedBranchId, currentSchool } = useGlobalBranch();
+const authStore = useAuthStore();
+
 // Filters
 const filters = reactive({
   dateRange: 'today', // Changed from 'month' to 'today'
   from_date: '',
   to_date: '',
   payment_method: '',
-  school_id: '',
-  branch_id: '',
+  school_id: authStore.currentSchool?.id || '',
+  branch_id: selectedBranchId.value || '',
   class_id: '',
   section_id: '',
   search: ''
+});
+
+// Watch for global branch or school change
+watch(selectedBranchId, async newVal => {
+  filters.branch_id = newVal || '';
+  filters.class_id = '';
+  filters.section_id = '';
+  await fetchReceiptsData(1);
+});
+
+watch(currentSchool, async () => {
+  filters.school_id = authStore.currentSchool?.id || '';
+  filters.branch_id = selectedBranchId.value || '';
+  filters.class_id = '';
+  filters.section_id = '';
+  await fetchReceiptsData(1);
 });
 
 // Methods
@@ -970,9 +954,6 @@ const onSchoolChange = async () => {
   filters.class_id = '';
 
   // Refetch branches for the selected school
-  await fetchBranches();
-
-  // Refetch dependent data
   await fetchClasses();
 };
 
@@ -1314,12 +1295,7 @@ onMounted(async () => {
   if (userRole.value === 'super_admin') {
     await fetchSchools();
   }
-
-  await fetchBranches();
-
-  // For branch admins, set their branch and load classes
-  if (userRole.value === 'branch_admin' && branches.value.length > 0) {
-    filters.branch_id = branches.value[0].id;
+  if (selectedBranchId.value) {
     await fetchClasses();
   }
 

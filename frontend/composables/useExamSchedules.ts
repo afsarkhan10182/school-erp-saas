@@ -122,7 +122,7 @@ export const useExamSchedules = () => {
   const updateSchedule = async (data: UpdateExamScheduleData) => {
     try {
       loading.value = true;
-      const response = await examScheduleApi.update(data);
+      const response = await examScheduleApi.update(data.id, data);
 
       const index = schedules.value.findIndex(s => s.id === data.id);
       if (index !== -1) {

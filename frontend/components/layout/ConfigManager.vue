@@ -5,34 +5,19 @@
       <div class="flex gap-4 mb-6">
         <button
           @click="activeTab = 'school'"
-          :class="[
-            'px-4 py-2 rounded-lg font-medium transition-colors',
-            activeTab === 'school'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
+          :class="['btn', activeTab === 'school' ? 'btn-primary' : 'btn-secondary']"
         >
           School Settings
         </button>
         <button
           @click="activeTab = 'modules'"
-          :class="[
-            'px-4 py-2 rounded-lg font-medium transition-colors',
-            activeTab === 'modules'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
+          :class="['btn', activeTab === 'modules' ? 'btn-primary' : 'btn-secondary']"
         >
           Module Settings
         </button>
         <button
           @click="activeTab = 'system'"
-          :class="[
-            'px-4 py-2 rounded-lg font-medium transition-colors',
-            activeTab === 'system'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
+          :class="['btn', activeTab === 'system' ? 'btn-primary' : 'btn-secondary']"
         >
           System Settings
         </button>
@@ -41,7 +26,7 @@
 
     <!-- School Settings Tab -->
     <div v-if="activeTab === 'school'" class="config-content">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="card card-body">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">School Configuration</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -51,62 +36,22 @@
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1"> Currency </label>
-              <select
-                v-model="schoolConfig.currency"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                @change="updateSchoolConfig('currency', schoolConfig.currency)"
-              >
-                <option value="USD">USD - US Dollar</option>
-                <option value="EUR">EUR - Euro</option>
-                <option value="GBP">GBP - British Pound</option>
-                <option value="INR">INR - Indian Rupee</option>
-                <option value="PKR">PKR - Pakistani Rupee</option>
-                <option value="AED">AED - UAE Dirham</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.currency" :options="currencyOptions" placeholder="Select currency" @change="updateSchoolConfig('currency', schoolConfig.currency)" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1"> Timezone </label>
-              <select
-                v-model="schoolConfig.timezone"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                @change="updateSchoolConfig('timezone', schoolConfig.timezone)"
-              >
-                <option value="UTC">UTC</option>
-                <option value="America/New_York">America/New_York</option>
-                <option value="America/Los_Angeles">America/Los_Angeles</option>
-                <option value="Europe/London">Europe/London</option>
-                <option value="Europe/Paris">Europe/Paris</option>
-                <option value="Asia/Kolkata">Asia/Kolkata</option>
-                <option value="Asia/Karachi">Asia/Karachi</option>
-                <option value="Asia/Dubai">Asia/Dubai</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.timezone" :options="timezoneOptions" placeholder="Select timezone" @change="updateSchoolConfig('timezone', schoolConfig.timezone)" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1"> Date Format </label>
-              <select
-                v-model="schoolConfig.date_format"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                @change="updateSchoolConfig('date_format', schoolConfig.date_format)"
-              >
-                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                <option value="DD-MM-YYYY">DD-MM-YYYY</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.date_format" :options="dateFormatOptions" placeholder="Select date format" @change="updateSchoolConfig('date_format', schoolConfig.date_format)" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1"> Time Format </label>
-              <select
-                v-model="schoolConfig.time_format"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                @change="updateSchoolConfig('time_format', schoolConfig.time_format)"
-              >
-                <option value="12">12 Hour (AM/PM)</option>
-                <option value="24">24 Hour</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.time_format" :options="timeFormatOptions" placeholder="Select time format" @change="updateSchoolConfig('time_format', schoolConfig.time_format)" />
             </div>
           </div>
 
@@ -118,38 +63,14 @@
               <label class="block text-sm font-medium text-gray-600 mb-1">
                 Academic Year Start Month
               </label>
-              <select
-                v-model="schoolConfig.academic_year_start_month"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                @change="
-                  updateSchoolConfig(
-                    'academic_year_start_month',
-                    schoolConfig.academic_year_start_month
-                  )
-                "
-              >
-                <option v-for="month in months" :key="month.value" :value="month.value">
-                  {{ month.label }}
-                </option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.academic_year_start_month" :options="months" placeholder="Select month" @change="updateSchoolConfig('academic_year_start_month', schoolConfig.academic_year_start_month)" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1">
                 Default Grading System
               </label>
-              <select
-                v-model="schoolConfig.default_grading_system"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                @change="
-                  updateSchoolConfig('default_grading_system', schoolConfig.default_grading_system)
-                "
-              >
-                <option value="percentage">Percentage</option>
-                <option value="letter_grade">Letter Grade</option>
-                <option value="gpa">GPA</option>
-                <option value="custom">Custom</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.default_grading_system" :options="gradingOptions" placeholder="Select grading system" @change="updateSchoolConfig('default_grading_system', schoolConfig.default_grading_system)" />
             </div>
 
             <div>
@@ -161,7 +82,7 @@
                 type="number"
                 min="1"
                 max="7"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="form-input"
                 @change="
                   updateSchoolConfig('working_days_per_week', schoolConfig.working_days_per_week)
                 "
@@ -175,33 +96,21 @@
     <!-- Module Settings Tab -->
     <div v-if="activeTab === 'modules'" class="config-content">
       <div class="space-y-6">
-        <div
-          v-for="module in enabledModules"
-          :key="module.id"
-          class="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-        >
+        <div v-for="module in enabledModules" :key="module.id" class="card card-body">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-800">{{ module.name }}</h3>
             <div class="flex items-center space-x-2">
-              <span
-                :class="[
-                  'px-2 py-1 rounded-full text-xs font-medium',
-                  module.is_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                ]"
-              >
+              <span :class="['badge', module.is_enabled ? 'badge-success' : 'badge-danger']">
                 {{ module.is_enabled ? 'Enabled' : 'Disabled' }}
               </span>
               <button
+                v-if="module.canEnable"
                 @click="toggleModule(module)"
-                :class="[
-                  'px-3 py-1 rounded text-sm font-medium transition-colors',
-                  module.is_enabled
-                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                    : 'bg-green-100 text-green-700 hover:bg-green-200'
-                ]"
+                :class="['btn btn-sm', module.is_enabled ? 'btn-danger' : 'btn-success']"
               >
                 {{ module.is_enabled ? 'Disable' : 'Enable' }}
               </button>
+              <span v-else class="text-xs text-gray-500 dark:text-gray-400">Managed by plan</span>
             </div>
           </div>
 
@@ -220,35 +129,31 @@
                   v-if="setting.type === 'boolean'"
                   v-model="setting.value"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="form-checkbox"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
                 />
                 <input
                   v-else-if="setting.type === 'number'"
                   v-model.number="setting.value"
                   type="number"
-                  class="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
+                  style="width: 6rem"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
                 />
-                <select
+                <EnhancedDropdown
                   v-else-if="setting.type === 'select'"
                   v-model="setting.value"
-                  class="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  :options="setting.options || []"
+                  placeholder="Select value"
+                  class="min-w-32"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
-                >
-                  <option
-                    v-for="option in setting.options"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
+                />
                 <input
                   v-else
                   v-model="setting.value"
                   type="text"
-                  class="w-32 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
+                  style="width: 8rem"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
                 />
               </div>
@@ -260,7 +165,7 @@
 
     <!-- System Settings Tab -->
     <div v-if="activeTab === 'system'" class="config-content">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="card card-body">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">System Configuration</h3>
 
         <div class="space-y-6">
@@ -277,7 +182,7 @@
                   type="number"
                   min="5"
                   max="480"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
                   @change="updateSystemConfig('session_timeout', systemConfig.session_timeout)"
                 />
               </div>
@@ -290,7 +195,7 @@
                   type="number"
                   min="3"
                   max="10"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
                   @change="
                     updateSystemConfig('max_login_attempts', systemConfig.max_login_attempts)
                   "
@@ -311,7 +216,7 @@
                 <input
                   v-model="systemConfig.email_notifications"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="form-checkbox"
                   @change="
                     updateSystemConfig('email_notifications', systemConfig.email_notifications)
                   "
@@ -325,7 +230,7 @@
                 <input
                   v-model="systemConfig.sms_notifications"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="form-checkbox"
                   @change="updateSystemConfig('sms_notifications', systemConfig.sms_notifications)"
                 />
               </div>
@@ -340,16 +245,7 @@
                 <label class="block text-sm font-medium text-gray-600 mb-1">
                   Auto Backup Frequency
                 </label>
-                <select
-                  v-model="systemConfig.backup_frequency"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  @change="updateSystemConfig('backup_frequency', systemConfig.backup_frequency)"
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="disabled">Disabled</option>
-                </select>
+                <EnhancedDropdown v-model="systemConfig.backup_frequency" :options="backupFrequencyOptions" placeholder="Select backup frequency" @change="updateSystemConfig('backup_frequency', systemConfig.backup_frequency)" />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">
@@ -360,7 +256,7 @@
                   type="number"
                   min="7"
                   max="365"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
                   @change="
                     updateSystemConfig('backup_retention_days', systemConfig.backup_retention_days)
                   "
@@ -380,14 +276,7 @@
 
     <!-- Success/Error Messages -->
     <div v-if="message" class="mt-4">
-      <div
-        :class="[
-          'p-4 rounded-lg',
-          message.type === 'success'
-            ? 'bg-green-100 text-green-800 border border-green-200'
-            : 'bg-red-100 text-red-800 border border-red-200'
-        ]"
-      >
+      <div :class="['alert', message.type === 'success' ? 'alert-success' : 'alert-danger']">
         {{ message.text }}
       </div>
     </div>
@@ -397,6 +286,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useConfig } from '~/composables/useConfig';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const config = useConfig();
@@ -445,6 +335,16 @@ const months = computed(() => [
   { value: 'November', label: 'November' },
   { value: 'December', label: 'December' }
 ]);
+const currencyOptions = [
+  { value: 'USD', label: 'USD - US Dollar' }, { value: 'EUR', label: 'EUR - Euro' },
+  { value: 'GBP', label: 'GBP - British Pound' }, { value: 'INR', label: 'INR - Indian Rupee' },
+  { value: 'PKR', label: 'PKR - Pakistani Rupee' }, { value: 'AED', label: 'AED - UAE Dirham' }
+];
+const timezoneOptions = ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Kolkata', 'Asia/Karachi', 'Asia/Dubai'];
+const dateFormatOptions = ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY', 'DD-MM-YYYY'];
+const timeFormatOptions = [{ value: '12', label: '12 Hour (AM/PM)' }, { value: '24', label: '24 Hour' }];
+const gradingOptions = [{ value: 'percentage', label: 'Percentage' }, { value: 'letter_grade', label: 'Letter Grade' }, { value: 'gpa', label: 'GPA' }, { value: 'custom', label: 'Custom' }];
+const backupFrequencyOptions = ['daily', 'weekly', 'monthly', 'disabled'];
 
 // Methods
 const loadConfigurations = async () => {
@@ -495,8 +395,7 @@ const updateModuleConfig = async (moduleCode: string, key: string, value: any) =
 
 const updateSystemConfig = async (key: string, value: any) => {
   try {
-    // Note: System config updates would typically require admin privileges
-    // and might be handled differently in the backend
+    await config.setSystemConfig(key, value);
     showMessage('success', 'System configuration updated successfully');
   } catch (error) {
     console.error('Error updating system config:', error);
@@ -527,43 +426,3 @@ onMounted(() => {
   loadConfigurations();
 });
 </script>
-
-<style scoped>
-.config-manager {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-.config-content {
-  min-height: 400px;
-}
-
-/* Custom checkbox styles */
-input[type='checkbox']:checked {
-  background-color: #2563eb;
-  border-color: #2563eb;
-}
-
-/* Focus styles */
-input:focus,
-select:focus {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-/* Transition effects */
-button {
-  transition: all 0.2s ease-in-out;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .config-manager {
-    padding: 0.5rem;
-  }
-
-  .grid-cols-2 {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

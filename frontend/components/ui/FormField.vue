@@ -3,30 +3,31 @@
     <label
       v-if="label"
       :for="id"
-      class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+      :class="['form-label', { 'form-label-required': required, 'form-label-disabled': disabled }]"
     >
       {{ label }}
-      <span v-if="required" class="text-red-500">*</span>
     </label>
 
     <div class="relative">
       <slot
         :id="id"
         :class="[
-          'input-field',
+          'form-input',
           {
-            'border-red-500 focus:border-red-500 focus:ring-red-500': hasError,
-            'border-green-500 focus:border-green-500 focus:ring-green-500': isValid
+            'form-input-error': hasError,
+            'form-input-valid': isValid
           }
         ]"
         :aria-invalid="hasError"
         :aria-describedby="hasError ? `${id}-error` : undefined"
+        :disabled="disabled"
       />
 
       <!-- Error Icon -->
       <div
         v-if="hasError"
         class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
+        aria-hidden="true"
       >
         <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
           <path
@@ -41,6 +42,7 @@
       <div
         v-else-if="isValid"
         class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
+        aria-hidden="true"
       >
         <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
           <path
@@ -53,29 +55,34 @@
     </div>
 
     <!-- Error Message -->
-    <div
-      v-if="hasError"
-      :id="`${id}-error`"
-      class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start"
-    >
-      <svg class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-        <path
-          fill-rule="evenodd"
-          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-          clip-rule="evenodd"
-        />
-      </svg>
-      {{ errorMessage }}
-    </div>
+    <transition name="fade">
+      <div v-if="hasError" :id="`${id}-error`" class="form-error flex items-start" role="alert">
+        <svg
+          class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        {{ errorMessage }}
+      </div>
+    </transition>
 
     <!-- Help Text -->
-    <div v-else-if="helpText" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    <div v-if="!hasError && helpText" class="form-hint">
       {{ helpText }}
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 interface Props {
   id: string;
   label?: string;
@@ -83,11 +90,13 @@ interface Props {
   errorMessage?: string;
   helpText?: string;
   isValid?: boolean;
+  disabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   required: false,
-  isValid: false
+  isValid: false,
+  disabled: false
 });
 
 const hasError = computed(() => !!props.errorMessage);
@@ -98,24 +107,52 @@ const hasError = computed(() => !!props.errorMessage);
   @apply w-full;
 }
 
-.input-field {
-  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+.form-input {
+  @apply w-full px-3 py-2 border rounded-md shadow-sm
          placeholder-gray-500 dark:placeholder-gray-400
-         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+         focus:outline-none
          disabled:opacity-50 disabled:cursor-not-allowed
-         transition-colors duration-200;
+         transition-all duration-200;
+  border-color: var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
-.input-field:focus {
-  @apply ring-2 ring-blue-500 border-blue-500;
+.form-input:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 2px var(--primary-500);
+  outline: none;
 }
 
-.input-field.border-red-500:focus {
-  @apply ring-red-500;
+.form-input-error {
+  border-color: var(--danger-500);
 }
 
-.input-field.border-green-500:focus {
-  @apply ring-green-500;
+.form-input-error:focus {
+  border-color: var(--danger-500);
+  box-shadow: 0 0 0 2px var(--danger-500);
+}
+
+.form-input-valid {
+  border-color: var(--success-500);
+}
+
+.form-input-valid:focus {
+  border-color: var(--success-500);
+  box-shadow: 0 0 0 2px var(--success-500);
+}
+
+.form-label-disabled {
+  @apply opacity-50;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

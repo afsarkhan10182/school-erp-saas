@@ -36,7 +36,7 @@ export const MODULE_CODES = {
 export type ModuleCode = (typeof MODULE_CODES)[keyof typeof MODULE_CODES];
 
 /**
- * Dedicated pages → module. Ops entities (`/ops/:entity`) resolve via SCHOOL_OPS_ENTITIES.module.
+ * Dedicated pages → module. Dynamic entities (`/[module]/:entity`) resolve via MODULE_ENTITY_DEFINITIONS.module.
  */
 export const ROUTE_MODULE_MAP: Record<string, ModuleCode> = {
   '/fees': 'fees',

@@ -12,7 +12,7 @@
           class="absolute top-40 right-20 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000"
         ></div>
         <div
-          class="absolute bottom-20 left-1/3 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-2000"
+          class="absolute bottom-20 left-1/3 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse delay-2000"
         ></div>
       </div>
     </div>
@@ -38,7 +38,7 @@
           <!-- Logo/Brand -->
           <div class="text-center mb-8">
             <div
-              class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+              class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
             >
               <span class="text-white font-bold text-2xl">S</span>
             </div>
@@ -101,7 +101,7 @@
             <button
               type="submit"
               :disabled="loading || form.password !== form.confirmPassword"
-              class="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span v-if="!loading">Reset Password</span>
               <span v-else class="flex items-center justify-center">
@@ -117,7 +117,7 @@
           <div class="mt-6 pt-6 border-t border-white/20 text-center">
             <NuxtLink
               to="/auth/login"
-              class="text-blue-300 hover:text-blue-200 transition-colors text-sm"
+              class="text-indigo-300 hover:text-indigo-200 transition-colors text-sm"
             >
               ← Back to Login
             </NuxtLink>

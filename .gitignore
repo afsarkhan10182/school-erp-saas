@@ -1,3 +1,32 @@
 docker-compose.yml
 backend/Dockerfile
 frontend/Dockerfile
+
+# GSD (Get Shit Done) plugin
+.agent/
+.agents/
+.gemini/
+.gsd/
+adapters/
+PROJECT_RULES.md
+GSD-STYLE.md
+model_capabilities.yaml
+
+# Ralph Loop
+PRD.md
+progress.txt
+
+# Testing & Playwright
+tests/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+*.png
+*.log
+
+# Documentation & Audit Artifacts
+docs/
+
+# Root-level local dependencies
+node_modules/

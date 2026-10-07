@@ -28,43 +28,6 @@
         </h2>
 
         <div class="flex items-end gap-6 mb-6">
-          <!-- Branch Selection -->
-          <div v-if="showBranchDropdown" class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Branch <span class="text-red-500">*</span>
-            </label>
-            <EnhancedDropdown
-              v-model="selectionForm.branch_id"
-              :options="branchOptions"
-              placeholder="Select branch"
-              :loading="branchesLoading"
-              @change="onBranchSelectionChange"
-            />
-          </div>
-
-          <!-- Single Branch Info -->
-          <div
-            v-else-if="branches.length === 1"
-            class="flex-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
-          >
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-4 w-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div class="ml-2">
-                <p class="text-xs text-blue-700 dark:text-blue-300">
-                  Using: {{ branches[0]?.name }}
-                </p>
-              </div>
-            </div>
-          </div>
-
           <!-- Exam Selection -->
           <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -202,7 +165,10 @@
                 </svg>
               </div>
             </div>
-            <p v-if="scheduleParams.starting_date" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p
+              v-if="scheduleParams.starting_date"
+              class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+            >
               Selected: {{ formatDate(scheduleParams.starting_date) }}
             </p>
           </div>
@@ -223,7 +189,10 @@
                 <Clock class="h-5 w-5 text-gray-400 dark:text-gray-500" />
               </div>
             </div>
-            <p v-if="scheduleParams.starting_time" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p
+              v-if="scheduleParams.starting_time"
+              class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+            >
               Selected: {{ formatTime(scheduleParams.starting_time) }}
             </p>
           </div>
@@ -363,7 +332,7 @@
                   <div class="flex flex-col items-center justify-center">
                     <p class="mb-2">No schedules generated yet.</p>
                     <p class="text-xs">
-                      Please select Branch, Exam, Class, and click "Filter" to load subjects, then
+                      Please select Exam and Class, then click "Filter" to load subjects, then
                       fill in parameters and click "Apply Parameters".
                     </p>
                     <p
@@ -484,7 +453,7 @@ import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useExamHalls } from '~/composables/useExamHalls';
 import { useMarkDistributions } from '~/composables/useMarkDistributions';
 import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignment';
@@ -494,7 +463,7 @@ import { examScheduleApi } from '~/api/academic/exam-schedules';
 const route = useRoute();
 const { showToast } = useToast();
 const { user } = useAuth();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const {
   classes,
   classOptions,
@@ -521,11 +490,29 @@ const existingScheduleIds = ref([]);
 
 // Selection form
 const selectionForm = reactive({
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   exam_id: '',
   class_id: '',
   section_id: '',
   stream_id: ''
+});
+
+watch(selectedBranchId, async newBranchId => {
+  selectionForm.branch_id = newBranchId || '';
+  selectionForm.exam_id = '';
+  selectionForm.class_id = '';
+  selectionForm.section_id = '';
+  selectionForm.stream_id = '';
+  filterApplied.value = false;
+  generatedSchedules.value = [];
+  if (newBranchId) {
+    await Promise.all([
+      loadExams({ branch_id: newBranchId }),
+      fetchClasses({ branchId: newBranchId })
+    ]);
+  } else {
+    await Promise.all([loadExams(), fetchClasses()]);
+  }
 });
 
 // Schedule parameters
@@ -553,12 +540,6 @@ const {
 } = useMarkDistributions();
 
 // Computed properties
-const branchOptions = computed(() => {
-  return branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }));
-});
 
 const examOptions = computed(() => {
   return exams.value.map(exam => ({
@@ -568,9 +549,6 @@ const examOptions = computed(() => {
 });
 
 // Check if branch dropdown should be shown
-const showBranchDropdown = computed(() => {
-  return branches.value.length > 1;
-});
 
 // Check if section field should be shown
 const showSectionField = computed(() => {
@@ -584,14 +562,6 @@ const showStreamField = computed(() => {
   return selectedClass?.has_streams || false;
 });
 
-const resolvedBranchId = computed(() => {
-  if (showBranchDropdown.value) {
-    return selectionForm.branch_id || '';
-  }
-
-  return branches.value[0]?.id || user.value?.branch_id || '';
-});
-
 // Check if can proceed to step 2 (now requires filter to be applied)
 const canProceedToStep2 = computed(() => {
   return filterApplied.value;
@@ -599,12 +569,9 @@ const canProceedToStep2 = computed(() => {
 
 // Check if filter button can be enabled
 const canApplyFilter = computed(() => {
-  // For single branch, automatically set branch_id
-  const currentBranchId = showBranchDropdown.value
-    ? selectionForm.branch_id
-    : branches.value[0]?.id || '';
-
-  const basicRequirements = currentBranchId && selectionForm.exam_id && selectionForm.class_id;
+  const branchId = selectionForm.branch_id || selectedBranchId.value || user.value?.branch_id;
+  const basicRequirements =
+    branchId && selectionForm.exam_id && selectionForm.class_id;
 
   if (!basicRequirements) {
     return false;
@@ -705,9 +672,9 @@ const calculateEndTime = (startTime, durationMinutes) => {
   return `${hours}:${minutes}`;
 };
 
-const formatDate = (dateString) => {
+const formatDate = dateString => {
   if (!dateString) return '';
-  
+
   try {
     const date = new Date(dateString + 'T00:00:00');
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -717,9 +684,9 @@ const formatDate = (dateString) => {
   }
 };
 
-const formatTime = (timeString) => {
+const formatTime = timeString => {
   if (!timeString) return '';
-  
+
   try {
     const [hours, minutes] = timeString.split(':');
     const hour = parseInt(hours, 10);
@@ -862,8 +829,8 @@ const loadSubjectsForClass = async (classId, sectionId = null) => {
     if (user.value?.school_id) {
       params.school_id = user.value.school_id;
     }
-    if (resolvedBranchId.value) {
-      params.branch_id = resolvedBranchId.value;
+    if (selectedBranchId.value) {
+      params.branch_id = selectedBranchId.value;
     }
     if (sectionId) {
       params.section_id = sectionId;
@@ -964,7 +931,7 @@ const onClassSelectionChange = async () => {
     if (selectedClassData?.has_streams && user.value?.school_id) {
       await fetchStreams({
         schoolId: user.value.school_id,
-        branchId: resolvedBranchId.value || undefined,
+        branchId: selectedBranchId.value || undefined,
         classId: selectionForm.class_id
       });
     }
@@ -1039,7 +1006,7 @@ const loadMarkDistributionsForExam = async () => {
   }
 
   const branchId =
-    resolvedBranchId.value || selectedExam.value?.branch_id || user.value?.branch_id || undefined;
+    selectedBranchId.value || selectedExam.value?.branch_id || user.value?.branch_id || undefined;
 
   try {
     clearMarkFieldValues();
@@ -1156,26 +1123,30 @@ const saveSchedules = async () => {
   const validationErrors = [];
   generatedSchedules.value.forEach((schedule, index) => {
     const subjectName = schedule.subject_name || `Subject ${index + 1}`;
-    
+
     if (!schedule.date || schedule.date.trim() === '') {
       validationErrors.push(`${subjectName}: Date is required`);
     }
-    
+
     if (!schedule.starting_time || schedule.starting_time.trim() === '') {
       validationErrors.push(`${subjectName}: Starting time is required`);
     }
-    
+
     if (!schedule.ending_time || schedule.ending_time.trim() === '') {
       validationErrors.push(`${subjectName}: Ending time is required`);
     }
-    
+
     if (!schedule.hall_id || schedule.hall_id.trim() === '') {
       validationErrors.push(`${subjectName}: Hall room is required`);
     }
   });
 
   if (validationErrors.length > 0) {
-    showToast(validationErrors[0] + (validationErrors.length > 1 ? ` (and ${validationErrors.length - 1} more)` : ''), 'error');
+    showToast(
+      validationErrors[0] +
+        (validationErrors.length > 1 ? ` (and ${validationErrors.length - 1} more)` : ''),
+      'error'
+    );
     console.error('Validation errors:', validationErrors);
     return;
   }
@@ -1183,7 +1154,7 @@ const saveSchedules = async () => {
   saving.value = true;
 
   try {
-    const branchId = resolvedBranchId.value || user.value.branch_id;
+    const branchId = selectedBranchId.value || user.value.branch_id;
     const durationMinutes = Number(scheduleParams.duration) || 0;
 
     // Prepare all schedules data for bulk create
@@ -1247,25 +1218,24 @@ const saveSchedules = async () => {
     // Bulk create all schedules in one API call
     console.log('Bulk saving schedules:', schedulesData);
     const response = await examScheduleApi.bulkCreate(schedulesData);
-    
+
     // Handle response - could be direct result or nested in data
     const result = response.data || response;
 
     if (result.error_count === 0) {
-      const successCount = result.success_count || result.created_schedules?.length || schedulesData.length;
+      const successCount =
+        result.success_count || result.created_schedules?.length || schedulesData.length;
       showToast(`All ${successCount} schedules saved successfully!`, 'success');
       closeCreatePage();
     } else if (result.error_count < schedulesData.length) {
       const successCount = result.success_count || result.created_schedules?.length || 0;
-      showToast(
-        `Saved ${successCount} schedules. ${result.error_count} failed.`,
-        'warning'
-      );
+      showToast(`Saved ${successCount} schedules. ${result.error_count} failed.`, 'warning');
       if (result.errors && result.errors.length > 0) {
         console.error('Partial save errors:', result.errors);
       }
     } else {
-      const firstError = result.errors?.[0]?.error || result.errors?.[0] || 'Failed to save schedules';
+      const firstError =
+        result.errors?.[0]?.error || result.errors?.[0] || 'Failed to save schedules';
       showToast(`Failed to save schedules: ${firstError}`, 'error');
       console.error('Save errors:', result.errors);
     }
@@ -1285,7 +1255,7 @@ const loadExistingSchedules = async () => {
   }
 
   try {
-    const branchId = resolvedBranchId.value || user.value?.branch_id;
+    const branchId = selectedBranchId.value || user.value?.branch_id;
     const response = await examScheduleApi.getAll({
       school_id: user.value.school_id,
       branch_id: branchId,
@@ -1363,8 +1333,6 @@ const loadExistingSchedules = async () => {
 // Initialize data
 onMounted(async () => {
   try {
-    await Promise.all([fetchBranches(), loadHalls()]);
-
     // If no halls loaded, show a message
     if (halls.value.length === 0) {
       showToast('No exam halls found. Please create exam halls first.', 'warning');
@@ -1377,12 +1345,12 @@ onMounted(async () => {
   const query = route.query;
   if (query.edit_mode === 'true' && query.exam_id && query.class_id) {
     isEditMode.value = true;
-    
+
     // Set branch first if provided, otherwise use default
     if (query.branch_id) {
       selectionForm.branch_id = query.branch_id;
-    } else if (branches.value.length === 1) {
-      selectionForm.branch_id = branches.value[0].id;
+    } else if (selectedBranchId.value) {
+      selectionForm.branch_id = selectedBranchId.value;
     } else if (user.value?.branch_id) {
       selectionForm.branch_id = user.value.branch_id;
     }
@@ -1390,19 +1358,16 @@ onMounted(async () => {
     // Load data based on branch first
     const branchId = selectionForm.branch_id || user.value?.branch_id;
     if (branchId) {
-      await Promise.all([
-        loadExams({ branch_id: branchId }),
-        fetchClasses({ branchId: branchId })
-      ]);
+      await Promise.all([loadExams({ branch_id: branchId }), fetchClasses({ branchId: branchId })]);
 
       // Now set the form values after data is loaded
       // Wait for nextTick to ensure reactive updates
       await nextTick();
-      
+
       // Set form values - these will auto-populate the dropdowns via v-model
       selectionForm.exam_id = query.exam_id;
       selectionForm.class_id = query.class_id;
-      
+
       // Set selected exam object for mark distribution loading
       if (selectionForm.exam_id) {
         selectedExam.value = exams.value.find(exam => exam.id === selectionForm.exam_id);
@@ -1412,7 +1377,7 @@ onMounted(async () => {
       if (selectionForm.class_id) {
         const selectedClassData = classes.value.find(cls => cls.id === selectionForm.class_id);
         selectedClass.value = selectedClassData;
-        
+
         if (selectedClassData?.has_sections) {
           await fetchSections({ classId: selectionForm.class_id });
           // Wait for sections to load before setting section_id
@@ -1436,19 +1401,14 @@ onMounted(async () => {
       // Load subjects and mark distributions
       await loadSubjectsForClass(selectionForm.class_id, selectionForm.section_id || null);
       await loadMarkDistributionsForExam();
-      
+
       // Then load existing schedules (needs mark distributions to be loaded)
       await loadExistingSchedules();
-      
+
       // Auto-apply filter to show the schedule table
       filterApplied.value = true;
     }
   } else {
-    // Auto-set branch if only one branch
-    if (branches.value.length === 1) {
-      selectionForm.branch_id = branches.value[0].id;
-    }
-
     // Load data based on branch
     const branchId = selectionForm.branch_id || user.value?.branch_id;
     if (branchId) {
@@ -1463,14 +1423,14 @@ onMounted(async () => {
 
 <style scoped>
 /* Improve date and time input styling */
-input[type="date"],
-input[type="time"] {
+input[type='date'],
+input[type='time'] {
   color-scheme: light dark;
 }
 
 /* Hide default browser calendar/time picker icons and make entire input clickable */
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0;
   position: absolute;
@@ -1481,21 +1441,21 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 /* For Firefox */
-input[type="date"]::-moz-calendar-picker-indicator,
-input[type="time"]::-moz-calendar-picker-indicator {
+input[type='date']::-moz-calendar-picker-indicator,
+input[type='time']::-moz-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0;
 }
 
 /* Improve dark mode appearance */
-.dark input[type="date"],
-.dark input[type="time"] {
+.dark input[type='date'],
+.dark input[type='time'] {
   color-scheme: dark;
 }
 
 /* Smooth transitions */
-input[type="date"]:focus,
-input[type="time"]:focus {
+input[type='date']:focus,
+input[type='time']:focus {
   outline: none;
 }
 
@@ -1504,8 +1464,8 @@ input[type="time"]:focus {
   position: relative;
 }
 
-.relative input[type="date"],
-.relative input[type="time"] {
+.relative input[type='date'],
+.relative input[type='time'] {
   z-index: 0;
 }
 

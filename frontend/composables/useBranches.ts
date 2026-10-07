@@ -14,7 +14,7 @@ export function useBranches() {
   const currentSchool = computed(() => authStore.currentSchool);
   const canSwitchBranches = computed(() => {
     const role = authStore.userRole;
-    return role === 'super_admin' || role === 'admin';
+    return role === 'super_admin' || role === 'admin' || role === 'school_admin';
   });
 
   // Fetch branches for the current user (context-aware)
@@ -31,7 +31,9 @@ export function useBranches() {
 
       if (authStore.isSuperAdmin) {
         // Super admin can see all branches
-        response = await Branches.getForDropdown();
+        response = await Branches.getForDropdown(
+          authStore.currentSchool?.id ? { school_id: authStore.currentSchool.id } : undefined
+        );
       } else if (authStore.isAdmin && authStore.currentSchool) {
         // School admin can see branches of their school
         response = await Branches.getForDropdown({
@@ -49,6 +51,14 @@ export function useBranches() {
         const branchesData = response.data || [];
         authStore.setAvailableBranches(branchesData);
         branches.value = branchesData;
+        if (branchesData.length === 1) {
+          authStore.setCurrentBranch(branchesData[0]);
+        } else if (
+          authStore.currentBranch &&
+          !branchesData.some((branch: any) => branch.id === authStore.currentBranch.id)
+        ) {
+          authStore.setCurrentBranch(null);
+        }
       } else {
         error.value = response.message || 'Failed to fetch branches.';
       }
@@ -93,11 +103,14 @@ export function useBranches() {
       if (response.success) {
         // Dropdown endpoint returns data directly as an array
         branches.value = response.data || [];
+        return branches.value;
       } else {
         error.value = response.message || 'Failed to fetch branches.';
+        return [];
       }
     } catch (e) {
       error.value = 'Network error.';
+      return [];
     } finally {
       loading.value = false;
     }

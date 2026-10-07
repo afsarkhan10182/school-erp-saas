@@ -6,19 +6,6 @@
     >
       <!-- Form Fields -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
-        <!-- Branch Selection -->
-        <div v-if="showBranchDropdown" class="space-y-2">
-          <EnhancedDropdown
-            id="branch"
-            v-model="filters.branch_id"
-            :options="branchChoices.map(branch => ({ value: branch.id, label: branch.name }))"
-            label="Branch"
-            placeholder="Select Branch"
-            required
-            @change="handleBranchChange"
-          />
-        </div>
-
         <!-- Class Selection -->
         <div class="space-y-2">
           <EnhancedDropdown
@@ -50,7 +37,10 @@
           <EnhancedDropdown
             id="section"
             v-model="filters.section_id"
-            :options="[{ value: '', label: 'All Sections' }, ...sections.map(section => ({ value: section.id, label: section.name }))]"
+            :options="[
+              { value: '', label: 'All Sections' },
+              ...sections.map(section => ({ value: section.id, label: section.name }))
+            ]"
             label="Section"
             placeholder="Select Section"
             @change="loadStudents"
@@ -71,7 +61,10 @@
 
         <!-- Print Date -->
         <div class="space-y-2">
-          <label for="printDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label
+            for="printDate"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
             Print Date
           </label>
           <input
@@ -88,7 +81,7 @@
         <button
           @click="loadStudents"
           :disabled="!filters.branch_id || !filters.class_id"
-          class="inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Search class="h-4 w-4 mr-2" />
           Load Students
@@ -97,7 +90,7 @@
         <button
           @click="generateCertificates"
           :disabled="selectedStudents.length === 0 || !filters.template_id || loading"
-          class="inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <FileText class="h-4 w-4 mr-2" />
           {{ loading ? 'Generating...' : 'Generate Certificates' }}
@@ -282,18 +275,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { Search, FileText, GraduationCap, Users, X } from 'lucide-vue-next';
 import { useBranches } from '~/composables/useBranches';
 import { useStudents } from '~/composables/useStudents';
 import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useAcademics } from '~/composables/useAcademics';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { usePrintReport } from '~/composables/usePrintReport';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { branches, availableBranches, fetchBranchesForUser } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const { students, loadStudents: loadStudentsApi } = useStudents();
 const { templates, loadTemplates, generateStudentCertificates } = useCertificateTemplates();
 const {
@@ -313,12 +308,17 @@ const { printReport } = usePrintReport();
 const loading = ref(false);
 const selectedStudents = ref([]);
 const filters = reactive({
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   class_id: '',
   stream_id: '',
   section_id: '',
   template_id: '',
   print_date: new Date().toISOString().split('T')[0]
+});
+
+watch(selectedBranchId, async newVal => {
+  filters.branch_id = newVal || '';
+  await handleBranchChange();
 });
 
 // Computed
@@ -329,7 +329,9 @@ const allSelected = computed(() => {
 const hasStreams = computed(() => {
   return streams.value.length > 0;
 });
-const branchChoices = computed(() => availableBranches.value.length ? availableBranches.value : branches.value);
+const branchChoices = computed(() =>
+  availableBranches.value.length ? availableBranches.value : branches.value
+);
 const showBranchDropdown = computed(() => branchChoices.value.length > 1);
 
 const handleBranchChange = async () => {
@@ -497,7 +499,8 @@ const generateCertificates = async () => {
       print_date: filters.print_date,
       branch_id: filters.branch_id || undefined,
       class_id: filters.class_id || undefined,
-      section_id: filters.section_id && filters.section_id.trim() !== '' ? filters.section_id : undefined
+      section_id:
+        filters.section_id && filters.section_id.trim() !== '' ? filters.section_id : undefined
     };
 
     console.log('Generating certificates with data:', generationData);

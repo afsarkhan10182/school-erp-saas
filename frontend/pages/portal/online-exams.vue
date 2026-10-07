@@ -18,7 +18,9 @@
               <td class="px-4 py-3 text-sm">{{ exam.title }}</td>
               <td class="px-4 py-3 text-sm">{{ exam.class?.name || 'All classes' }}</td>
               <td class="px-4 py-3 text-sm">{{ exam.duration_minutes }} min</td>
-              <td class="px-4 py-3 text-sm text-right"><button class="text-indigo-600" @click="start(exam.id)">Start</button></td>
+              <td class="px-4 py-3 text-sm text-right">
+                <button class="text-indigo-600" @click="start(exam.id)">Start</button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -32,12 +34,18 @@
         </div>
         <div v-for="q in active.questions || []" :key="q.id" class="border rounded p-3">
           <div class="text-sm font-medium mb-2">{{ q.question_text }}</div>
-          <label v-for="(opt, i) in q.options_json" :key="i" class="flex items-center gap-2 text-sm mb-1">
+          <label
+            v-for="(opt, i) in q.options_json"
+            :key="i"
+            class="flex items-center gap-2 text-sm mb-1"
+          >
             <input v-model.number="answers[q.id]" type="radio" :value="i" />
             {{ opt }}
           </label>
         </div>
-        <button class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm" @click="submit">Submit</button>
+        <button class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm" @click="submit">
+          Submit
+        </button>
         <p v-if="message" class="text-sm text-green-700">{{ message }}</p>
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
       </div>
@@ -88,7 +96,9 @@ const submit = async () => {
 
 onMounted(async () => {
   await load();
-  timer = setInterval(() => { now.value = Date.now(); }, 1000);
+  timer = setInterval(() => {
+    now.value = Date.now();
+  }, 1000);
 });
 onUnmounted(() => {
   if (timer) clearInterval(timer);

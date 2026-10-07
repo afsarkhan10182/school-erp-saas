@@ -30,25 +30,13 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 mb-4">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block">
+          <h3
+            class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
+          >
             Select Ground
           </h3>
         </div>
-        <div :class="['grid grid-cols-1 gap-4', showBranchDropdown ? 'md:grid-cols-5' : 'md:grid-cols-4']">
-          <!-- Branch Selection -->
-          <div v-if="showBranchDropdown">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Branch
-            </label>
-            <EnhancedDropdown
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              placeholder="Choose branch"
-              :loading="branchesLoading"
-              @change="onBranchChange"
-            />
-          </div>
-
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <!-- Exam Selection -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -346,7 +334,7 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useExamReports } from '~/composables/useExamReports';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 // Types
 interface Student {
@@ -369,7 +357,7 @@ interface Template {
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const {
   classes,
   sections,
@@ -392,7 +380,6 @@ const {
 const generating = computed(() => reportCardsLoading.value);
 
 // Reactive data
-const selectedBranchId = ref('');
 const selectedExamId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
@@ -404,18 +391,24 @@ const emailToParents = ref(false);
 const emailToStudents = ref(false);
 const templates = ref<Template[]>([]);
 
-// Computed properties
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
-
-const showBranchDropdown = computed(() => {
-  return branches.value.length > 1;
+watch(selectedBranchId, async newBranchId => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  students.value = [];
+  selectedStudents.value = [];
+  if (newBranchId) {
+    await Promise.all([
+      fetchClasses({ branchId: newBranchId }),
+      loadExams({ branch_id: newBranchId, school_id: user.value?.school_id }),
+      loadTemplates()
+    ]);
+  } else {
+    await Promise.all([loadExams({ school_id: user.value?.school_id }), loadTemplates()]);
+  }
 });
 
+// Computed properties
 const resolvedBranchId = computed(() => {
   return selectedBranchId.value || user.value?.branch_id;
 });
@@ -458,31 +451,6 @@ const canGenerate = computed(() => {
 });
 
 // Methods
-const onBranchChange = async () => {
-  selectedExamId.value = '';
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  students.value = [];
-  selectedStudents.value = [];
-  selectedTemplateId.value = '';
-  
-  // Load classes and exams for the selected branch
-  if (selectedBranchId.value) {
-    await Promise.all([
-      fetchClasses({
-        branchId: selectedBranchId.value
-      }),
-      loadExams({
-        branch_id: selectedBranchId.value,
-        school_id: user.value?.school_id
-      })
-    ]);
-  } else {
-    // Clear classes if no branch selected
-    classes.value = [];
-  }
-};
-
 const onExamChange = () => {
   // Exam is independent of class, so don't clear class selection
   // Only clear students since exam changed
@@ -496,7 +464,7 @@ const onClassChange = async () => {
   students.value = [];
   selectedStudents.value = [];
   selectedTemplateId.value = '';
-  
+
   if (selectedClassId.value) {
     await fetchSections({
       schoolId: user.value?.school_id,
@@ -609,20 +577,14 @@ const loadTemplates = async () => {
 
 // Load initial data
 onMounted(async () => {
-  await fetchBranches();
-  
-  // Auto-select branch if user has one
-  if (user.value?.branch_id) {
-    selectedBranchId.value = user.value.branch_id;
-    
-    // Load classes, exams, and templates for the user's branch
+  if (selectedBranchId.value) {
     await Promise.all([
       fetchClasses({
-        branchId: user.value.branch_id
+        branchId: selectedBranchId.value
       }),
       loadExams({
-        branch_id: user.value.branch_id,
-        school_id: user.value.school_id
+        branch_id: selectedBranchId.value,
+        school_id: user.value?.school_id
       }),
       loadTemplates()
     ]);

@@ -28,7 +28,7 @@
             {{ calculatingGrades ? 'Calculating...' : 'Calculate Grades' }}
           </button>
           <button
-            v-if="results.length > 0"
+            v-if="examResults.length > 0"
             @click="handleExport"
             class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
           >
@@ -65,10 +65,10 @@
       </div>
 
       <!-- Statistics Cards -->
-      <div v-if="results.length > 0" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div v-if="examResults.length > 0" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <p class="text-sm text-gray-500 dark:text-gray-400">Total Students</p>
-          <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ results.length }}</p>
+          <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ examResults.length }}</p>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <p class="text-sm text-gray-500 dark:text-gray-400">Passed</p>
@@ -80,7 +80,7 @@
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <p class="text-sm text-gray-500 dark:text-gray-400">Average %</p>
-          <p class="text-2xl font-bold text-blue-600">{{ averagePercentage.toFixed(2) }}%</p>
+          <p class="text-2xl font-bold text-indigo-600">{{ averagePercentage.toFixed(2) }}%</p>
         </div>
       </div>
 
@@ -99,7 +99,7 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search by name, admission number..."
-                class="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                class="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 @input="handleSearch"
               />
             </div>
@@ -108,31 +108,23 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Grade Filter
             </label>
-            <select
+            <EnhancedDropdown
               v-model="gradeFilter"
+              :options="gradeOptions"
+              placeholder="All Grades"
               @change="handleFilter"
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="">All Grades</option>
-              <option v-for="grade in uniqueGrades" :key="grade" :value="grade">
-                {{ grade }}
-              </option>
-            </select>
+            />
           </div>
           <div class="w-48">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Sort By
             </label>
-            <select
+            <EnhancedDropdown
               v-model="sortBy"
+              :options="sortOptions"
+              placeholder="Sort results"
               @change="handleFilter"
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="marks_obtained">Marks (High to Low)</option>
-              <option value="percentage">Percentage (High to Low)</option>
-              <option value="grade">Grade</option>
-              <option value="student.first_name">Name (A-Z)</option>
-            </select>
+            />
           </div>
         </div>
       </div>
@@ -140,7 +132,9 @@
       <!-- Results Table -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
         <div v-if="loading" class="text-center py-12">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div
+            class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+          ></div>
           <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading results...</p>
         </div>
 
@@ -148,7 +142,11 @@
           <BarChart3 class="mx-auto h-12 w-12 text-gray-400" />
           <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No results found</h3>
           <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {{ searchQuery || gradeFilter ? 'Try adjusting your filters' : 'No results available for this exam' }}
+            {{
+              searchQuery || gradeFilter
+                ? 'Try adjusting your filters'
+                : 'No results available for this exam'
+            }}
           </p>
         </div>
 
@@ -214,7 +212,9 @@
                 :key="result.id"
                 class="hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+                >
                   {{ result.rank || index + 1 }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -226,14 +226,20 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {{ result.student?.roll_number || 'N/A' }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
-                  {{ result.is_absent ? 'Absent' : (result.marks_obtained || 0) }}
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white"
+                >
+                  {{ result.is_absent ? 'Absent' : result.marks_obtained || 0 }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400"
+                >
                   {{ result.exam?.max_marks || exam?.max_marks || 'N/A' }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
-                  {{ result.is_absent ? '-' : (result.percentage?.toFixed(2) || '0.00') }}%
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white"
+                >
+                  {{ result.is_absent ? '-' : result.percentage?.toFixed(2) || '0.00' }}%
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                   <span
@@ -287,7 +293,7 @@
             >
               <ChevronLeft class="h-5 w-5" />
             </button>
-            <span class="px-3 py-1 bg-blue-600 text-white rounded">{{ pagination.page }}</span>
+            <span class="px-3 py-1 bg-indigo-600 text-white rounded">{{ pagination.page }}</span>
             <button
               @click="loadPage(pagination.page + 1)"
               :disabled="pagination.page >= pagination.pages"
@@ -319,6 +325,7 @@ import { examApi } from '~/api/academic/exams';
 import { examResultApi } from '~/api/academic/exam-results';
 import { useToast } from '~/composables/useToast';
 import { createApiInstance } from '~/utils/api';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -356,6 +363,15 @@ const uniqueGrades = computed(() => {
   });
   return Array.from(grades).sort();
 });
+const gradeOptions = computed(() => [
+  ...uniqueGrades.value.map(grade => ({ value: grade, label: grade }))
+]);
+const sortOptions = [
+  { value: 'marks_obtained', label: 'Marks (High to Low)' },
+  { value: 'percentage', label: 'Percentage (High to Low)' },
+  { value: 'grade', label: 'Grade' },
+  { value: 'student.first_name', label: 'Name (A-Z)' }
+];
 
 const passedCount = computed(() => {
   return examResults.value.filter(r => r.is_passed && !r.is_absent).length;
@@ -537,7 +553,7 @@ const formatStatus = status => {
 const getStatusClass = status => {
   const classes = {
     draft: 'text-gray-600 dark:text-gray-400',
-    scheduled: 'text-blue-600 dark:text-blue-400',
+    scheduled: 'text-indigo-600 dark:text-indigo-400',
     marks_entered: 'text-yellow-600 dark:text-yellow-400',
     grades_calculated: 'text-purple-600 dark:text-purple-400',
     completed: 'text-green-600 dark:text-green-400'
@@ -549,7 +565,7 @@ const getGradeClass = grade => {
   // Common grade color mapping
   const gradeColors = {
     A: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-    B: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+    B: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
     C: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
     D: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
     F: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
@@ -571,4 +587,3 @@ onMounted(async () => {
   await loadResults();
 });
 </script>
-

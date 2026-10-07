@@ -1,13 +1,17 @@
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { Timetables } from '~/api/academic/timetables';
 
 export function useTimetables() {
   const { showToast, showApiError } = useToast();
+  const authStore = useAuthStore();
+  const { selectedBranchId: globalBranchId } = useGlobalBranch();
   const {
     academicYears,
     currentAcademicYear,
@@ -32,9 +36,9 @@ export function useTimetables() {
     return currentAcademicYear.value?.name || '';
   });
 
-  // Branch selection
+  // Branch selection - driven by global branch
   const selectedSchoolId = ref('');
-  const selectedBranchId = ref('');
+  const selectedBranchId = ref(globalBranchId.value || '');
   const selectedBranch = ref<{ id: string; name: string } | null>(null);
 
   // Filters (removed page and limit from filters to avoid duplication)
@@ -54,9 +58,7 @@ export function useTimetables() {
   });
 
   // Computed properties
-  const shouldShowBranchFilter = computed(() => {
-    return isSuperAdmin.value || isAdmin.value || isBranchAdmin.value;
-  });
+  const shouldShowBranchFilter = computed(() => false);
 
   const schoolOptions = computed(() =>
     schools.value.map(school => ({
@@ -65,12 +67,6 @@ export function useTimetables() {
     }))
   );
 
-  const branchOptions = computed(() =>
-    branches.value.map(branch => ({
-      value: branch.id,
-      label: branch.name
-    }))
-  );
 
   // Academic year options (for reports/history - not needed for current operations)
   const academicYearOptions = computed(() => [
@@ -299,12 +295,24 @@ export function useTimetables() {
       // Load academic years
       await fetchAcademicYears();
 
-      // Academic year is automatically set via computed property
-
-      // Load timetables if branch is already selected
-      if (selectedBranchId.value) {
-        await loadTimetables();
+      if (isSuperAdmin.value) {
+        selectedSchoolId.value = authStore.currentSchool?.id || '';
+      } else {
+        selectedSchoolId.value = user.value?.school_id || '';
       }
+
+      // Sync branch from global store
+      const activeBranch = globalBranchId.value || user.value?.branch_id || '';
+      if (activeBranch) {
+        selectedBranchId.value = activeBranch;
+        await onBranchChange();
+      }
+
+      // Watch global branch changes and reload
+      watch(globalBranchId, async newVal => {
+        selectedBranchId.value = newVal || '';
+        await onBranchChange();
+      });
     } catch (error) {
       showToast('Failed to initialize timetables', 'error');
       console.error('Error initializing timetables:', error);
@@ -329,7 +337,6 @@ export function useTimetables() {
     // Computed
     shouldShowBranchFilter,
     schoolOptions,
-    branchOptions,
     academicYearOptions,
     classDropdownOptions,
     sectionDropdownOptions,

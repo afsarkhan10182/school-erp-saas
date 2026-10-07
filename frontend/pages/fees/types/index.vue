@@ -1,417 +1,267 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Fee Management</h1>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Manage fee types for your institution
-          </p>
-        </div>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Fee Types</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage fee types and categories for your institution
+        </p>
+      </div>
+      <div>
         <button
           @click="openCreateModal"
-          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
         >
-          <PlusIcon class="h-4 w-4 mr-2" />
+          <PlusIcon class="h-4 w-4" />
           Add Fee Type
         </button>
       </div>
+    </div>
 
-      <div v-if="availableBranches.length > 1" class="mb-6 max-w-xs">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Branch
-        </label>
-        <select
-          v-model="selectedBranchId"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-          @change="fetchFeeTypes"
-        >
-          <option value="">All Branches</option>
-          <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-            {{ branch.name }}
-          </option>
-        </select>
+    <!-- Fee Types List -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
+      <div v-if="isLoading" class="p-8 text-center text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+        <span class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+        Loading fee types...
       </div>
 
-      <!-- Fee Types List -->
-      <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
-        <div v-if="isLoading" class="p-8 text-center">
-          <div
-            class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
-          ></div>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading fee types...</p>
-        </div>
+      <div v-else-if="feeTypes.length === 0" class="p-8 text-center">
+        <BanknoteIcon class="mx-auto h-12 w-12 text-gray-400" />
+        <p class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No fee types found.</p>
+        <button
+          @click="openCreateModal"
+          class="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 rounded-lg transition-colors"
+        >
+          <PlusIcon class="h-3.5 w-3.5" />
+          Create your first fee type
+        </button>
+      </div>
 
-        <div v-else-if="feeTypes.length === 0" class="p-8 text-center">
-          <BanknoteIcon class="mx-auto h-12 w-12 text-gray-400" />
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">No fee types found.</p>
-          <button
-            @click="openCreateModal"
-            class="mt-4 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-indigo-100 hover:bg-indigo-200 dark:text-indigo-400 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40"
-          >
-            <PlusIcon class="h-4 w-4 mr-2" />
-            Create your first fee type
-          </button>
-        </div>
-
-        <div v-else>
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Name
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Code
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Category
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Branch
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr
-                v-for="feeType in feeTypes"
-                :key="feeType.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+      <div v-else class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50/80 dark:bg-gray-900/40">
+            <tr>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">
-                    {{ feeType.name }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ feeType.code }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                Name
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Code
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Category
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Branch
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Status
+              </th>
+              <th
+                class="px-5 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr
+              v-for="feeType in feeTypes"
+              :key="feeType.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+            >
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                {{ feeType.name }}
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                {{ feeType.code }}
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap">
+                <span
+                  class="inline-flex px-2.5 py-0.5 text-xs font-medium rounded-full capitalize"
+                  :class="{
+                    'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900':
+                      feeType.category === 'academic',
+                    'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-900':
+                      feeType.category === 'transport',
+                    'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-900':
+                      feeType.category === 'hostel',
+                    'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900':
+                      feeType.category === 'other'
+                  }"
+                >
+                  {{ feeType.category }}
+                </span>
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                <span class="font-medium">{{ feeType.branch?.name || 'All Branches' }}</span>
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap">
+                <span
+                  :class="[
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                    feeType.is_active
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
+                      : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900'
+                  ]"
+                >
                   <span
-                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                    :class="{
-                      'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400':
-                        feeType.category === 'academic',
-                      'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400':
-                        feeType.category === 'transport',
-                      'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400':
-                        feeType.category === 'hostel',
-                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400':
-                        feeType.category === 'other'
-                    }"
-                  >
-                    {{ feeType.category }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div v-if="feeType.branch" class="flex items-center">
-                    <span class="font-medium">{{ feeType.branch.name }}</span>
-                  </div>
-                  <div v-else class="text-sm text-gray-500 dark:text-gray-400">All Branches</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                    :class="{
-                      'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400':
-                        feeType.is_active,
-                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400':
-                        !feeType.is_active
-                    }"
-                  >
-                    {{ feeType.is_active ? 'Active' : 'Inactive' }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    @click="editFeeType(feeType)"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    @click="deleteFeeType(feeType.id)"
-                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="feeType.is_active ? 'bg-emerald-500' : 'bg-rose-500'"
+                  ></span>
+                  {{ feeType.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-right text-sm font-medium">
+                <button
+                  @click="editFeeType(feeType)"
+                  class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3 hover:underline"
+                >
+                  Edit
+                </button>
+                <button
+                  @click="deleteFeeType(feeType.id)"
+                  class="text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:underline"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
     <!-- Create/Edit Modal -->
     <div
       v-if="showModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
     >
       <div
-        class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800"
+        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 w-full max-w-lg shadow-xl space-y-4"
       >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            {{ isEditing ? 'Edit Fee Type' : 'Create Fee Type' }}
-          </h3>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+          {{ isEditing ? 'Edit Fee Type' : 'Create Fee Type' }}
+        </h3>
 
-          <form @submit.prevent="saveFeeType">
-            <!-- School Selector for Super Admin -->
-            <div
-              v-if="user?.role === 'super_admin' && !isEditing"
-              class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+        <form @submit.prevent="saveFeeType" class="space-y-4">
+          <!-- Validation Errors Display -->
+          <div
+            v-if="validationErrors.general"
+            class="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-lg text-xs text-rose-700 dark:text-rose-300"
+          >
+            {{ validationErrors.general }}
+          </div>
+
+          <!-- Fee Type Form -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >Name <span class="text-rose-500">*</span></label
             >
-              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
-                📍 Select School Context
-              </h4>
-              <div class="space-y-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >School *</label
-                  >
-                  <EnhancedDropdown
-                    v-model="selectedSchoolId"
-                    :options="schoolOptions"
-                    placeholder="Select a school first"
-                    required
-                    :error="validationErrors.school_id"
-                    @update:model-value="onSchoolChange"
-                  />
-                  <div
-                    v-if="validationErrors.school_id"
-                    class="mt-1 text-xs text-red-600 dark:text-red-400"
-                  >
-                    {{ validationErrors.school_id }}
-                  </div>
-                </div>
-
-                <!-- Branch Selector for Super Admin -->
-                <div v-if="selectedSchoolId">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Branch *</label
-                  >
-                  <EnhancedDropdown
-                    v-model="selectedBranchId"
-                    :options="branchOptions"
-                    placeholder="Select a branch"
-                    required
-                    :error="validationErrors.branch_id"
-                  />
-                  <div
-                    v-if="validationErrors.branch_id"
-                    class="mt-1 text-xs text-red-600 dark:text-red-400"
-                  >
-                    {{ validationErrors.branch_id }}
-                  </div>
-                </div>
-
-                <div
-                  v-if="!selectedSchoolId && !validationErrors.school_id"
-                  class="text-xs text-blue-600 dark:text-blue-400"
-                >
-                  ⚠️ Please select a school before creating the fee type
-                </div>
-                <div
-                  v-if="selectedSchoolId && !selectedBranchId && !validationErrors.branch_id"
-                  class="text-xs text-blue-600 dark:text-blue-400"
-                >
-                  ⚠️ Please select a branch before creating the fee type
-                </div>
-              </div>
-            </div>
-
-            <!-- Branch Selector for Admin -->
+            <input
+              v-model="form.name"
+              type="text"
+              required
+              class="input-field"
+              placeholder="Enter fee type name"
+            />
             <div
-              v-if="user?.role === 'admin'"
-              class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+              v-if="validationErrors.name"
+              class="mt-1 text-xs text-rose-600 dark:text-rose-400"
             >
-              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
-                📍 {{ isEditing ? 'Branch Context (Read-only)' : 'Select Branch Context' }}
-              </h4>
-              <div class="space-y-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Branch *</label
-                  >
-                  <EnhancedDropdown
-                    v-model="selectedBranchId"
-                    :options="branchOptions"
-                    placeholder="Select a branch"
-                    :required="!isEditing"
-                    :disabled="isEditing"
-                    :error="validationErrors.branch_id"
-                  />
-                  <div
-                    v-if="validationErrors.branch_id"
-                    class="mt-1 text-xs text-red-600 dark:text-red-400"
-                  >
-                    {{ validationErrors.branch_id }}
-                  </div>
-                </div>
-                <div
-                  v-if="!selectedBranchId && !validationErrors.branch_id && !isEditing"
-                  class="text-xs text-blue-600 dark:text-blue-400"
-                >
-                  ⚠️ Please select a branch before creating the fee type
-                </div>
-                <div v-if="isEditing" class="text-xs text-blue-600 dark:text-blue-400">
-                  ℹ️ Branch cannot be changed when editing a fee type
-                </div>
-              </div>
+              {{ validationErrors.name }}
             </div>
+          </div>
 
-            <!-- Validation Errors Display -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >Code <span class="text-rose-500">*</span></label
+            >
+            <input
+              v-model="form.code"
+              type="text"
+              required
+              class="input-field"
+              placeholder="e.g., TUITION, TRANSPORT, HOSTEL"
+            />
             <div
-              v-if="validationErrors.general"
-              class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md"
+              v-if="validationErrors.code"
+              class="mt-1 text-xs text-rose-600 dark:text-rose-400"
             >
-              <div class="text-red-800 text-sm">{{ validationErrors.general }}</div>
+              {{ validationErrors.code }}
             </div>
+          </div>
 
-            <!-- Fee Type Form -->
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Name *</label
-                >
-                <input
-                  v-model="form.name"
-                  type="text"
-                  required
-                  :class="[
-                    'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                    validationErrors.name
-                      ? 'border-red-300 dark:border-red-600'
-                      : 'border-gray-300 dark:border-gray-600'
-                  ]"
-                  placeholder="Enter fee type name"
-                />
-                <div
-                  v-if="validationErrors.name"
-                  class="mt-1 text-xs text-red-600 dark:text-red-400"
-                >
-                  {{ validationErrors.name }}
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Code *</label
-                >
-                <input
-                  v-model="form.code"
-                  type="text"
-                  required
-                  :class="[
-                    'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                    validationErrors.code
-                      ? 'border-red-300 dark:border-red-600'
-                      : 'border-gray-300 dark:border-gray-600'
-                  ]"
-                  placeholder="e.g., TUITION, TRANSPORT, HOSTEL"
-                />
-                <div
-                  v-if="validationErrors.code"
-                  class="mt-1 text-xs text-red-600 dark:text-red-400"
-                >
-                  {{ validationErrors.code }}
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Category *</label
-                >
-                <EnhancedDropdown
-                  v-model="form.category"
-                  :options="categoryOptions"
-                  placeholder="Select Category"
-                  required
-                  :error="validationErrors.category"
-                />
-                <div
-                  v-if="validationErrors.category"
-                  class="mt-1 text-xs text-red-600 dark:text-red-400"
-                >
-                  {{ validationErrors.category }}
-                </div>
-              </div>
-
-              <div class="flex items-center">
-                <input
-                  v-model="form.is_active"
-                  type="checkbox"
-                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Active</label>
-              </div>
-              <div
-                v-if="validationErrors.is_active"
-                class="mt-1 text-xs text-red-600 dark:text-red-400"
-              >
-                {{ validationErrors.is_active }}
-              </div>
+          <div>
+            <EnhancedDropdown
+              v-model="form.category"
+              label="Category"
+              :options="categoryOptions"
+              placeholder="Select Category"
+              :required="true"
+              :error="validationErrors.category"
+            />
+            <div
+              v-if="validationErrors.category"
+              class="mt-1 text-xs text-rose-600 dark:text-rose-400"
+            >
+              {{ validationErrors.category }}
             </div>
+          </div>
 
-            <div class="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                @click="closeModal"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                :disabled="
-                  isSubmitting ||
-                  (user?.role === 'super_admin' &&
-                    !isEditing &&
-                    (!selectedSchoolId || !selectedBranchId)) ||
-                  (user?.role === 'admin' && !isEditing && !selectedBranchId)
-                "
-                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-              >
-                {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                v-model="form.is_active"
+                type="checkbox"
+                class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+            </label>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              @click="closeModal"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+            >
+              {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Schools, FeeTypes } from '~/api';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
-import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
+import { PlusIcon, BanknoteIcon, ChevronDown } from 'lucide-vue-next';
 
 // SSR-safe window check
 const isClient = import.meta.client;
@@ -420,7 +270,7 @@ const isClient = import.meta.client;
 const { user } = useAuth();
 const { showSuccess, showError } = useToast();
 const { schools, fetchSchools } = useSchools();
-const { branches, fetchBranches } = useBranches();
+const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const router = useRouter();
 const route = useRoute();
 
@@ -442,12 +292,6 @@ const schoolOptions = computed(() => [
   }))
 ]);
 
-const branchOptions = computed(() => [
-  ...availableBranches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-]);
 
 const categoryOptions = [
   { value: 'academic', label: 'Academic' },
@@ -496,9 +340,7 @@ const onSchoolChange = async () => {
   selectedBranchId.value = ''; // Reset branch selection
   if (selectedSchoolId.value) {
     try {
-      const branches = await fetchBranches(selectedSchoolId.value);
-
-      // fetchBranches returns the branches array directly
+      const branches = []; // Removed unfinished statement
       if (Array.isArray(branches)) {
         availableBranches.value = branches;
       } else {
@@ -522,48 +364,14 @@ const onSchoolChange = async () => {
 };
 
 // Fetch branches for school admin
-const fetchBranchesForSchoolAdmin = async () => {
-  if (user.value?.role !== 'admin' || !user.value?.school_id) {
-    return;
-  }
-
-  try {
-    const branches = await fetchBranches(user.value.school_id);
-
-    // fetchBranches returns the branches array directly
-    if (Array.isArray(branches)) {
-      availableBranches.value = branches;
-    } else {
-      availableBranches.value = [];
-    }
-
-    // Auto-select if only one branch
-    if (availableBranches.value.length === 1) {
-      selectedBranchId.value = availableBranches.value[0].id;
-    }
-  } catch (error) {
-    console.error('Error fetching branches for school admin:', error);
-    availableBranches.value = [];
-  }
-};
 
 // Force reload branches for school admin
-const forceReloadBranches = async () => {
-  if (user.value?.role === 'admin' && user.value?.school_id) {
-    await fetchBranchesForSchoolAdmin();
-  }
-};
 
 // Watch for user data changes to load branches
 watch(
   user,
   async newUser => {
-    if (
-      newUser?.role === 'admin' &&
-      newUser?.school_id &&
-      availableBranches.value.length === 0
-    ) {
-      await fetchBranchesForSchoolAdmin();
+    if (newUser?.role === 'admin' && newUser?.school_id && availableBranches.value.length === 0) {
     }
   },
   { immediate: true }
@@ -576,8 +384,9 @@ const fetchFeeTypes = async () => {
     if (user.value?.school_id) {
       params.school_id = user.value.school_id;
     }
-    if (selectedBranchId.value) {
-      params.branch_id = selectedBranchId.value;
+    const branchId = globalBranchId.value || selectedBranchId.value;
+    if (branchId) {
+      params.branch_id = branchId;
     }
     const response = await FeeTypes.getAll(params);
     feeTypes.value = response.data;
@@ -587,6 +396,10 @@ const fetchFeeTypes = async () => {
     isLoading.value = false;
   }
 };
+
+watch(globalBranchId, () => {
+  fetchFeeTypes();
+});
 
 const openCreateModal = async () => {
   resetForm();
@@ -600,7 +413,11 @@ const openCreateModal = async () => {
 
   // Load branches for school admin (always load to ensure fresh data)
   if (user.value?.role === 'admin' && user.value?.school_id) {
-    await fetchBranchesForSchoolAdmin();
+  }
+
+  // Pre-fill branch from global context
+  if (globalBranchId.value) {
+    selectedBranchId.value = globalBranchId.value;
   }
 };
 
@@ -709,7 +526,6 @@ onMounted(async () => {
 
     // Load branches for school admin on component mount
     if (user.value?.role === 'admin') {
-      await fetchBranchesForSchoolAdmin();
     }
 
     // Load fee types

@@ -29,7 +29,9 @@
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+        <div
+          class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm"
+        >
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
@@ -49,7 +51,9 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+        <div
+          class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm"
+        >
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
@@ -69,7 +73,9 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+        <div
+          class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm"
+        >
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
@@ -89,7 +95,9 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+        <div
+          class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm"
+        >
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
@@ -117,16 +125,16 @@
         :classes="classes"
         :sections="sections"
         :streams="streams"
-        :branches="branches"
         :is-loading="isLoading"
         @filter-change="onFilterChange"
         @clear-filters="clearFilters"
-        @branch-change="onBranchChange"
         @class-change="onClassChange"
       />
 
       <!-- Invoices Table Component -->
-      <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+      <div
+        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden"
+      >
         <InvoiceTable
           ref="invoiceTableRef"
           :invoices="invoices"
@@ -186,10 +194,7 @@
   />
 
   <!-- Payment Modal -->
-  <div
-    v-if="showPaymentModal"
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-  >
+  <div v-if="showPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
     <div
       class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
     >
@@ -250,34 +255,11 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >Payment Method</label
               >
-              <div class="relative">
-                <select
-                  v-model="paymentForm.payment_method"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="upi">UPI</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                </select>
-                <!-- Custom dropdown arrow -->
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <EnhancedDropdown
+                v-model="paymentForm.payment_method"
+                :options="paymentMethodOptions"
+                placeholder="Select payment method"
+              />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -312,10 +294,7 @@
   </div>
 
   <!-- Receipt Modal -->
-  <div
-    v-if="showReceiptModal"
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-  >
+  <div v-if="showReceiptModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
     <div
       class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
     >
@@ -339,10 +318,7 @@
   </div>
 
   <!-- Multiple Payments Modal -->
-  <div
-    v-if="showMultiplePaymentsModal"
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-  >
+  <div v-if="showMultiplePaymentsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
     <div
       class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800"
     >
@@ -441,7 +417,7 @@
                       <div>
                         <button
                           @click="viewPaymentReceipt(paymentItem)"
-                          class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                          class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
                         >
                           <svg
                             class="h-4 w-4 mr-1"
@@ -494,10 +470,12 @@ import { Invoices, FeeInvoices, FeeStructures, Branches, Schools } from '~/api';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 // Strategic imports: Direct for always-present, Async for on-demand
 import InvoiceFilters from '~/components/financial/InvoiceFilters.vue';
 import InvoiceTable from '~/components/financial/InvoiceTable.vue';
 import Pagination from '~/components/ui/Pagination.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Async imports for modal components (only loaded when needed)
 const QuickCollectFeeModal = defineAsyncComponent(
@@ -531,6 +509,7 @@ const { schools, fetchSchools, loading: schoolsLoading } = useSchools();
 
 // Auth composable
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 
 // State
 const invoices = ref([]);
@@ -554,19 +533,38 @@ const invoiceTableRef = ref(null); // Ref for InvoiceTable component
 // Pagination
 const currentPage = ref(1);
 const pageSize = ref(10);
+const paymentMethodOptions = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'card', label: 'Card' },
+  { value: 'upi', label: 'UPI' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'cheque', label: 'Cheque' }
+];
 
 // View mode (only grouped)
 const viewMode = ref('grouped');
 
-// Filters - Start with empty filters
+// Filters - Start with branch from global context
 const filters = reactive({
   payment_model: '',
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   academic_year: '',
   class_id: '',
   section: '',
   stream: '',
   status: ''
+});
+
+watch(selectedBranchId, async newBranchId => {
+  filters.branch_id = newBranchId || '';
+  currentPage.value = 1;
+  const schoolId = user.value?.school_id;
+  if (newBranchId) {
+    await fetchClasses({ schoolId, branchId: newBranchId });
+  } else {
+    await fetchClasses({ schoolId });
+  }
+  await fetchInvoices();
 });
 
 // Use existing data from composables - no need to redeclare
@@ -1467,7 +1465,7 @@ const getMonthsCovered = invoice => {
 
 const getPaymentModelClass = invoice => {
   if (isMonthlyPayment(invoice)) {
-    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+    return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
   } else if (isGroupedPayment(invoice)) {
     return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
   }

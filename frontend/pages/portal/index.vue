@@ -47,14 +47,16 @@
         </ul>
       </div>
 
-      <p v-else class="text-sm text-gray-500">{{ data.message || 'Staff users should use the main dashboard.' }}</p>
+      <p v-else class="text-sm text-gray-500">
+        {{ data.message || 'Staff users should use the main dashboard.' }}
+      </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { Portal } from '~/api/shared/school-ops';
+import { Portal } from '~/api/shared/dynamic-entities';
 import { apiErrorMessage } from '~/utils/list-response';
 
 const data = ref<any>({});

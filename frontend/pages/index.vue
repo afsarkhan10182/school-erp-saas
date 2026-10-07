@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
     <div class="text-center">
-      <div class="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+      <div class="w-16 h-16 bg-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-4">
         <span class="text-white font-bold text-2xl">S</span>
       </div>
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">School ERP SaaS</h1>
@@ -12,7 +12,7 @@
       <!-- Subtle loading indicator -->
       <div v-if="authStore.isInitializing" class="flex justify-center">
         <div
-          class="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"
+          class="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"
         ></div>
       </div>
     </div>

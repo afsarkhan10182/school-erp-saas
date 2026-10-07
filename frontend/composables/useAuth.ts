@@ -1,8 +1,6 @@
 import { useAuthStore } from '~/stores/auth';
 import { homePathForRole } from '~/utils/home-path';
 
-export { homePathForRole };
-
 export const useAuth = () => {
   const authStore = useAuthStore();
 
@@ -58,7 +56,7 @@ export const useAuth = () => {
           sessionStorage.setItem('post-logout-redirect', currentPath);
         }
       }
-      
+
       await authStore.logout();
       await navigateTo('/auth/login');
     } catch (error) {

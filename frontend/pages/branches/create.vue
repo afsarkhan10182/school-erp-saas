@@ -19,7 +19,7 @@
         <select
           v-model="form.schoolId"
           required
-          class="input-field"
+          class="form-select"
           :disabled="schoolsLoading || schools.length === 0"
         >
           <option value="">Select a school</option>
@@ -38,7 +38,7 @@
             v-model="form.name"
             type="text"
             required
-            class="input-field"
+            class="form-input"
             placeholder="Enter branch name"
           />
         </div>
@@ -50,7 +50,7 @@
             v-model="form.code"
             type="text"
             required
-            class="input-field"
+            class="form-input"
             placeholder="e.g., MAIN, NORTH, SOUTH"
           />
         </div>
@@ -60,7 +60,7 @@
             v-model="form.email"
             type="email"
             required
-            class="input-field"
+            class="form-input"
             placeholder="Branch email"
           />
         </div>
@@ -69,7 +69,7 @@
           <input
             v-model="form.phone"
             type="text"
-            class="input-field"
+            class="form-input"
             placeholder="Branch phone (optional)"
             @input="form.phone = form.phone.replace(/[^\d]/g, '')"
           />
@@ -80,7 +80,7 @@
             v-model="form.currency"
             type="text"
             required
-            class="input-field"
+            class="form-input"
             placeholder="e.g. INR, USD"
           />
         </div>
@@ -92,7 +92,7 @@
             v-model="form.currency_symbol"
             type="text"
             required
-            class="input-field"
+            class="form-input"
             placeholder="e.g. ₹, $"
           />
         </div>
@@ -102,7 +102,7 @@
             v-model="form.city"
             type="text"
             required
-            class="input-field"
+            class="form-input"
             placeholder="Branch city"
           />
         </div>
@@ -112,7 +112,7 @@
             v-model="form.state"
             type="text"
             required
-            class="input-field"
+            class="form-input"
             placeholder="Branch state"
           />
         </div>
@@ -121,7 +121,7 @@
         <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Address</label>
         <textarea
           v-model="form.address"
-          class="input-field"
+          class="form-input"
           rows="2"
           placeholder="Branch address (optional)"
         ></textarea>
@@ -134,7 +134,7 @@
             ref="systemLogoInput"
             type="file"
             accept="image/*"
-            class="input-field"
+            class="form-input"
             @change="onFileChange('system_logo', $event)"
           />
         </div>
@@ -144,7 +144,7 @@
             ref="textLogoInput"
             type="file"
             accept="image/*"
-            class="input-field"
+            class="form-input"
             @change="onFileChange('text_logo', $event)"
           />
         </div>
@@ -156,7 +156,7 @@
             ref="printingLogoInput"
             type="file"
             accept="image/*"
-            class="input-field"
+            class="form-input"
             @change="onFileChange('printing_logo', $event)"
           />
         </div>
@@ -168,7 +168,7 @@
             ref="reportCardInput"
             type="file"
             accept="image/*,application/pdf"
-            class="input-field"
+            class="form-input"
             @change="onFileChange('report_card_design', $event)"
           />
         </div>
@@ -306,11 +306,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
-}
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
 }
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;

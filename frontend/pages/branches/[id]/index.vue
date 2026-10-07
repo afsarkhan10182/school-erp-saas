@@ -94,7 +94,7 @@
             <a
               :href="branch.report_card_design"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 underline"
+              class="text-indigo-600 dark:text-indigo-400 underline"
               >Download/View</a
             >
           </div>
@@ -141,6 +141,6 @@ onMounted(fetchBranch);
 </script>
 <style scoped>
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
 }
 </style>

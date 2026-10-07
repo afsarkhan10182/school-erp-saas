@@ -1,35 +1,33 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="sm:flex sm:items-center sm:justify-between mb-8">
-        <div>
-          <div class="flex items-center gap-2 mb-2">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Certificate Templates</h1>
-          </div>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Create and manage certificate templates for students and employees
-          </p>
-        </div>
-        <div class="mt-4 sm:mt-0">
-          <button
-            @click="showCreateModal = true"
-            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <Plus class="h-4 w-4 mr-2" />
-            Create Template
-          </button>
-        </div>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+          Certificate Templates
+        </h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Create and manage certificate templates for students and employees
+        </p>
       </div>
-
-      <!-- Templates List -->
-      <CertificateTemplatesTab
-        ref="templatesTabRef"
-        @refresh="loadTemplates"
-        @success="handleTemplateSuccess"
-        @edit="handleEditTemplate"
-      />
+      <div>
+        <button
+          @click="showCreateModal = true"
+          class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm"
+        >
+          <Plus class="h-4 w-4 mr-2" />
+          Create Template
+        </button>
+      </div>
     </div>
+
+    <!-- Templates List -->
+    <CertificateTemplatesTab
+      ref="templatesTabRef"
+      @refresh="loadTemplates"
+      @success="handleTemplateSuccess"
+      @edit="handleEditTemplate"
+    />
 
     <!-- Create Template Modal -->
     <CertificateTemplateModal

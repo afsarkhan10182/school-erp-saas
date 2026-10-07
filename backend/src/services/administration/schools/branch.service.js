@@ -78,7 +78,7 @@ class BranchService {
       });
 
       // Use base service for pagination response
-      return BaseService.buildPaginationResponse(rows, count, page, limit, 'branches');
+      return BaseService.buildPaginationResponse(rows, page, limit, count, 'branches');
     }, 'BranchService.getAllBranches');
   }
 
@@ -224,7 +224,7 @@ class BranchService {
       });
 
       // Use base service for pagination response
-      return BaseService.buildPaginationResponse(rows, count, page, limit, 'branches');
+      return BaseService.buildPaginationResponse(rows, page, limit, count, 'branches');
     }, 'BranchService.getBranchesBySchool');
   }
 

@@ -1,7 +1,9 @@
 <template>
   <div class="rich-text-editor">
     <!-- Toolbar -->
-    <div class="toolbar border border-gray-300 dark:border-gray-600 rounded-t-md bg-white dark:bg-gray-800 px-3 py-2 border-b">
+    <div
+      class="toolbar border border-gray-300 dark:border-gray-600 rounded-t-md bg-white dark:bg-gray-800 px-3 py-2 border-b"
+    >
       <div class="flex items-center gap-1 flex-wrap">
         <!-- Text Formatting -->
         <button
@@ -9,7 +11,9 @@
           @click="editor?.chain().focus().toggleBold().run()"
           :class="[
             'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-            editor?.isActive('bold') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+            editor?.isActive('bold')
+              ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600'
+              : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Bold"
         >
@@ -21,7 +25,9 @@
           @click="editor?.chain().focus().toggleItalic().run()"
           :class="[
             'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-            editor?.isActive('italic') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+            editor?.isActive('italic')
+              ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600'
+              : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Italic"
         >
@@ -33,7 +39,9 @@
           @click="editor?.chain().focus().toggleUnderline().run()"
           :class="[
             'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-            editor?.isActive('underline') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+            editor?.isActive('underline')
+              ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600'
+              : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Underline"
         >
@@ -48,7 +56,9 @@
           @click="editor?.chain().focus().setTextAlign('left').run()"
           :class="[
             'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-            editor?.isActive({ textAlign: 'left' }) ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+            editor?.isActive({ textAlign: 'left' })
+              ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600'
+              : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Left"
         >
@@ -60,7 +70,9 @@
           @click="editor?.chain().focus().setTextAlign('center').run()"
           :class="[
             'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-            editor?.isActive({ textAlign: 'center' }) ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+            editor?.isActive({ textAlign: 'center' })
+              ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600'
+              : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Center"
         >
@@ -72,7 +84,9 @@
           @click="editor?.chain().focus().setTextAlign('right').run()"
           :class="[
             'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-            editor?.isActive({ textAlign: 'right' }) ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+            editor?.isActive({ textAlign: 'right' })
+              ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600'
+              : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Right"
         >
@@ -87,7 +101,9 @@
           @click="editor?.chain().focus().toggleBulletList().run()"
           :class="[
             'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-            editor?.isActive('bulletList') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+            editor?.isActive('bulletList')
+              ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600'
+              : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Bullet List"
         >
@@ -99,7 +115,9 @@
           @click="editor?.chain().focus().toggleOrderedList().run()"
           :class="[
             'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-            editor?.isActive('orderedList') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+            editor?.isActive('orderedList')
+              ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600'
+              : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Numbered List"
         >
@@ -136,7 +154,8 @@
               @click="insertTag(tag)"
               class="w-full text-left px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors"
             >
-              {<span class="font-medium text-indigo-600 dark:text-indigo-400">{{ tag }}</span>}
+              {<span class="font-medium text-indigo-600 dark:text-indigo-400">{{ tag }}</span
+              >}
             </button>
           </div>
         </div>
@@ -174,7 +193,17 @@ import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { TextAlign } from '@tiptap/extension-text-align';
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Tag } from 'lucide-vue-next';
+import {
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  List,
+  ListOrdered,
+  Tag
+} from 'lucide-vue-next';
 
 // Custom extension for dynamic tags
 const DynamicTag = {
@@ -270,7 +299,6 @@ const setTextColor = color => {
     editor.value.chain().focus().setColor(color).run();
   }
 };
-
 
 const insertTag = tag => {
   if (editor.value) {
@@ -472,39 +500,39 @@ onBeforeUnmount(() => {
 }
 
 /* Preserve text alignment */
-.certificate-editor :deep(.ProseMirror [style*="text-align: center"]) {
+.certificate-editor :deep(.ProseMirror [style*='text-align: center']) {
   text-align: center !important;
 }
 
-.certificate-editor :deep(.ProseMirror [style*="text-align: right"]) {
+.certificate-editor :deep(.ProseMirror [style*='text-align: right']) {
   text-align: right !important;
 }
 
-.certificate-editor :deep(.ProseMirror [style*="text-align: left"]) {
+.certificate-editor :deep(.ProseMirror [style*='text-align: left']) {
   text-align: left !important;
 }
 
-.certificate-editor :deep(.ProseMirror [style*="text-align: justify"]) {
+.certificate-editor :deep(.ProseMirror [style*='text-align: justify']) {
   text-align: justify !important;
 }
 
 /* Preserve font sizes from inline styles */
-.certificate-editor :deep(.ProseMirror [style*="font-size"]) {
+.certificate-editor :deep(.ProseMirror [style*='font-size']) {
   /* Font size will be preserved via inline style */
 }
 
 /* Preserve colors from inline styles */
-.certificate-editor :deep(.ProseMirror [style*="color"]) {
+.certificate-editor :deep(.ProseMirror [style*='color']) {
   /* Color will be preserved via inline style */
 }
 
 /* Preserve line-height from inline styles */
-.certificate-editor :deep(.ProseMirror [style*="line-height"]) {
+.certificate-editor :deep(.ProseMirror [style*='line-height']) {
   /* Line height will be preserved via inline style */
 }
 
 /* Preserve margins from inline styles */
-.certificate-editor :deep(.ProseMirror [style*="margin"]) {
+.certificate-editor :deep(.ProseMirror [style*='margin']) {
   /* Margins will be preserved via inline style */
 }
 </style>

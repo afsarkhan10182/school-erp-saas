@@ -5,12 +5,12 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Module Management</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">
-          {{ school?.name || 'School' }} — toggle features on/off for this school (must be included in
-          the subscription plan first)
+          {{ school?.name || 'School' }} — toggle features on/off for this school (must be included
+          in the subscription plan first)
         </p>
         <div class="mt-2 flex items-center gap-4 text-sm">
           <span
-            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
           >
             {{ school?.subscription_plan || 'No Plan' }}
           </span>
@@ -88,11 +88,11 @@
               </div>
               <div class="text-sm text-gray-700 dark:text-gray-300">Inactive Modules</div>
             </div>
-            <div class="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div class="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+              <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                 {{ totalModules }}
               </div>
-              <div class="text-sm text-blue-700 dark:text-blue-300">Total Available</div>
+              <div class="text-sm text-indigo-700 dark:text-indigo-300">Total Available</div>
             </div>
           </div>
         </div>
@@ -119,7 +119,7 @@
                 :class="{
                   'border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30':
                     !module.is_core,
-                  'border-2 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30':
+                  'border-2 border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30':
                     module.is_core
                 }"
               >
@@ -127,7 +127,7 @@
                   type="checkbox"
                   :id="module.code"
                   v-model="module.enabled"
-                  @change="toggleModule(module.code, module.enabled)"
+                  @change="requestToggle(module.code, module.enabled)"
                   :disabled="saving || module.is_core"
                   class="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                   :class="{ 'opacity-50 cursor-not-allowed': module.is_core }"
@@ -140,7 +140,7 @@
                         {{ module.name }}
                         <span
                           v-if="module.is_core"
-                          class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                          class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
                         >
                           🔒 Core (Cannot Disable)
                         </span>
@@ -177,9 +177,9 @@
                   type="checkbox"
                   :id="module.code"
                   v-model="module.enabled"
-                  @change="toggleModule(module.code, module.enabled)"
+                  @change="requestToggle(module.code, module.enabled)"
                   :disabled="saving || module.is_core"
-                  class="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                   :class="{ 'opacity-50 cursor-not-allowed': module.is_core }"
                 />
                 <label :for="module.code" class="flex-1 cursor-pointer">
@@ -269,6 +269,14 @@
       </div>
     </div>
   </div>
+  <ConfirmDialog
+    :show="Boolean(pendingToggle)"
+    title="Disable the last module?"
+    message="This will leave only core features available for the school. Continue?"
+    confirm-label="Disable module"
+    @close="pendingToggle = null"
+    @confirm="confirmToggle"
+  />
 </template>
 
 <script setup>
@@ -278,6 +286,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { useModuleAccess } from '~/composables/useModuleAccess';
 import { Schools, Saas } from '~/api';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 const authStore = useAuthStore();
 const { showError, showSuccess } = useToast();
@@ -298,6 +307,7 @@ const error = ref('');
 const school = ref(null);
 const planDetails = ref(null);
 const modules = ref([]);
+const pendingToggle = ref(null);
 
 // Toast notification state
 const showToast = ref(false);
@@ -406,6 +416,20 @@ const loadSchoolModules = async () => {
   }
 };
 
+const requestToggle = (moduleCode, enabled) => {
+  if (!enabled && modules.value.filter(m => m.enabled && !m.is_core && m.code !== moduleCode).length === 0) {
+    pendingToggle.value = { moduleCode, enabled };
+    return;
+  }
+  toggleModule(moduleCode, enabled);
+};
+
+const confirmToggle = () => {
+  const toggle = pendingToggle.value;
+  pendingToggle.value = null;
+  if (toggle) toggleModule(toggle.moduleCode, toggle.enabled);
+};
+
 const toggleModule = async (moduleCode, enabled) => {
   if (saving.value) return;
 
@@ -420,23 +444,6 @@ const toggleModule = async (moduleCode, enabled) => {
     isExamModule: moduleCode === 'exams',
     isAttendanceModule: moduleCode === 'attendance'
   });
-
-  // Check if this is the last enabled non-core module being disabled
-  if (!enabled) {
-    const enabledNonCoreModules = modules.value.filter(
-      m => m.enabled && !m.is_core && m.code !== moduleCode
-    );
-
-    if (enabledNonCoreModules.length === 0) {
-      const confirmed = confirm(
-        '⚠️ Warning: This is the last enabled module.\n\n' +
-          'Disabling it will remove access to all features except core modules.\n\n' +
-          'Are you sure you want to continue?'
-      );
-
-      if (!confirmed) return;
-    }
-  }
 
   saving.value = true;
 
@@ -562,14 +569,10 @@ onMounted(async () => {
 
 <style scoped>
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
-}
-
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
 </style>

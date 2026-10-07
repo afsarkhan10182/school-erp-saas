@@ -9,7 +9,7 @@
         <div class="mt-4 sm:mt-0">
           <button
             @click="$router.push('/exams/schedules/create')"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <Plus class="h-4 w-4 mr-2" />
             Create Schedule
@@ -21,20 +21,6 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select Ground</h2>
         <div class="flex items-end gap-4">
-          <!-- Branch Selection -->
-          <div v-if="showBranchDropdown" class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Branch <span class="text-red-500">*</span>
-            </label>
-            <EnhancedDropdown
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              placeholder="Select branch"
-              :loading="branchesLoading"
-              @change="onBranchChange"
-            />
-          </div>
-
           <!-- Class Selection -->
           <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -45,7 +31,7 @@
               :options="filteredClassOptions"
               placeholder="Select class"
               :loading="classesLoading"
-              :disabled="!selectedBranchId && showBranchDropdown"
+              :disabled="!selectedBranchId"
               @change="onClassChange"
             />
           </div>
@@ -69,7 +55,7 @@
             <button
               @click="applyFilter"
               :disabled="!canApplyFilter"
-              class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              class="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Filter class="h-5 w-5 mr-2" />
               Filter
@@ -94,7 +80,7 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search..."
-                class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white w-64"
+                class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white w-64"
               />
               <Search
                 class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
@@ -158,7 +144,7 @@
                   <div class="flex items-center space-x-3">
                     <button
                       @click="viewScheduleDetails(examGroup)"
-                      class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                       title="View Details"
                     >
                       <Eye class="h-4 w-4" />
@@ -194,15 +180,12 @@
               >Showing 1 to {{ filteredGroupedExams.length }} of
               {{ groupedExams.length }} entries</span
             >
-            <select
+            <EnhancedDropdown
               v-model="rowsPerPage"
-              class="ml-4 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
-            >
-              <option :value="10">10</option>
-              <option :value="25">25</option>
-              <option :value="50">50</option>
-              <option :value="100">100</option>
-            </select>
+              :options="rowsPerPageOptions"
+              class="ml-4 w-24"
+              aria-label="Rows per page"
+            />
             <span class="ml-2">rows per page</span>
           </div>
           <div class="flex items-center space-x-2">
@@ -213,7 +196,7 @@
             >
               <ChevronLeft class="h-5 w-5" />
             </button>
-            <span class="px-3 py-1 bg-blue-600 text-white rounded">{{ currentPage }}</span>
+            <span class="px-3 py-1 bg-indigo-600 text-white rounded">{{ currentPage }}</span>
             <button
               @click="currentPage++"
               :disabled="currentPage >= totalPages"
@@ -229,7 +212,7 @@
     <!-- Schedule Details Modal -->
     <div
       v-if="showDetailsModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
       @click="closeDetailsModal"
     >
       <div
@@ -355,7 +338,7 @@
           <div class="mt-6 flex justify-end">
             <button
               @click="closeDetailsModal"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Close
             </button>
@@ -363,6 +346,15 @@
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      :show="Boolean(scheduleToDelete)"
+      title="Delete schedules"
+      :message="`Delete all schedules for ${scheduleToDelete?.examName || 'this exam'}? This cannot be undone.`"
+      confirm-label="Delete schedules"
+      @close="scheduleToDelete = null"
+      @confirm="confirmDeleteScheduleGroup"
+    />
   </div>
 </template>
 
@@ -385,19 +377,20 @@ import {
   ChevronRight
 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
+import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
-import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
 import { examScheduleApi } from '~/api/academic/exam-schedules';
 
 // Composables
 const router = useRouter();
 const { showToast } = useToast();
 const { user } = useAuth();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const { classes, classOptions, sectionOptions, sectionsLoading, fetchClasses, fetchSections } =
   useAcademics();
 const { exams, examOptions, examsLoading, loadExams } = useExams();
@@ -407,17 +400,38 @@ const loading = ref(false);
 const schedules = ref([]);
 const showDetailsModal = ref(false);
 const selectedScheduleGroup = ref(null);
+const scheduleToDelete = ref(null);
 
 // Filters
-const selectedBranchId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
 const filterApplied = ref(false);
 const searchQuery = ref('');
 
+watch(selectedBranchId, async newBranchId => {
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  schedules.value = [];
+  filterApplied.value = false;
+  if (newBranchId) {
+    await Promise.all([
+      loadExams({ branch_id: newBranchId }),
+      fetchClasses({ branchId: newBranchId })
+    ]);
+  } else {
+    await Promise.all([loadExams(), fetchClasses()]);
+  }
+});
+
 // Pagination
 const currentPage = ref(1);
 const rowsPerPage = ref(25);
+const rowsPerPageOptions = [
+  { value: 10, label: '10' },
+  { value: 25, label: '25' },
+  { value: 50, label: '50' },
+  { value: 100, label: '100' }
+];
 
 // Computed properties
 const showSectionField = computed(() => {
@@ -428,33 +442,21 @@ const showSectionField = computed(() => {
 const classesLoading = computed(() => false);
 
 // Check if branch dropdown should be shown
-const showBranchDropdown = computed(() => {
-  return branches.value.length > 1;
-});
 
 // Get resolved branch ID (selected or default)
-const resolvedBranchId = computed(() => {
-  if (showBranchDropdown.value) {
-    return selectedBranchId.value || '';
-  }
-  return branches.value[0]?.id || user.value?.branch_id || '';
-});
 
 // Filter classes based on selected branch
 const filteredClassOptions = computed(() => {
-  if (!resolvedBranchId.value) {
+  if (!selectedBranchId.value) {
     return [];
   }
   return classOptions.value.filter(
-    classOption => !classOption.branch_id || classOption.branch_id === resolvedBranchId.value
+    classOption => !classOption.branch_id || classOption.branch_id === selectedBranchId.value
   );
 });
 
 const canApplyFilter = computed(() => {
   // If branch dropdown is shown, branch must be selected
-  if (showBranchDropdown.value && !selectedBranchId.value) {
-    return false;
-  }
   // Class is always required
   if (!selectedClassId.value) return false;
   // Section is required if class has sections and sections are available
@@ -465,12 +467,6 @@ const canApplyFilter = computed(() => {
 });
 
 // Branch options
-const branchOptions = computed(() => {
-  return branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }));
-});
 
 // Group schedules by exam, class, and section
 const groupedExams = computed(() => {
@@ -520,7 +516,7 @@ const totalPages = computed(() => {
 const loadSchedules = async () => {
   try {
     loading.value = true;
-    const branchId = resolvedBranchId.value || user.value.branch_id;
+    const branchId = selectedBranchId.value || user.value.branch_id;
     const response = await examScheduleApi.getAll({
       school_id: user.value.school_id,
       branch_id: branchId,
@@ -622,8 +618,8 @@ const editScheduleGroup = examGroup => {
     query.section_id = examGroup.sectionId;
   }
 
-  if (resolvedBranchId.value) {
-    query.branch_id = resolvedBranchId.value;
+  if (selectedBranchId.value) {
+    query.branch_id = selectedBranchId.value;
   }
 
   // Navigate to create page with query params
@@ -634,14 +630,13 @@ const editScheduleGroup = examGroup => {
 };
 
 const deleteScheduleGroup = async examGroup => {
-  if (
-    !confirm(
-      `Are you sure you want to delete all schedules for "${examGroup.examName}"? This action cannot be undone.`
-    )
-  ) {
-    return;
-  }
+  scheduleToDelete.value = examGroup;
+};
 
+const confirmDeleteScheduleGroup = async () => {
+  const examGroup = scheduleToDelete.value;
+  scheduleToDelete.value = null;
+  if (!examGroup) return;
   try {
     // Delete all schedules in this group
     const deletePromises = examGroup.schedules.map(schedule => examScheduleApi.delete(schedule.id));
@@ -690,19 +685,7 @@ onMounted(async () => {
     return;
   }
 
-  // Load branches first
-  await fetchBranches();
-
-  // Auto-select branch if only one branch
-  if (branches.value.length === 1) {
-    selectedBranchId.value = branches.value[0].id;
-  } else if (user.value.branch_id) {
-    // Pre-select user's branch if multiple branches
-    selectedBranchId.value = user.value.branch_id;
-  }
-
-  // Load classes and exams based on selected branch
-  const branchId = resolvedBranchId.value || user.value.branch_id;
+  const branchId = selectedBranchId.value || user.value.branch_id;
   await Promise.all([loadExams({ branch_id: branchId }), fetchClasses({ branchId: branchId })]);
 });
 </script>

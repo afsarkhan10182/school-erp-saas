@@ -13,7 +13,7 @@
           <div class="flex space-x-3">
             <button
               @click="showAllReceiptsModal = true"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
             >
               <FileText class="h-4 w-4 mr-2" />
               View All Receipts
@@ -265,7 +265,7 @@
                       class="text-xs text-gray-500 dark:text-gray-400 cursor-help"
                       :title="`Detailed months: ${invoice.month_names}`"
                     >
-                      <span class="font-medium text-blue-600 dark:text-blue-400"
+                      <span class="font-medium text-indigo-600 dark:text-indigo-400"
                         >{{ invoice.months_covered }} month(s)</span
                       >
                     </div>
@@ -340,14 +340,14 @@
                   <button
                     v-if="invoice.paid_amount > 0 && invoice.is_grouped"
                     @click="viewCombinedReceipt(invoice)"
-                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
                   >
                     View Combined Receipt
                   </button>
                   <button
                     v-else-if="invoice.paid_amount > 0"
                     @click="showPaymentHistory(invoice)"
-                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
                   >
                     Payment History
                   </button>
@@ -386,10 +386,7 @@
     </div>
 
     <!-- Payment Modal -->
-    <div
-      v-if="showPaymentModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-    >
+    <div v-if="showPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -408,9 +405,9 @@
               class="mb-4"
             >
               <div
-                class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-600 rounded-md"
+                class="p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-blue-600 rounded-md"
               >
-                <p class="text-sm text-blue-800 dark:text-blue-200">
+                <p class="text-sm text-indigo-800 dark:text-indigo-200">
                   📅 Paying for: {{ getMonthName(selectedInvoice.month) }}
                   {{ selectedInvoice.year }}
                 </p>
@@ -481,10 +478,7 @@
     </div>
 
     <!-- Adjustment Modal -->
-    <div
-      v-if="showAdjustmentModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-    >
+    <div v-if="showAdjustmentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -553,10 +547,7 @@
     </div>
 
     <!-- Payment History Modal -->
-    <div
-      v-if="showPaymentHistoryModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-    >
+    <div v-if="showPaymentHistoryModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-10 mx-auto p-5 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -660,7 +651,7 @@
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       @click="viewReceipt(payment)"
-                      class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                      class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                     >
                       View Receipt
                     </button>
@@ -681,10 +672,7 @@
     </div>
 
     <!-- Receipt Modal -->
-    <div
-      v-if="showReceiptModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-    >
+    <div v-if="showReceiptModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -729,10 +717,7 @@
     </div>
 
     <!-- All Receipts Modal -->
-    <div
-      v-if="showAllReceiptsModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-    >
+    <div v-if="showAllReceiptsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -770,7 +755,7 @@
                     :key="receipt.id"
                     @click="selectReceiptFromList(receipt)"
                     :class="{
-                      'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-600':
+                      'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-blue-600':
                         selectedReceiptFromList?.id === receipt.id,
                       'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600':
                         selectedReceiptFromList?.id !== receipt.id
@@ -787,13 +772,13 @@
                     </div>
                     <div
                       v-if="receipt.months_covered && receipt.months_covered > 1"
-                      class="text-xs text-blue-600 dark:text-blue-400"
+                      class="text-xs text-indigo-600 dark:text-indigo-400"
                     >
                       {{ receipt.months_covered }} month(s): {{ receipt.month_names }}
                     </div>
                     <div
                       v-else-if="receipt.month && receipt.year"
-                      class="text-xs text-blue-600 dark:text-blue-400"
+                      class="text-xs text-indigo-600 dark:text-indigo-400"
                     >
                       {{ getMonthName(receipt.month) }} {{ receipt.year }}
                     </div>
@@ -1500,7 +1485,7 @@ const getDaysOverdue = dueDate => {
 const getStatusClass = status => {
   const classes = {
     draft: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-    sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    sent: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
     paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     partial_paid: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',

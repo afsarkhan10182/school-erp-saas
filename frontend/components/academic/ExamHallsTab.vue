@@ -17,18 +17,6 @@
       </button>
     </div>
 
-    <select
-      v-if="branches.length > 1"
-      v-model="selectedBranchId"
-      class="border rounded-md px-3 py-2 text-sm mb-6 dark:bg-gray-800 dark:border-gray-700"
-      @change="loadData"
-    >
-      <option value="">All Branches</option>
-      <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-        {{ branch.name }}
-      </option>
-    </select>
-
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
       <div class="text-center">
@@ -158,11 +146,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { Plus, Building, Edit, Trash2 } from 'lucide-vue-next';
 import { useExamHalls } from '~/composables/useExamHalls';
 import { useToast } from '~/composables/useToast';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import ExamHallModal from './ExamHallModal.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 import type { ExamHall } from '~/api/academic/exam-halls';
@@ -179,6 +168,7 @@ const emit = defineEmits<{
 // Composables
 const { showToast } = useToast();
 const { branches, fetchBranches } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const {
   halls,
   loading,
@@ -194,7 +184,10 @@ const {
 // State
 const showModal = ref(false);
 const editingHall = ref<ExamHall | null>(null);
-const selectedBranchId = ref('');
+
+watch(selectedBranchId, () => {
+  loadData();
+});
 
 // Methods
 const openCreateModal = () => {

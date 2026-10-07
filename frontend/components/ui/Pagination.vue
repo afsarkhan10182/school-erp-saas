@@ -8,16 +8,13 @@
       <!-- Page Size Selector (Left) -->
       <div class="flex items-center space-x-2">
         <span class="text-sm text-gray-700 dark:text-gray-300">Show</span>
-        <select
+        <EnhancedDropdown
           v-model="localPageSize"
+          :options="pageSizeOptions"
+          :aria-label="`Items per page`"
+          class="w-20"
           @change="onPageSizeChange"
-          class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-        >
-          <option :value="10">10</option>
-          <option :value="25">25</option>
-          <option :value="50">50</option>
-          <option :value="100">100</option>
-        </select>
+        />
         <span class="text-sm text-gray-700 dark:text-gray-300">{{ itemLabel }} per page</span>
       </div>
 
@@ -78,16 +75,13 @@
       <div class="flex items-center justify-center">
         <div class="flex items-center space-x-2">
           <span class="text-sm text-gray-700 dark:text-gray-300">Show</span>
-          <select
+          <EnhancedDropdown
             v-model="localPageSize"
+            :options="pageSizeOptions"
+            :aria-label="`Items per page`"
+            class="w-20"
             @change="onPageSizeChange"
-            class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option :value="10">10</option>
-            <option :value="25">25</option>
-            <option :value="50">50</option>
-            <option :value="100">100</option>
-          </select>
+          />
           <span class="text-sm text-gray-700 dark:text-gray-300">{{ itemLabel }} per page</span>
         </div>
       </div>
@@ -149,6 +143,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import EnhancedDropdown from './EnhancedDropdown.vue';
 
 const props = defineProps({
   pagination: {
@@ -176,6 +171,7 @@ const getInitialPageSize = () => {
 };
 
 const localPageSize = ref(getInitialPageSize());
+const pageSizeOptions = [10, 25, 50, 100].map(value => ({ value, label: String(value) }));
 
 // Watch for external page size changes
 watch(

@@ -37,6 +37,18 @@ export const Dashboard = {
     return apiCall('get', '/dashboard/fee-trend', { params });
   },
 
+  getIncomeVsExpense: async (params?: DashboardParams) => {
+    return apiCall('get', '/dashboard/income-vs-expense', { params });
+  },
+
+  getWeekendAttendance: async (params?: DashboardParams) => {
+    return apiCall('get', '/dashboard/weekend-attendance', { params });
+  },
+
+  getAnnualFeesSummary: async (params?: DashboardParams) => {
+    return apiCall('get', '/dashboard/annual-fees-summary', { params });
+  },
+
   getAcademicYearMonths: async () => {
     return apiCall('get', '/dashboard/academic-year-months');
   }

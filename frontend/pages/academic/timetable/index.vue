@@ -1,97 +1,34 @@
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800"
-  >
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div class="flex items-center space-x-4">
-          <div class="p-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg">
-            <Home class="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h1 class="text-4xl font-bold text-slate-900 dark:text-white">Timetable Management</h1>
-            <p class="text-slate-600 dark:text-slate-300 mt-1">
-              Manage class schedules and timetables
-            </p>
-          </div>
-        </div>
-        <div class="flex space-x-3">
-          <!-- No Subjects Assigned Message -->
-          <div
-            v-if="hasNoSubjectsAssigned"
-            class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md"
-          >
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                  No Subjects Assigned
-                </h3>
-                <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-                  <p>
-                    This class has no subjects assigned. Please assign subjects to this class first
-                    before creating a timetable.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Timetable Management</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage class schedules and timetables
+        </p>
       </div>
+
+      <!-- No Subjects Assigned Message -->
+      <div
+        v-if="hasNoSubjectsAssigned"
+        class="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2"
+      >
+        <svg class="h-4 w-4 text-amber-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          <path
+            fill-rule="evenodd"
+            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <span>No subjects assigned. Please assign subjects to this class first.</span>
+      </div>
+    </div>
 
       <!-- Selection Controls -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-md mb-6">
         <div class="px-4 py-5 sm:px-6">
           <div class="flex flex-wrap items-end gap-4">
-            <!-- School Selection (Super Admin only) -->
-            <div v-if="shouldShowSchoolFilter" class="flex-shrink-0">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                School *
-              </label>
-              <EnhancedDropdown
-                v-model="selectedSchoolId"
-                :options="schoolOptions"
-                placeholder="Select School"
-                @update:model-value="onSchoolChangeHandler"
-                class="w-48"
-              />
-            </div>
-
-            <!-- Branch Selection -->
-            <div v-if="shouldShowBranchFilter" class="flex-shrink-0">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Branch *
-              </label>
-              <EnhancedDropdown
-                v-model="selectedBranchId"
-                :options="branchOptions"
-                placeholder="Select Branch"
-                :disabled="isSuperAdmin && !selectedSchoolId"
-                @update:model-value="onBranchChangeHandler"
-                class="w-48"
-              />
-            </div>
-
-            <!-- Branch Info for Branch Admin -->
-            <div v-else-if="isBranchAdmin" class="flex items-center">
-              <div
-                class="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md"
-              >
-                <span class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  Your Branch
-                </span>
-              </div>
-            </div>
-
             <!-- Class Selection -->
             <div class="flex-shrink-0">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -602,7 +539,6 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
@@ -613,40 +549,39 @@ import { useTimetables } from '~/composables/useTimetables';
 import { useAcademics } from '~/composables/useAcademics';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { usePrintReport } from '~/composables/usePrintReport';
 import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignment';
 import { Timetables } from '~/api/academic/timetables';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
+const {
+  currentBranch,
+  currentSchool,
+  selectedBranchId: globalSelectedBranchId,
+  branchScopeParams
+} = useGlobalBranch();
+
 // Composables
 const { showToast } = useToast();
 const { isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const authStore = useAuthStore();
+const selectedBranchId = computed(
+  () => globalSelectedBranchId.value || authStore.user?.branch_id || ''
+);
 const { printReport } = usePrintReport();
 const {
   // Timetables composable
   timetables,
   timetablesLoading,
   selectedAcademicYear,
-  selectedSchoolId,
-  selectedBranchId,
-  selectedBranch,
-  schools,
-  branches,
   classes,
   sections,
-  schoolOptions,
-  branchOptions,
   classDropdownOptions,
   sectionDropdownOptions,
-  shouldShowBranchFilter,
-  loadSchoolsData,
-  loadBranchesData,
   loadAcademicDataForBranch,
   loadTimetables,
   updateFilters,
-  onSchoolChange,
-  onBranchChange,
   initialize
 } = useTimetables();
 
@@ -820,21 +755,7 @@ const isFormValid = computed(() => {
 });
 
 // Filter validation
-const canApplyFilters = computed(() => {
-  if (isSuperAdmin.value) {
-    // Super Admin needs school and branch selection
-    return selectedSchoolId.value && selectedBranchId.value;
-  } else if (isAdmin.value) {
-    // Admin needs branch selection
-    return selectedBranchId.value;
-  } else if (isBranchAdmin.value) {
-    // Branch Admin can apply filters immediately (branch is auto-selected)
-    return true;
-  } else {
-    // Default fallback
-    return selectedBranchId.value;
-  }
-});
+const canApplyFilters = computed(() => !!selectedBranchId.value);
 
 // Check if we can proceed with schedule loading
 const canLoadSchedule = computed(() => {
@@ -842,29 +763,18 @@ const canLoadSchedule = computed(() => {
 });
 
 // Methods
-const onSchoolChangeHandler = async () => {
-  selectedClass.value = '';
-  selectedSection.value = '';
-  selectedStream.value = '';
-  schedule.value = [];
-  hasAppliedFilters.value = false;
-  await onSchoolChange();
-};
 
-const onBranchChangeHandler = async () => {
-  selectedClass.value = '';
-  selectedSection.value = '';
-  selectedStream.value = '';
-  schedule.value = [];
-  hasAppliedFilters.value = false;
-  await onBranchChange();
-  await loadAcademicDataForBranch();
-
-  // Load teachers for the selected branch
-  if (selectedBranchId.value) {
-    await fetchTeachers({ branchId: selectedBranchId.value });
+watch(selectedBranchId, async newVal => {
+  if (newVal) {
+    selectedClass.value = '';
+    selectedSection.value = '';
+    selectedStream.value = '';
+    schedule.value = [];
+    hasAppliedFilters.value = false;
+    await loadAcademicDataForBranch();
+    await fetchTeachers({ branchId: newVal });
   }
-};
+});
 
 const onClassChange = async () => {
   selectedSection.value = '';

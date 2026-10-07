@@ -7,40 +7,35 @@
       </p>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <select v-if="branchOptions.length > 1" v-model="selectedBranchId" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600" @change="onBranchChange">
-          <option value="">Branch</option>
-          <option v-for="b in branchOptions" :key="b.value" :value="b.value">{{ b.label }}</option>
-        </select>
-        <select v-model="form.exam_id" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600">
-          <option value="">Exam</option>
-          <option v-for="e in exams" :key="e.id" :value="e.id">{{ e.name }}</option>
-        </select>
-        <select v-model="form.exam_schedule_id" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600" @change="onScheduleChange">
-          <option value="">Slot (optional)</option>
-          <option v-for="slot in schedules" :key="slot.id" :value="slot.id">{{ scheduleLabel(slot) }}</option>
-        </select>
-        <select v-model="form.exam_hall_id" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600">
-          <option value="">Hall</option>
-          <option v-for="h in halls" :key="h.id" :value="h.id">
-            {{ h.name }} (cap {{ h.capacity }})
-          </option>
-        </select>
-        <select v-model="form.class_id" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600">
-          <option value="">Class</option>
-          <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </select>
-        <select v-model="form.section_id" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600">
-          <option value="">Section (optional)</option>
-          <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.name }}</option>
-        </select>
-        <select v-model.number="form.students_per_bench" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600">
-          <option :value="1">1 / bench</option>
-          <option :value="2">2 / bench</option>
-          <option :value="3">3 / bench</option>
-        </select>
+        <EnhancedDropdown v-model="form.exam_id" :options="examOptions" placeholder="Exam" />
+        <EnhancedDropdown
+          v-model="form.exam_schedule_id"
+          :options="scheduleOptions"
+          placeholder="Slot (optional)"
+          @change="onScheduleChange"
+        />
+        <EnhancedDropdown v-model="form.exam_hall_id" :options="hallOptions" placeholder="Hall" />
+        <EnhancedDropdown v-model="form.class_id" :options="classOptions" placeholder="Class" />
+        <EnhancedDropdown
+          v-model="form.section_id"
+          :options="sectionOptions"
+          placeholder="Section (optional)"
+        />
+        <EnhancedDropdown
+          v-model="form.students_per_bench"
+          :options="studentsPerBenchOptions"
+          placeholder="Students per bench"
+        />
         <div class="flex gap-2">
-          <button class="flex-1 px-3 py-2 bg-white border rounded-md text-sm" @click="preview">Preview</button>
-          <button class="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-md text-sm" @click="apply">Apply</button>
+          <button class="flex-1 px-3 py-2 bg-white border rounded-md text-sm" @click="preview">
+            Preview
+          </button>
+          <button
+            class="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-md text-sm"
+            @click="apply"
+          >
+            Apply
+          </button>
         </div>
       </div>
 
@@ -59,7 +54,11 @@
             class="border rounded p-3 text-sm"
           >
             <div class="font-medium mb-1">Bench {{ bench.bench }}</div>
-            <div v-for="seat in bench.seats" :key="seat.seat" class="text-gray-600 dark:text-gray-300">
+            <div
+              v-for="seat in bench.seats"
+              :key="seat.seat"
+              class="text-gray-600 dark:text-gray-300"
+            >
               Seat {{ seat.seat }}: {{ seat.name }} ({{ seat.admission_number }})
             </div>
           </div>
@@ -90,7 +89,9 @@
               <td class="px-4 py-3 text-sm">{{ row.class?.name || '—' }}</td>
               <td class="px-4 py-3 text-sm">{{ benches(row.plan_json).length }}</td>
               <td class="px-4 py-3 text-sm text-right space-x-2">
-                <button class="text-indigo-600" @click="showOverview(row.id)">Overview / stickers</button>
+                <button class="text-indigo-600" @click="showOverview(row.id)">
+                  Overview / stickers
+                </button>
                 <button class="text-amber-700" @click="resetPlan(row.id)">Reset</button>
               </td>
             </tr>
@@ -109,21 +110,32 @@
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        :show="Boolean(planToReset)"
+        title="Reset seating plan"
+        message="Reset this seating plan? Assigned seats will be cleared."
+        confirm-label="Reset plan"
+        @close="planToReset = ''"
+        @confirm="confirmResetPlan"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ExamSeatings } from '~/api/academic/cards-exams-reports';
-import { Branches } from '~/api/administration/branches';
 import { examApi } from '~/api/academic/exams';
 import { examHallApi } from '~/api/academic/exam-halls';
 import { examScheduleApi } from '~/api/academic/exam-schedules';
 import { Classes } from '~/api/academic/classes';
 import { Sections } from '~/api/academic/sections';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { apiErrorMessage, extractList } from '~/utils/list-response';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const { user } = useAuth();
 const exams = ref<any[]>([]);
@@ -132,12 +144,28 @@ const classes = ref<any[]>([]);
 const sections = ref<any[]>([]);
 const schedules = ref<any[]>([]);
 const saved = ref<any[]>([]);
-const branchOptions = ref<any[]>([]);
-const selectedBranchId = ref('');
+const { selectedBranchId } = useGlobalBranch();
 const previewData = ref<any>(null);
 const stickers = ref<any[]>([]);
 const error = ref('');
 const msg = ref('');
+const planToReset = ref('');
+const examOptions = computed(() => exams.value.map(e => ({ value: e.id, label: e.name })));
+const scheduleOptions = computed(() =>
+  schedules.value.map(slot => ({ value: slot.id, label: scheduleLabel(slot) }))
+);
+const hallOptions = computed(() =>
+  halls.value.map(hall => ({ value: hall.id, label: `${hall.name} (cap ${hall.capacity})` }))
+);
+const classOptions = computed(() => classes.value.map(item => ({ value: item.id, label: item.name })));
+const sectionOptions = computed(() =>
+  sections.value.map(item => ({ value: item.id, label: item.name }))
+);
+const studentsPerBenchOptions = [
+  { value: 1, label: '1 / bench' },
+  { value: 2, label: '2 / bench' },
+  { value: 3, label: '3 / bench' }
+];
 
 const form = reactive({
   exam_id: '',
@@ -148,23 +176,20 @@ const form = reactive({
   students_per_bench: 2
 });
 
-const branchParams = () => selectedBranchId.value ? { branch_id: selectedBranchId.value } : {};
-const benches = (planJson: any) => Array.isArray(planJson) ? planJson : planJson?.benches || [];
-const scheduleLabel = (slot: any) => [
-  slot.exam_date,
-  [slot.start_time, slot.end_time].filter(Boolean).join('-'),
-  slot.class?.name,
-  slot.section?.name,
-  slot.examHall?.name || slot.hall?.name
-].filter(Boolean).join(' · ');
-const rowSlot = (row: any) => row.plan_json?.schedule ? scheduleLabel(row.plan_json.schedule) : '—';
-
-const loadBranches = async () => {
-  const response: any = await Branches.getForDropdown({ status: 'active' });
-  const branches = extractList(response, ['branches']);
-  branchOptions.value = branches.map((b: any) => ({ value: b.id, label: b.name || b.code || b.id }));
-  selectedBranchId.value = user.value?.branch_id || (branchOptions.value.length === 1 ? branchOptions.value[0].value : '');
-};
+const branchParams = () => (selectedBranchId.value ? { branch_id: selectedBranchId.value } : {});
+const benches = (planJson: any) => (Array.isArray(planJson) ? planJson : planJson?.benches || []);
+const scheduleLabel = (slot: any) =>
+  [
+    slot.exam_date,
+    [slot.start_time, slot.end_time].filter(Boolean).join('-'),
+    slot.class?.name,
+    slot.section?.name,
+    slot.examHall?.name || slot.hall?.name
+  ]
+    .filter(Boolean)
+    .join(' · ');
+const rowSlot = (row: any) =>
+  row.plan_json?.schedule ? scheduleLabel(row.plan_json.schedule) : '—';
 
 const loadLookups = async () => {
   const qs = new URLSearchParams();
@@ -185,7 +210,11 @@ const loadSchedules = async () => {
     schedules.value = [];
     return;
   }
-  const res: any = await examScheduleApi.getAll({ exam_id: form.exam_id, limit: 100, ...branchParams() });
+  const res: any = await examScheduleApi.getAll({
+    exam_id: form.exam_id,
+    limit: 100,
+    ...branchParams()
+  });
   schedules.value = extractList(res, ['schedules', 'rows']);
 };
 
@@ -198,11 +227,14 @@ const onScheduleChange = () => {
 };
 
 const loadSaved = async () => {
-  const res: any = await ExamSeatings.list({ ...(form.exam_id ? { exam_id: form.exam_id } : {}), ...branchParams() });
+  const res: any = await ExamSeatings.list({
+    ...(form.exam_id ? { exam_id: form.exam_id } : {}),
+    ...branchParams()
+  });
   saved.value = res.data?.seatings || [];
 };
 
-const onBranchChange = async () => {
+watch(selectedBranchId, async () => {
   form.exam_id = '';
   form.exam_schedule_id = '';
   form.exam_hall_id = '';
@@ -212,7 +244,7 @@ const onBranchChange = async () => {
   stickers.value = [];
   await loadLookups();
   await loadSaved();
-};
+});
 
 const preview = async () => {
   error.value = '';
@@ -258,7 +290,13 @@ const showOverview = async (id: string) => {
 };
 
 const resetPlan = async (id: string) => {
-  if (!confirm('Reset this seating plan?')) return;
+  planToReset.value = id;
+};
+
+const confirmResetPlan = async () => {
+  const id = planToReset.value;
+  planToReset.value = '';
+  if (!id) return;
   try {
     await ExamSeatings.reset(id);
     stickers.value = [];
@@ -293,7 +331,6 @@ watch(
 
 onMounted(async () => {
   try {
-    await loadBranches();
     await loadLookups();
     await loadSaved();
   } catch (e) {

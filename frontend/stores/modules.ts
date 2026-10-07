@@ -196,38 +196,5 @@ export const useModulesStore = defineStore('modules', {
       }
     },
 
-    async saveModuleSettings() {
-      try {
-        // TODO: Replace with actual API call when backend is ready
-        // await apiClient.modules.updateSettings({
-        //   modules: this.modules,
-        //   roles: this.roles,
-        // });
-
-        // For now, just save to localStorage
-        localStorage.setItem(
-          'moduleSettings',
-          JSON.stringify({
-            modules: this.modules,
-            roles: this.roles
-          })
-        );
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    loadModuleSettings() {
-      try {
-        const saved = localStorage.getItem('moduleSettings');
-        if (saved) {
-          const settings = JSON.parse(saved);
-          this.modules = settings.modules || this.modules;
-          this.roles = settings.roles || this.roles;
-        }
-      } catch (error) {
-        console.error('Error loading module settings:', error);
-      }
-    }
   }
 });

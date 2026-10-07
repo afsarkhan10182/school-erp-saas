@@ -10,6 +10,7 @@ const studentRoutes = require('./academic/student.routes');
 const feeTypeRoutes = require('./financial/fee-type.routes');
 const feeStructureRoutes = require('./financial/fee-structure.routes');
 const feeInvoiceRoutes = require('./financial/fee-invoice.routes');
+const feeAllocationRoutes = require('./financial/fee-allocation.routes');
 
 const academicYearRoutes = require('./academic/academic-year.routes');
 const academicCalendarRoutes = require('./academic/academic-calendar.routes');
@@ -60,8 +61,8 @@ const parentRoutes = require('./academic/parent.routes');
 const feeFineRoutes = require('./financial/fee-fine.routes');
 const homeworkRoutes = require('./academic/homework.routes');
 const libraryRoutes = require('./academic/library.routes');
-const schoolOpsRoutes = require('./shared/school-ops.routes');
-const publicSchoolOpsRoutes = require('./shared/public-school-ops.routes');
+const dynamicEntitiesRoutes = require('./shared/dynamic-entities.routes');
+const publicDynamicEntitiesRoutes = require('./shared/public-dynamic-entities.routes');
 const portalRoutes = require('./shared/portal.routes');
 const reportsRoutes = require('./shared/reports.routes');
 const cardTemplateRoutes = require('./academic/card-template.routes');
@@ -75,7 +76,7 @@ const router = express.Router();
 
 // Health check routes (no auth required)
 router.use('/health', healthRoutes);
-router.use('/public', publicSchoolOpsRoutes);
+router.use('/public/entities', publicDynamicEntitiesRoutes);
 
 // API routes with authentication
 router.use('/auth', authRoutes);
@@ -93,7 +94,7 @@ router.use('/parents', parentRoutes);
 router.use('/fee-fines', feeFineRoutes);
 router.use('/homeworks', homeworkRoutes);
 router.use('/library', libraryRoutes);
-router.use('/school-ops', schoolOpsRoutes);
+router.use('/entities', dynamicEntitiesRoutes);
 router.use('/portal', portalRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/cards', cardTemplateRoutes);
@@ -102,6 +103,7 @@ router.use('/online-exams', onlineExamRoutes);
 router.use('/fee-types', feeTypeRoutes);
 router.use('/fee-structures', feeStructureRoutes);
 router.use('/fee-invoices', feeInvoiceRoutes);
+router.use('/fee-allocation', feeAllocationRoutes);
 
 // Academic Management routes
 router.use('/academic-years', academicYearRoutes);
@@ -157,5 +159,20 @@ router.use('/certificates', certificateGenerationRoutes);
 
 // Upload routes
 router.use('/uploads', uploadRoutes);
+
+// Transport routes
+router.use('/transport', require('./transport'));
+
+// Hostel routes
+router.use('/hostel', require('./hostel'));
+
+// Inventory routes
+router.use('/inventory', require('./inventory'));
+
+// Accounting routes
+router.use('/accounting', require('./accounting'));
+
+// Alumni routes
+router.use('/alumni', require('./alumni'));
 
 module.exports = router;

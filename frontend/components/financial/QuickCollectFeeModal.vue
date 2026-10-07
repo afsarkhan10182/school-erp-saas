@@ -271,16 +271,11 @@
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Payment Method
                   </label>
-                  <select
+                  <EnhancedDropdown
                     v-model="paymentForm.payment_method"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="upi">UPI</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="cheque">Cheque</option>
-                  </select>
+                    :options="paymentMethodOptions"
+                    placeholder="Select payment method"
+                  />
                 </div>
                 <div class="flex items-end">
                   <button
@@ -363,6 +358,7 @@ import { useDebounceFn } from '@vueuse/core';
 import { X, Search, CreditCard, FileText } from 'lucide-vue-next';
 import { Students, FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const { showSuccess, showError, showInfo } = useToast();
 
@@ -394,6 +390,13 @@ const paymentForm = ref({
   payment_date: new Date().toISOString().split('T')[0],
   notes: ''
 });
+const paymentMethodOptions = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'card', label: 'Card' },
+  { value: 'upi', label: 'UPI' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'cheque', label: 'Cheque' }
+];
 
 // VueUse debounced search
 const debouncedSearch = useDebounceFn(() => {

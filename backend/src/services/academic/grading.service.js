@@ -1,8 +1,12 @@
 const { Op } = require('sequelize');
-const { GradingSystem, GradeScale } = require('~/models');
 const BaseService = require('~/services/shared/base.service');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
+
+const gradingModels = () => {
+  const { GradingSystem, GradeScale } = require('~/models');
+  return { GradingSystem, GradeScale };
+};
 
 class GradingService {
   /**
@@ -10,6 +14,7 @@ class GradingService {
    */
   static async getDefaultGradingSystem(schoolId) {
     return BaseService.executeWithErrorHandling(async () => {
+      const { GradingSystem, GradeScale } = gradingModels();
       // First try to get school-specific default
       let gradingSystem = await GradingSystem.findOne({
         where: {
@@ -95,6 +100,7 @@ class GradingService {
    */
   static async calculateGradePoints(grade, schoolId) {
     return BaseService.executeWithErrorHandling(async () => {
+      const { GradeScale } = gradingModels();
       const gradingSystem = await this.getDefaultGradingSystem(schoolId);
 
       const gradeScale = await GradeScale.findOne({
@@ -117,6 +123,7 @@ class GradingService {
    */
   static async getGradeScales(gradingSystemId) {
     return BaseService.executeWithErrorHandling(async () => {
+      const { GradeScale } = gradingModels();
       const gradeScales = await GradeScale.findAll({
         where: { grading_system_id: gradingSystemId },
         order: [['sort_order', 'ASC']]

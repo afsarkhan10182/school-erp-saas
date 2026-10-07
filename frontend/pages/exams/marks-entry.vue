@@ -20,25 +20,14 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block">
+          <h3
+            class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
+          >
             Select Ground
           </h3>
         </div>
         <div class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div v-if="showBranchDropdown">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Branch <span class="text-red-500">*</span>
-              </label>
-              <EnhancedDropdown
-                v-model="selectedBranchId"
-                :options="branchOptions"
-                placeholder="Select branch"
-                :loading="branchesLoading"
-                @change="onBranchChange"
-              />
-            </div>
-
             <!-- Exam -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -117,7 +106,9 @@
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div class="flex items-center">
             <Users class="h-5 w-5 mr-2 text-gray-600 dark:text-gray-400" />
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block">
+            <h3
+              class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
+            >
               Mark Entries
             </h3>
           </div>
@@ -127,22 +118,34 @@
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Sl
                 </th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Student Name
                 </th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Category
                 </th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Register No
                 </th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Roll
                 </th>
-                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   IsAbsent
                 </th>
                 <th
@@ -186,7 +189,9 @@
                   </div>
                 </td>
                 <td class="px-4 py-4 whitespace-nowrap">
-                  <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  <span
+                    class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                  >
                     {{ formatCategory(student.category) }}
                   </span>
                 </td>
@@ -276,7 +281,8 @@
         <Users class="mx-auto h-12 w-12 text-gray-400" />
         <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No students found</h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Please select exam, class, section (if applicable), and subject, then click Filter to load students.
+          Please select exam, class, section (if applicable), and subject, then click Filter to load
+          students.
         </p>
       </div>
     </div>
@@ -292,13 +298,13 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useMarksEntry } from '~/composables/useMarksEntry';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignment';
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const {
   classes,
   sections,
@@ -354,7 +360,6 @@ interface MarkDistribution {
 }
 
 // Reactive data
-const selectedBranchId = ref('');
 const selectedExamId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
@@ -365,15 +370,20 @@ const markDistribution = ref<MarkDistribution | null>(null);
 const loadingStudents = ref(false);
 const saving = ref(false);
 
-// Computed properties
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
-const showBranchDropdown = computed(() => branches.value.length > 1);
+watch(selectedBranchId, async newBranchId => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  selectedSubjectId.value = '';
+  students.value = [];
+  if (newBranchId) {
+    await fetchClasses({ branchId: newBranchId });
+  } else {
+    await fetchClasses();
+  }
+});
 
+// Computed properties
 const examOptions = computed(() =>
   exams.value.map(exam => ({
     value: exam.id,
@@ -490,20 +500,6 @@ const loadSubjectsForClass = async () => {
   } finally {
     subjectsLoading.value = false;
   }
-};
-
-const onBranchChange = async () => {
-  selectedExamId.value = '';
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  selectedSubjectId.value = '';
-  students.value = [];
-  Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
-  markDistribution.value = null;
-  await Promise.all([
-    loadExams(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {}),
-    fetchClasses({ branchId: selectedBranchId.value || user.value?.branch_id })
-  ]);
 };
 
 const onExamChange = () => {
@@ -667,17 +663,12 @@ watch(selectedSectionId, async () => {
 
 // Load initial data
 onMounted(async () => {
-  await Promise.all([fetchBranches(), loadExams()]);
-  
-  // Load classes if branch is already set
-  if (user.value?.branch_id) {
-    selectedBranchId.value = user.value.branch_id;
+  await Promise.all([loadExams()]);
+
+  if (selectedBranchId.value) {
     await fetchClasses({
-      branchId: user.value.branch_id
+      branchId: selectedBranchId.value
     });
-  } else if (branches.value.length === 1) {
-    selectedBranchId.value = branches.value[0].id;
-    await fetchClasses({ branchId: selectedBranchId.value });
   } else {
     await fetchClasses();
   }

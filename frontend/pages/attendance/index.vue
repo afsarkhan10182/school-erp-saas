@@ -73,7 +73,7 @@
             class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center"
           >
             <svg
-              class="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400"
+              class="w-4 h-4 mr-2 text-indigo-600 dark:text-indigo-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -200,35 +200,6 @@
           />
         </div>
 
-        <!-- Branch Selector (Super Admin and Admin) -->
-        <div v-if="isSuperAdmin || isAdmin">
-          <label
-            class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center"
-          >
-            <svg
-              class="w-4 h-4 mr-2 text-green-600 dark:text-green-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              ></path>
-            </svg>
-            Branch <span class="text-red-500" aria-hidden="true">*</span>
-          </label>
-          <EnhancedDropdown
-            :options="branchOptions"
-            v-model="form.branch_id"
-            placeholder="Select Branch"
-            @update:modelValue="onBranchChange"
-            class="w-full"
-          />
-        </div>
-
         <!-- Class Selector -->
         <div>
           <label
@@ -276,7 +247,7 @@
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
               ></path>
             </svg>
-            Section <span class="text-gray-500 font-normal">(if applicable)</span>
+            Section
           </label>
           <EnhancedDropdown
             :options="sectionOptions as any[]"
@@ -292,7 +263,7 @@
           <button
             @click="loadStudentsForAttendance"
             :disabled="!form.class_id || loading"
-            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none whitespace-nowrap"
+            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none whitespace-nowrap"
           >
             <span class="font-medium">{{ loading ? 'Loading Students...' : 'Load Students' }}</span>
           </button>
@@ -389,10 +360,12 @@
           <div class="text-sm text-yellow-700 dark:text-yellow-300">Late</div>
         </div>
         <div
-          class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800"
+          class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800"
         >
-          <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ totalStudents }}</div>
-          <div class="text-sm text-blue-700 dark:text-blue-300">Total</div>
+          <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+            {{ totalStudents }}
+          </div>
+          <div class="text-sm text-indigo-700 dark:text-indigo-300">Total</div>
         </div>
       </div>
 
@@ -581,10 +554,10 @@ import { useDebounceFn } from '@vueuse/core';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useSchools } from '~/composables/useSchools';
-import { useBranches } from '~/composables/useBranches';
 import { useAcademicSettings } from '~/utils/settings';
 import { useAttendance } from '~/composables/useAttendance';
 import { useAcademics } from '~/composables/useAcademics';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { Attendance } from '~/api';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Pagination from '~/components/ui/Pagination.vue';
@@ -592,8 +565,8 @@ import Pagination from '~/components/ui/Pagination.vue';
 // Composables - Following common reusable patterns
 const { showToast } = useToast();
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { schools, fetchSchools } = useSchools();
-const { branches, fetchAllBranches } = useBranches();
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 const { getAttendanceSettings, getWorkingDays, getCutoffTime } = useAcademicSettings();
 
@@ -625,12 +598,6 @@ const schoolOptions = computed(() =>
     label: school.name
   }))
 );
-const branchOptions = computed(() =>
-  branches.value.map((branch: any) => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
 
 // Status filter options
 // Status options - will be loaded from database settings later
@@ -646,10 +613,20 @@ const statusOptions = ref([
 const form = reactive({
   date: new Date().toISOString().slice(0, 10),
   school_id: '',
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   class_id: '',
   section_id: '',
   academic_year: ''
+});
+
+watch(selectedBranchId, async newBranchId => {
+  form.branch_id = newBranchId || '';
+  form.class_id = '';
+  form.section_id = '';
+  students.value = [];
+  if (newBranchId) {
+    await fetchClasses({ branchId: newBranchId });
+  }
 });
 
 const searchQuery = ref('');
@@ -854,9 +831,6 @@ const onSchoolChange = async (schoolId: string) => {
   form.section_id = '';
 
   try {
-    await fetchAllBranches({ school_id: schoolId });
-
-    // Clear students when school changes
     students.value = [];
     Object.keys(attendanceRecords.value).forEach(key => {
       delete attendanceRecords.value[key];
@@ -1159,8 +1133,8 @@ onMounted(async () => {
     } else if (isAdmin.value) {
       // Admin: Load branches for their school directly
       form.school_id = user.value?.school_id || '';
-      await fetchAllBranches({ school_id: form.school_id });
-      form.branch_id = user.value?.branch_id || (branches.value.length === 1 ? branches.value[0].id : '');
+      form.branch_id =
+        user.value?.branch_id || '';
       if (form.branch_id) await fetchClasses({ branchId: form.branch_id });
     } else if (isBranchAdmin.value) {
       // Branch Admin: Load classes for their branch directly

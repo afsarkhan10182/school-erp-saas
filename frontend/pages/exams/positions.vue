@@ -15,7 +15,7 @@
               <button
                 @click="calculatePositions"
                 :disabled="!canCalculate || calculating"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Calculator class="h-4 w-4 mr-2" />
                 {{ calculating ? 'Calculating...' : 'Calculate Positions' }}
@@ -38,67 +38,55 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block">
+          <h3
+            class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
+          >
             Select Ground
           </h3>
         </div>
         <div class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <!-- Branch Selection () -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Branch
-            </label>
-            <EnhancedDropdown
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              placeholder="Choose branch"
-              :loading="branchesLoading"
-              @change="onBranchChange"
-            />
-          </div>
+            <!-- Class Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Class
+              </label>
+              <EnhancedDropdown
+                v-model="selectedClassId"
+                :options="classOptions"
+                placeholder="Choose class"
+                :loading="classesLoading"
+                @change="onClassChange"
+              />
+            </div>
 
-          <!-- Class Selection -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Class
-            </label>
-            <EnhancedDropdown
-              v-model="selectedClassId"
-              :options="classOptions"
-              placeholder="Choose class"
-              :loading="classesLoading"
-              @change="onClassChange"
-            />
-          </div>
+            <!-- Section Selection -->
+            <div v-if="showSectionField">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Section
+              </label>
+              <EnhancedDropdown
+                v-model="selectedSectionId"
+                :options="sectionOptions"
+                placeholder="Choose section"
+                :loading="sectionsLoading"
+                @change="onSectionChange"
+              />
+            </div>
 
-          <!-- Section Selection -->
-          <div v-if="showSectionField">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Section
-            </label>
-            <EnhancedDropdown
-              v-model="selectedSectionId"
-              :options="sectionOptions"
-              placeholder="Choose section"
-              :loading="sectionsLoading"
-              @change="onSectionChange"
-            />
-          </div>
-
-          <!-- Exam Selection -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Exam
-            </label>
-            <EnhancedDropdown
-              v-model="selectedExamId"
-              :options="examOptions"
-              placeholder="Choose exam"
-              :loading="examsLoading"
-              @change="onExamChange"
-            />
-          </div>
+            <!-- Exam Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Exam
+              </label>
+              <EnhancedDropdown
+                v-model="selectedExamId"
+                :options="examOptions"
+                placeholder="Choose exam"
+                :loading="examsLoading"
+                @change="onExamChange"
+              />
+            </div>
           </div>
 
           <!-- Load Students Button -->
@@ -127,28 +115,22 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Calculation Method
             </label>
-            <select
+            <EnhancedDropdown
               v-model="calculationMethod"
-              class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="total_marks">Total Marks</option>
-              <option value="percentage">Percentage</option>
-              <option value="grade_points">Grade Points</option>
-            </select>
+              :options="calculationMethodOptions"
+              placeholder="Calculation method"
+            />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tie Breaking
             </label>
-            <select
+            <EnhancedDropdown
               v-model="tieBreakingMethod"
-              class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="average">Average of tied positions</option>
-              <option value="first">First occurrence</option>
-              <option value="manual">Manual override</option>
-            </select>
+              :options="tieBreakingOptions"
+              placeholder="Tie breaking"
+            />
           </div>
 
           <div>
@@ -160,7 +142,7 @@
                 <input
                   v-model="includeAbsent"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
                   Include absent students in ranking
@@ -181,7 +163,7 @@
               Student Positions ({{ students.length }} students)
             </h3>
             <div class="flex space-x-2">
-              <button @click="resetToAuto" class="text-sm text-blue-600 hover:text-blue-800">
+              <button @click="resetToAuto" class="text-sm text-indigo-600 hover:text-indigo-800">
                 Reset to Auto
               </button>
             </div>
@@ -247,7 +229,7 @@
                       type="number"
                       min="1"
                       :max="students.length"
-                      class="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-blue-500 focus:border-blue-500"
+                      class="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-indigo-500 focus:border-indigo-500"
                       @change="onPositionChange(student, index)"
                     />
                     <span class="ml-2 text-sm text-gray-500">
@@ -289,7 +271,7 @@
                   <textarea
                     v-model="student.teacher_comment"
                     rows="2"
-                    class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Teacher comment..."
                     @change="onCommentChange(student)"
                   />
@@ -298,7 +280,7 @@
                   <textarea
                     v-model="student.principal_comment"
                     rows="2"
-                    class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Principal comment..."
                     @change="onCommentChange(student)"
                   />
@@ -335,27 +317,42 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useExamPositions } from '~/composables/useExamPositions';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
+
+const calculationMethodOptions = [
+  { value: 'total_marks', label: 'Total Marks' },
+  { value: 'percentage', label: 'Percentage' },
+  { value: 'grade_points', label: 'Grade Points' }
+];
+const tieBreakingOptions = [
+  { value: 'average', label: 'Average of tied positions' },
+  { value: 'first', label: 'First occurrence' },
+  { value: 'manual', label: 'Manual override' }
+];
 
 // Types
 interface Student {
   id: string;
   name: string;
   roll_number: string;
-  total_marks?: number;
+  class?: { name: string };
+  section?: { name: string };
+  total_marks: number;
   percentage?: number;
-  grade?: string;
+  grade: string;
   position: number;
-  teacher_comment?: string;
-  principal_comment?: string;
+  original_position: number;
+  is_tied: boolean;
+  tie_broken: boolean;
+  teacher_comment: string;
+  principal_comment: string;
   is_absent?: boolean;
-  original_position?: number;
 }
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const {
   classes,
   sections,
@@ -368,18 +365,17 @@ const {
 } = useAcademics();
 const { exams, loadExams, loading: examsLoading } = useExams();
 const {
-  getStudentsForPositions,
+  fetchStudents: getStudentsForPositions,
   calculatePositions: calculatePositionsAPI,
   savePositions: savePositionsAPI,
   loading: positionsLoading,
-  calculating,
-  saving
+  error: positionsError
 } = useExamPositions();
 
-const loadingStudents = computed(() => positionsLoading.value);
+const calculating = computed(() => positionsLoading.value);
+const saving = computed(() => positionsLoading.value);
 
 // Reactive data
-const selectedBranchId = ref('');
 const selectedExamId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
@@ -388,13 +384,22 @@ const calculationMethod = ref('total_marks');
 const tieBreakingMethod = ref('average');
 const includeAbsent = ref(false);
 
+watch(selectedBranchId, async newBranchId => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  students.value = [];
+  if (newBranchId) {
+    await Promise.all([
+      fetchClasses({ branchId: newBranchId }),
+      loadExams({ branch_id: newBranchId, school_id: user.value?.school_id })
+    ]);
+  } else {
+    await Promise.all([loadExams({ school_id: user.value?.school_id })]);
+  }
+});
+
 // Computed properties
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
 
 const examOptions = computed(() =>
   exams.value.map(exam => ({
@@ -437,13 +442,13 @@ const onBranchChange = async () => {
   selectedClassId.value = '';
   selectedSectionId.value = '';
   students.value = [];
-  
+
   // Load classes for the selected branch
   if (selectedBranchId.value) {
     await fetchClasses({
       branchId: selectedBranchId.value
     });
-    
+
     // Reload exams filtered by branch
     await loadExams({
       branch_id: selectedBranchId.value,
@@ -464,7 +469,7 @@ const onExamChange = () => {
 const onClassChange = async () => {
   selectedSectionId.value = '';
   students.value = [];
-  
+
   if (selectedClassId.value) {
     await fetchSections({
       schoolId: user.value?.school_id,
@@ -593,7 +598,10 @@ const savePositions = async () => {
         original_position: student.position
       }));
 
-      showToast(`Positions saved successfully for ${response.data?.successful?.length || students.value.length} students`, 'success');
+      showToast(
+        `Positions saved successfully for ${response.data?.successful?.length || students.value.length} students`,
+        'success'
+      );
     }
   } catch (error: any) {
     console.error('Error saving positions:', error);
@@ -622,7 +630,7 @@ const getGradeClass = (grade: string) => {
 
   const gradeNum = parseInt(grade);
   if (gradeNum >= 90) return 'bg-green-100 text-green-800';
-  if (gradeNum >= 80) return 'bg-blue-100 text-blue-800';
+  if (gradeNum >= 80) return 'bg-indigo-100 text-indigo-800';
   if (gradeNum >= 70) return 'bg-yellow-100 text-yellow-800';
   if (gradeNum >= 60) return 'bg-orange-100 text-orange-800';
   return 'bg-red-100 text-red-800';
@@ -630,20 +638,15 @@ const getGradeClass = (grade: string) => {
 
 // Load initial data
 onMounted(async () => {
-  await fetchBranches();
-  
-  // Auto-select branch if user has one
-  if (user.value?.branch_id) {
-    selectedBranchId.value = user.value.branch_id;
-    
-    // Load classes and exams for the user's branch
+
+  if (selectedBranchId.value) {
     await Promise.all([
       fetchClasses({
-        branchId: user.value.branch_id
+        branchId: selectedBranchId.value
       }),
       loadExams({
-        branch_id: user.value.branch_id,
-        school_id: user.value.school_id
+        branch_id: selectedBranchId.value,
+        school_id: user.value?.school_id
       })
     ]);
   } else {

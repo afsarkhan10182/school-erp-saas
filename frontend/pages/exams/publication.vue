@@ -30,19 +30,6 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div v-if="showBranchDropdown">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Branch
-            </label>
-            <EnhancedDropdown
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              placeholder="Choose branch"
-              :loading="branchesLoading"
-              @change="onBranchChange"
-            />
-          </div>
-
           <!-- Exam Selection -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -349,14 +336,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { Globe, Search } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExamPublication } from '~/composables/useExamPublication';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 // Types
 interface Exam {
@@ -372,8 +359,8 @@ interface Exam {
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { classes, classOptions, fetchClasses, loading: classesLoading } = useAcademics();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   getPublicationStatus,
   publishExam,
@@ -386,7 +373,6 @@ const {
 
 // Reactive data
 const selectedExamId = ref('');
-const selectedBranchId = ref('');
 const selectedClassId = ref('');
 const statusFilter = ref('');
 const exams = ref<Exam[]>([]);
@@ -399,6 +385,18 @@ const notificationSettings = reactive({
   notification_message: ''
 });
 
+watch(selectedBranchId, async newBranchId => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  exams.value = [];
+  selectedExams.value = [];
+  if (newBranchId) {
+    await fetchClasses({ branchId: newBranchId });
+  } else {
+    await fetchClasses();
+  }
+});
+
 // Computed properties
 const examOptions = computed(() =>
   exams.value.map(exam => ({
@@ -407,10 +405,6 @@ const examOptions = computed(() =>
     description: exam.examType?.name
   }))
 );
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({ value: branch.id, label: branch.name }))
-);
-const showBranchDropdown = computed(() => branches.value.length > 1);
 
 const selectAll = computed({
   get: () => selectedExams.value.length === exams.value.length && exams.value.length > 0,
@@ -584,9 +578,10 @@ const formatDate = (dateString: string) => {
 
 // Load initial data
 onMounted(async () => {
-  await fetchBranches();
-  if (user.value?.branch_id) selectedBranchId.value = user.value.branch_id;
-  else if (branches.value.length === 1) selectedBranchId.value = branches.value[0].id;
-  await fetchClasses({ branchId: selectedBranchId.value || user.value?.branch_id });
+  if (selectedBranchId.value) {
+    await fetchClasses({ branchId: selectedBranchId.value });
+  } else {
+    await fetchClasses();
+  }
 });
 </script>

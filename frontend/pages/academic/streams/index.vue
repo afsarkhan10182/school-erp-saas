@@ -1,382 +1,256 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="mb-8">
-        <div class="flex justify-between items-center">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Stream Management</h1>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Manage academic streams for any class
-            </p>
-          </div>
-          <button
-            @click="openCreateModal"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              ></path>
-            </svg>
-            Add Stream
-          </button>
-        </div>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Stream Management</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage academic streams for each class
+        </p>
       </div>
-
-      <div v-if="availableBranches.length > 1" class="mb-6 max-w-xs">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Branch
-        </label>
-        <select
-          v-model="filterBranchId"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-          @change="loadStreams"
+      <div>
+        <button
+          @click="openCreateModal"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
         >
-          <option value="">All Branches</option>
-          <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-            {{ branch.name }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Streams Table -->
-      <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Stream Name
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Code
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Class
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Branch
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Description
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr
-                v-for="stream in streams"
-                :key="stream.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">
-                    {{ stream.name }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">{{ stream.code }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ stream.class?.name }} ({{ stream.class?.code }})
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">{{ stream.branch?.name }}</div>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="text-sm text-gray-900 dark:text-white max-w-xs truncate">
-                    {{ stream.description || 'No description' }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    :class="[
-                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                      stream.is_active
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                    ]"
-                  >
-                    {{ stream.is_active ? 'Active' : 'Inactive' }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    @click="editStream(stream)"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    @click="toggleStatus(stream)"
-                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
-                  >
-                    {{ stream.is_active ? 'Deactivate' : 'Activate' }}
-                  </button>
-                  <button
-                    @click="deleteStream(stream)"
-                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Empty State -->
-        <div v-if="streams.length === 0 && !loading" class="text-center py-12">
-          <svg
-            class="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
+              d="M12 4v16m8-8H4"
+            ></path>
           </svg>
-          <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No streams found</h3>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Get started by creating a new stream for any class.
-          </p>
-          <div class="mt-6">
-            <button
-              @click="openCreateModal"
-              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 4v16m8-8H4"
-                ></path>
-              </svg>
-              Add Stream
-            </button>
-          </div>
-        </div>
+          Add Stream
+        </button>
+      </div>
+    </div>
 
-        <!-- Loading State -->
-        <div v-if="loading" class="text-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading streams...</p>
-        </div>
+    <!-- Streams Table -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50/80 dark:bg-gray-900/40">
+            <tr>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Stream Name
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Code
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Class
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Branch
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Description
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Status
+              </th>
+              <th
+                class="px-5 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr
+              v-for="stream in streams"
+              :key="stream.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+            >
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                {{ stream.name }}
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                {{ stream.code }}
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                {{ stream.class?.name }} ({{ stream.class?.code }})
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                <span class="font-medium">{{ stream.branch?.name || '-' }}</span>
+              </td>
+              <td class="px-5 py-3.5 text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate">
+                {{ stream.description || '—' }}
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap">
+                <span
+                  :class="[
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                    stream.is_active
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
+                      : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900'
+                  ]"
+                >
+                  <span
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="stream.is_active ? 'bg-emerald-500' : 'bg-rose-500'"
+                  ></span>
+                  {{ stream.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-right text-sm font-medium">
+                <button
+                  @click="editStream(stream)"
+                  class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3 hover:underline"
+                >
+                  Edit
+                </button>
+                <button
+                  @click="toggleStatus(stream)"
+                  class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 mr-3 hover:underline"
+                >
+                  {{ stream.is_active ? 'Deactivate' : 'Activate' }}
+                </button>
+                <button
+                  @click="deleteStream(stream)"
+                  class="text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:underline"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <!-- Pagination -->
-      <Pagination
-        v-if="pagination.total > 0"
-        :pagination="{
-          page: pagination.page,
-          limit: pagination.limit,
-          total: pagination.total
-        }"
-        item-label="streams"
-        @page-changed="handlePageChange"
-        @page-size-changed="onPageSizeChange"
-      />
+      <!-- Empty State -->
+      <div v-if="streams.length === 0 && !loading" class="text-center py-12">
+        <p class="text-base font-medium text-gray-900 dark:text-white">No streams found</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Get started by creating a new stream for any class.
+        </p>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="text-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent mx-auto"></div>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading streams...</p>
+      </div>
     </div>
+
+    <!-- Pagination -->
+    <Pagination
+      v-if="pagination.total > 0"
+      :pagination="{
+        page: pagination.page,
+        limit: pagination.limit,
+        total: pagination.total
+      }"
+      item-label="streams"
+      @page-changed="handlePageChange"
+      @page-size-changed="onPageSizeChange"
+    />
 
     <!-- Create/Edit Modal -->
     <div
       v-if="showModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
     >
       <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
+        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4"
       >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            {{ isEditing ? 'Edit Stream' : 'Create New Stream' }}
-          </h3>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+          {{ isEditing ? 'Edit Stream' : 'Create New Stream' }}
+        </h3>
 
-          <form @submit.prevent="handleSubmit">
-            <!-- School Selection (Super Admin Only) - Create Mode Only -->
-            <div v-if="userRole === 'super_admin' && !isEditing" class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >School *</label
-              >
-              <select
-                v-model="form.school_id"
-                @change="onSchoolChange"
-                required
-                :disabled="loading"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">{{ loading ? 'Loading schools...' : 'Select School' }}</option>
-                <option v-for="school in schools" :key="school.id" :value="school.id">
-                  {{ school.name }}
-                </option>
-              </select>
-            </div>
+        <form @submit.prevent="handleSubmit" class="space-y-4">
+          <!-- Class Selection - Create Mode Only -->
+          <div v-if="!isEditing">
+            <EnhancedDropdown
+              v-model="form.class_id"
+              label="Class"
+              :options="classDropdownOptions"
+              placeholder="Select Class"
+              :required="true"
+              :disabled="loading"
+              :loading="loading"
+            />
+          </div>
 
-            <!-- Branch Selection (Super Admin & Admin) - Create Mode Only -->
-            <div v-if="userRole !== 'branch_admin' && !isEditing" class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >Branch *</label
-              >
-              <select
-                v-model="form.branch_id"
-                @change="onBranchChange"
-                required
-                :disabled="loading"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">{{ loading ? 'Loading branches...' : 'Select Branch' }}</option>
-                <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                  {{ branch.name }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Class Selection - Create Mode Only -->
-            <div v-if="!isEditing" class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >Class *</label
-              >
-              <select
-                v-model="form.class_id"
-                required
-                :disabled="loading"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">{{ loading ? 'Loading classes...' : 'Select Class' }}</option>
-                <option
-                  v-for="classItem in availableClasses"
-                  :key="classItem.id"
-                  :value="classItem.id"
-                >
-                  {{ classItem.name }} ({{ classItem.code }})
-                </option>
-              </select>
-            </div>
-
-            <!-- Stream Information Display for Edit Mode -->
-            <div
-              v-if="isEditing"
-              class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >Stream Name <span class="text-rose-500">*</span></label
             >
-              <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                📍 Stream Information
-              </h4>
-              <div class="space-y-2">
-                <div v-if="userRole === 'super_admin'">
-                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
-                    >School</label
-                  >
-                  <p class="text-sm text-gray-900 dark:text-white">
-                    {{ getSelectedSchoolName() }}
-                  </p>
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
-                    >Branch</label
-                  >
-                  <p class="text-sm text-gray-900 dark:text-white">
-                    {{ getSelectedBranchName() }}
-                  </p>
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
-                    >Class</label
-                  >
-                  <p class="text-sm text-gray-900 dark:text-white">
-                    {{ getSelectedClassName() }}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <input
+              v-model="form.name"
+              type="text"
+              required
+              class="input-field"
+              placeholder="e.g., Science IT, Commerce General"
+            />
+          </div>
 
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Stream Name *</label
-              >
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >Stream Code (Optional)</label
+            >
+            <input
+              v-model="form.code"
+              type="text"
+              class="input-field"
+              placeholder="Leave empty to auto-generate (e.g., SCI-IT, COM-GEN)"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Code will be auto-generated from the stream name if left empty
+            </p>
+          </div>
+
+          <div>
+            <label class="flex items-center gap-2 cursor-pointer">
               <input
-                v-model="form.name"
-                type="text"
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g., Science IT, Commerce General"
+                v-model="form.is_active"
+                type="checkbox"
+                class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
               />
-            </div>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+            </label>
+          </div>
 
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Stream Code (Optional)</label
-              >
-              <input
-                v-model="form.code"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Leave empty to auto-generate (e.g., SCI-IT, COM-GEN)"
-              />
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Code will be auto-generated from the stream name if left empty
-              </p>
-            </div>
-
-            <div class="mb-6">
-              <label class="flex items-center">
-                <input
-                  v-model="form.is_active"
-                  type="checkbox"
-                  class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                />
-                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
-              </label>
-            </div>
-
-            <div class="flex justify-end space-x-3">
-              <button
-                type="button"
-                @click="closeModal"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                :disabled="submitting || !canSubmit"
-                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-              >
-                {{ submitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div class="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              @click="closeModal"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="submitting || !canSubmit"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+            >
+              {{ submitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
+    <ConfirmDialog
+      :open="deleteDialog.open"
+      title="Delete stream"
+      message="Are you sure you want to delete this stream?"
+      confirm-label="Delete"
+      @confirm="confirmDeleteStream"
+      @cancel="deleteDialog.open = false"
+    />
   </div>
 </template>
 
@@ -393,17 +267,23 @@ definePageMeta({
   }
 });
 
-import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue';
+import { ref, reactive, onMounted, computed, onBeforeUnmount, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
-import { useAcademicSettings } from '~/utils/settings';
 import { Streams } from '~/api';
 import Pagination from '~/components/ui/Pagination.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 // Composables
+const authStore = useAuthStore();
+const deleteDialog = reactive({ open: false, id: '', name: '' });
+const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const { showToast } = useToast();
 const { user } = useAuth();
 const { schools, fetchSchools } = useSchools();
@@ -435,12 +315,20 @@ const form = reactive({
   class_id: '',
   name: '',
   code: '',
+  description: '',
   is_active: true
 });
 
 // Computed properties
 const userRole = computed(() => user.value?.role);
 const modalTitle = computed(() => (isEditing.value ? 'Edit Stream' : 'Create New Stream'));
+
+const classDropdownOptions = computed(() =>
+  (classes.value || []).map(c => ({
+    label: `${c.name} (${c.code})`,
+    value: c.id
+  }))
+);
 
 // Computed property to check if form can be submitted
 const canSubmit = computed(() => {
@@ -510,11 +398,13 @@ const loadStreams = async () => {
       branch_id: user.value.branch_id
     });
 
-    const params = {
+    const params: any = {
       page: pagination.page,
       limit: pagination.limit
     };
-    if (filterBranchId.value) params.branch_id = filterBranchId.value;
+    const activeBranchId = globalBranchId.value || filterBranchId.value;
+    if (activeBranchId) params.branch_id = activeBranchId;
+    if (authStore.currentSchool?.id) params.school_id = authStore.currentSchool.id;
 
     console.log('Streams API params:', params);
     const response = await Streams.getAll(params);
@@ -554,6 +444,14 @@ const openCreateModal = () => {
   isEditing.value = false;
   editingStream.value = null;
   resetForm();
+
+  if (globalBranchId.value) {
+    form.branch_id = globalBranchId.value;
+  }
+  if (authStore.currentSchool?.id) {
+    form.school_id = authStore.currentSchool.id;
+  }
+
   showModal.value = true;
 };
 
@@ -680,12 +578,14 @@ const toggleStatus = async (stream: any) => {
 };
 
 const deleteStream = async (stream: any) => {
-  if (!confirm(`Are you sure you want to delete the stream "${stream.name}"?`)) {
-    return;
-  }
+  deleteDialog.id = stream.id;
+  deleteDialog.name = stream.name;
+  deleteDialog.open = true;
+};
 
+const confirmDeleteStream = async () => {
   try {
-    const response = await Streams.delete(stream.id);
+    const response = await Streams.delete(deleteDialog.id);
 
     if (response.success) {
       showToast('Stream deleted successfully', 'success');
@@ -696,6 +596,10 @@ const deleteStream = async (stream: any) => {
   } catch (error) {
     console.error('Error deleting stream:', error);
     showToast('Failed to delete stream', 'error');
+  } finally {
+    deleteDialog.open = false;
+    deleteDialog.id = '';
+    deleteDialog.name = '';
   }
 };
 
@@ -798,9 +702,9 @@ onMounted(async () => {
       classesResult = { status: 'fulfilled', value: [] };
     } else if (userRole.value === 'admin') {
       // For school admin, load classes for their school
-      classesResult = await Promise.allSettled([fetchClasses({ schoolId: user.value?.school_id })]).then(
-        results => results[0]
-      );
+      classesResult = await Promise.allSettled([
+        fetchClasses({ schoolId: user.value?.school_id })
+      ]).then(results => results[0]);
     } else if (userRole.value === 'branch_admin') {
       // For branch admin, load classes for their branch
       classesResult = await Promise.allSettled([
@@ -825,6 +729,11 @@ onMounted(async () => {
     console.error('Error loading initial data:', error);
     showToast('Failed to load initial data', 'error');
   }
+});
+
+watch(globalBranchId, async () => {
+  pagination.page = 1;
+  await loadStreams();
 });
 </script>
 

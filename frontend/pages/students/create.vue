@@ -17,11 +17,8 @@ const mode = computed(() => {
 
 const studentId = computed(() => route.params.id || null);
 
-// Set page meta based on mode
-const pageTitle = computed(() => (mode.value === 'edit' ? 'Edit Student' : 'Create Student'));
-
-definePageMeta({
-  // Global auth middleware handles authentication
-  title: pageTitle
+// Set page title dynamically (optional, you can use useHead instead)
+useHead({
+  title: computed(() => (mode.value === 'edit' ? 'Edit Student' : 'Create Student'))
 });
 </script>

@@ -1,19 +1,14 @@
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800"
-  >
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="sm:flex sm:items-center sm:justify-between mb-8">
-        <div class="mb-4 sm:mb-0">
-          <h1
-            class="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent"
-          >
-            Attendance Reports
-          </h1>
-          <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">
-            Student attendance tracking and analytics
-          </p>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+      <div class="mb-4 sm:mb-0">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+          Attendance Reports
+        </h1>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          Student attendance tracking and analytics
+        </p>
         </div>
         <div class="flex flex-col sm:flex-row gap-3">
           <!-- Column Selector -->
@@ -245,34 +240,6 @@
             />
           </div>
 
-          <!-- School (Super Admin Only) -->
-          <div v-if="isSuperAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >School</label
-            >
-            <EnhancedDropdown
-              :options="schoolOptions"
-              v-model="filters.school_id"
-              placeholder="All Schools"
-              @update:modelValue="onSchoolChange"
-              :disabled="loading"
-            />
-          </div>
-
-          <!-- Branch (Super Admin and Admin) -->
-          <div v-if="isSuperAdmin || isAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Branch</label
-            >
-            <EnhancedDropdown
-              :options="branchOptions"
-              v-model="filters.branch_id"
-              placeholder="All Branches"
-              @update:modelValue="onBranchChange"
-              :disabled="loading"
-            />
-          </div>
-
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Class</label
@@ -361,7 +328,7 @@
         <div
           class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
         >
-          <div class="text-sm font-medium text-blue-600 dark:text-blue-400">Excused</div>
+          <div class="text-sm font-medium text-indigo-600 dark:text-indigo-400">Excused</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary.excused }}</div>
         </div>
       </div>
@@ -450,7 +417,7 @@
                         record.status === 'absent',
                       'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300':
                         record.status === 'late',
-                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300':
+                      'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300':
                         record.status === 'excused'
                     }"
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
@@ -487,7 +454,7 @@
               'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300': item.status === 'absent',
               'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300':
                 item.status === 'late',
-              'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300':
+              'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300':
                 item.status === 'excused'
             }"
             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
@@ -511,16 +478,17 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >Notification Type</label
               >
-              <select
+              <EnhancedDropdown
                 v-model="notificationForm.type"
+                :options="[
+                  { label: 'Select notification type', value: '' },
+                  { label: 'Send Absence Notifications', value: 'absence' },
+                  { label: 'Send Late Arrival Notifications', value: 'late' },
+                  { label: 'Send Daily Summary', value: 'summary' }
+                ]"
+                placeholder="Select notification type"
                 required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select notification type</option>
-                <option value="absence">Send Absence Notifications</option>
-                <option value="late">Send Late Arrival Notifications</option>
-                <option value="summary">Send Daily Summary</option>
-              </select>
+              />
             </div>
 
             <div>
@@ -531,7 +499,7 @@
                 v-model="notificationForm.date"
                 type="date"
                 required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :max="new Date().toISOString().split('T')[0]"
               />
             </div>
@@ -540,40 +508,28 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >Select Class</label
               >
-              <select
+              <EnhancedDropdown
                 v-model="notificationForm.class_id"
+                :options="[{ label: 'Choose a class', value: '' }, ...classOptions]"
+                placeholder="Choose a class"
                 required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                @change="loadNotificationSections"
-              >
-                <option value="">Choose a class</option>
-                <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
-                  {{ cls.label }}
-                </option>
-              </select>
+                @update:model-value="loadNotificationSections"
+              />
             </div>
 
             <div v-if="notificationSectionOptions.length > 0">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >Select Section (Optional)</label
               >
-              <select
+              <EnhancedDropdown
                 v-model="notificationForm.section_id"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All sections</option>
-                <option
-                  v-for="section in notificationSectionOptions"
-                  :key="section.value"
-                  :value="section.value"
-                >
-                  {{ section.label }}
-                </option>
-              </select>
+                :options="[{ label: 'All sections', value: '' }, ...notificationSectionOptions]"
+                placeholder="All sections"
+              />
             </div>
 
             <div
-              class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4"
+              class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg p-4"
             >
               <div class="flex">
                 <svg class="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -584,8 +540,10 @@
                   ></path>
                 </svg>
                 <div class="ml-3">
-                  <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">How it works</h3>
-                  <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                  <h3 class="text-sm font-medium text-indigo-800 dark:text-indigo-200">
+                    How it works
+                  </h3>
+                  <div class="mt-2 text-sm text-indigo-700 dark:text-indigo-300">
                     <p>{{ getNotificationDescription() }}</p>
                   </div>
                 </div>
@@ -618,17 +576,16 @@
         </template>
       </Modal>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
-import { useBranches } from '~/composables/useBranches';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
 import { Attendance, AttendanceNotifications, Sections } from '~/api';
@@ -638,13 +595,14 @@ import FilterCard from '~/components/ui/FilterCard.vue';
 import DataTable from '~/components/ui/DataTable.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 
-// Removed reportTypeOptions as we now use date range filters
+const authStore = useAuthStore();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 
 const filters = ref<any>({
   date_from: new Date().toISOString().slice(0, 10),
   date_to: new Date().toISOString().slice(0, 10),
-  school_id: '',
-  branch_id: '',
+  school_id: authStore.currentSchool?.id || '',
+  branch_id: selectedBranchId.value || '',
   academic_year: '',
   class_id: '',
   section_id: ''
@@ -652,6 +610,24 @@ const filters = ref<any>({
 const loading = ref(false);
 const records = ref<any[]>([]);
 const summary = ref<any>(null);
+
+// Watch for global branch or school change
+watch(selectedBranchId, async newVal => {
+  filters.value.branch_id = newVal || '';
+  filters.value.class_id = '';
+  filters.value.section_id = '';
+  await loadClasses();
+  await load(1);
+});
+
+watch(currentSchool, async () => {
+  filters.value.school_id = authStore.currentSchool?.id || '';
+  filters.value.branch_id = selectedBranchId.value || '';
+  filters.value.class_id = '';
+  filters.value.section_id = '';
+  await loadClasses();
+  await load(1);
+});
 
 // Pagination state
 const pagination = ref({
@@ -666,7 +642,6 @@ const pagination = ref({
 
 // Auth composables
 const { isSuperAdmin, isAdmin } = useAuth();
-const authStore = useAuthStore();
 
 // Export and print services
 const { generateReport, isGenerating } = useExportService();
@@ -675,19 +650,12 @@ const { printReport: printReportCommon } = usePrintReport();
 // Academic composables
 const { classes, sections, fetchClasses, fetchSections } = useAcademics();
 const { schools, fetchSchools } = useSchools();
-const { branches, fetchBranches } = useBranches();
 
 // Computed options
 const schoolOptions = computed(() =>
   schools.value.map((school: any) => ({
     value: school.id,
     label: school.name
-  }))
-);
-const branchOptions = computed(() =>
-  branches.value.map((branch: any) => ({
-    value: branch.id,
-    label: branch.name
   }))
 );
 const classOptions = computed(() =>
@@ -751,15 +719,6 @@ const loadSchools = async () => {
   }
 };
 
-const loadBranches = async () => {
-  if (isSuperAdmin.value || isAdmin.value) {
-    const options: any = {};
-    if (filters.value.school_id) {
-      options.schoolId = filters.value.school_id;
-    }
-    await fetchBranches(options);
-  }
-};
 
 const loadClasses = async () => {
   const options: any = {};
@@ -807,8 +766,6 @@ const onSchoolChange = async () => {
   filters.value.branch_id = ''; // Reset branch when school changes
   filters.value.class_id = ''; // Reset class when school changes
   filters.value.section_id = ''; // Reset section when school changes
-
-  await loadBranches(); // Reload branches for selected school
   await loadClasses(); // Reload classes for selected school
   sections.value = []; // Clear sections
 };
@@ -851,7 +808,6 @@ const resetFilters = async () => {
     await loadSchools();
   }
   if (isSuperAdmin.value || isAdmin.value) {
-    await loadBranches();
   }
 
   showToast('Filters reset successfully', 'success');
@@ -1075,7 +1031,7 @@ const printAttendanceReport = async () => {
         'From Date': filters.value.date_from,
         'To Date': filters.value.date_to || filters.value.date_from,
         Branch: filters.value.branch_id
-          ? branches.value.find(b => b.id === filters.value.branch_id)?.name || 'All Branches'
+          ? (filters.value.branch_id ? 'Selected Branch' : 'All Branches')
           : 'All Branches',
         Class: filters.value.class_id
           ? classOptions.value.find(c => c.value === filters.value.class_id)?.label || 'All Classes'
@@ -1331,7 +1287,6 @@ const sendNotifications = async () => {
 onMounted(async () => {
   try {
     await loadSchools(); // Load schools first (for super admin)
-    await loadBranches(); // Load branches
     await loadClasses(); // Load classes
     await load(); // Load initial data
 

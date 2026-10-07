@@ -2,6 +2,8 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '~/stores/auth';
 
+let staleSessionRedirecting = false;
+
 export function createApiInstance(): AxiosInstance {
   const config = useRuntimeConfig();
   const apiBase = config.public?.apiBase;
@@ -49,6 +51,27 @@ export function createApiInstance(): AxiosInstance {
 
       // Don't attempt token refresh for /auth/me endpoint (prevents logout loops)
       const isMeEndpoint = originalRequest.url?.includes('/auth/me');
+
+      // A demo reseed replaces the school UUID. Force a clean login instead of
+      // leaving the UI on a stale session that renders empty data.
+      if (
+        error.response?.status === 404 &&
+        /school not found/i.test(error.response?.data?.message || '') &&
+        !isAuthEndpoint &&
+        import.meta.client &&
+        window.location.pathname !== '/auth/login'
+      ) {
+        if (!staleSessionRedirecting) {
+          staleSessionRedirecting = true;
+          const authStore = useAuthStore();
+          authStore.user.value = null;
+          authStore.currentBranch.value = null;
+          authStore.currentSchool.value = null;
+          authStore.availableBranches.value = [];
+          authStore.clearAuthData();
+          window.location.replace('/auth/login');
+        }
+      }
 
       // Handle 401 errors with automatic token refresh (only for non-auth endpoints)
       if (

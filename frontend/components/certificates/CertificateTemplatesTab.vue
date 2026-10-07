@@ -1,19 +1,7 @@
 <template>
   <div class="space-y-6">
-    <select
-      v-if="availableBranches.length > 1"
-      v-model="selectedBranchId"
-      class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-      @change="loadSelectedTemplates"
-    >
-      <option value="">All Branches</option>
-      <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-        {{ branch.name }}
-      </option>
-    </select>
-
     <!-- Templates List -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+    <div class="table-container">
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -331,7 +319,9 @@
                               class="w-16 h-16 flex-shrink-0"
                             >
                               <img
-                                :src="getFullImageUrl(selectedTemplate.logo_image, selectedTemplate)"
+                                :src="
+                                  getFullImageUrl(selectedTemplate.logo_image, selectedTemplate)
+                                "
                                 alt="Logo"
                                 class="w-full h-full object-contain"
                                 @error="
@@ -510,7 +500,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import {
   FileText,
   Edit,
@@ -526,6 +516,7 @@ import {
 import Pagination from '~/components/ui/Pagination.vue';
 import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { getCertificateUrl } from '~/utils/image';
 import { useAuthStore } from '~/stores/auth';
@@ -534,25 +525,25 @@ import { useAuthStore } from '~/stores/auth';
 // Structure: uploads/schools/{schoolCode}/{year}/certificates/{filename}
 const getFullImageUrl = (path, template = null) => {
   if (!path) return null;
-  
+
   // If it's already a full URL or data URL, return as is
   if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) {
     return path;
   }
-  
+
   // Get school code from multiple sources (priority order):
   // 1. Template's branch school code (if template has branch with school)
   // 2. Selected branch's school code (from availableBranches)
   // 3. Current school from auth store
   let schoolCode = '';
-  
+
   // Try from template's branch if available
   if (template?.branch?.school?.code) {
     schoolCode = template.branch.school.code;
   } else if (template?.branch?.school_code) {
     schoolCode = template.branch.school_code;
   }
-  
+
   // Try from available branches if template has branch_id
   if (!schoolCode && template?.branch_id) {
     const branch = availableBranches.value.find(b => b.id === template.branch_id);
@@ -562,17 +553,17 @@ const getFullImageUrl = (path, template = null) => {
       schoolCode = branch.school_code;
     }
   }
-  
+
   // Fallback to current school from auth store
   if (!schoolCode && authStore.currentSchool?.code) {
     schoolCode = authStore.currentSchool.code;
   }
-  
+
   if (!schoolCode) {
     console.warn('⚠️ Could not determine school code for certificate image URL');
     return null;
   }
-  
+
   // Construct the certificate URL: uploads/schools/{schoolCode}/{year}/certificates/{filename}
   return getCertificateUrl(path, schoolCode);
 };
@@ -585,7 +576,8 @@ const {
   loadTemplates,
   deleteTemplate: deleteTemplateApi
 } = useCertificateTemplates();
-const { availableBranches, fetchBranchesForUser } = useBranches();
+const { availableBranches } = useBranches();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 const { showToast } = useToast();
 const authStore = useAuthStore();
 
@@ -593,7 +585,6 @@ const authStore = useAuthStore();
 const showPreviewModal = ref(false);
 const selectedTemplate = ref(null);
 const zoomLevel = ref(100);
-const selectedBranchId = ref('');
 
 // Methods
 const handlePageChange = page => {
@@ -708,9 +699,15 @@ defineExpose({
   loadTemplates: loadSelectedTemplates
 });
 
-onMounted(async () => {
-  await fetchBranchesForUser();
-  if (availableBranches.value.length === 1) selectedBranchId.value = availableBranches.value[0].id;
+watch(selectedBranchId, () => {
+  loadSelectedTemplates();
+});
+
+watch(currentSchool, () => {
+  loadSelectedTemplates();
+});
+
+onMounted(() => {
   loadSelectedTemplates();
 });
 </script>

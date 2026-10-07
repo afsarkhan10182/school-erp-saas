@@ -42,18 +42,50 @@ const Homework = require('./academic/homework.model');
 const LibraryBook = require('./academic/library-book.model');
 const LibraryIssue = require('./academic/library-issue.model');
 const FeeFine = require('./financial/fee-fine.model');
-const SchoolOpsRecord = require('./shared/school-ops-record.model');
+const DynamicEntityRecord = require('./shared/dynamic-entity-record.model');
+const SchoolOpsRecord = DynamicEntityRecord;
 const CardTemplate = require('./academic/card-template.model');
 const OnlineExam = require('./academic/online-exam.model');
 const OnlineExamQuestion = require('./academic/online-exam-question.model');
 const OnlineExamAttempt = require('./academic/online-exam-attempt.model');
 const ExamSeating = require('./academic/exam-seating.model');
+const ReportTemplate = require('./academic/exams/report-template.model')(sequelize);
+const ExamReport = require('./academic/exams/exam-report.model')(sequelize);
 
 // Administration models
 const CertificateTemplate = require('./administration/certificate-template.model');
 
+// Transport models
+const Vehicle = require('./transport/vehicle.model');
+const TransportRoute = require('./transport/transport-route.model');
+const VehicleRoute = require('./transport/vehicle-route.model');
+const StudentTransport = require('./transport/student-transport.model');
+
+// Hostel models
+const Hostel = require('./hostel/hostel.model');
+const RoomType = require('./hostel/room-type.model');
+const HostelRoom = require('./hostel/hostel-room.model');
+const HostelAllocation = require('./hostel/hostel-allocation.model');
+
+// Inventory models
+const ItemCategory = require('./inventory/item-category.model');
+const Supplier = require('./inventory/supplier.model');
+const Store = require('./inventory/store.model');
+const InventoryItem = require('./inventory/inventory-item.model');
+const ItemIssue = require('./inventory/item-issue.model');
+
+// Accounting models
+const AccountCategory = require('./accounting/account-category.model');
+const SchoolTransaction = require('./accounting/school-transaction.model');
+
+// Alumni models
+const Alumni = require('./alumni/alumni.model');
+const AlumniEvent = require('./alumni/alumni-event.model');
+
 // Initialize associations
 const models = {
+  Alumni,
+  AlumniEvent,
   User,
   School,
   Branch,
@@ -100,18 +132,38 @@ const models = {
   LibraryIssue,
   FeeFine,
   SchoolOpsRecord,
+  DynamicEntityRecord: SchoolOpsRecord,
   CardTemplate,
   OnlineExam,
   OnlineExamQuestion,
   OnlineExamAttempt,
   ExamSeating,
-  CertificateTemplate
+  ReportTemplate,
+  ExamReport,
+  CertificateTemplate,
+  Vehicle,
+  TransportRoute,
+  VehicleRoute,
+  StudentTransport,
+  Hostel,
+  RoomType,
+  HostelRoom,
+  HostelAllocation,
+  ItemCategory,
+  Supplier,
+  Store,
+  InventoryItem,
+  ItemIssue,
+  AccountCategory,
+  SchoolTransaction
 };
 
-// Call associate function for each model if it exists
-Object.keys(models).forEach(modelName => {
-  if (models[modelName].associate) {
-    models[modelName].associate(models);
+// Call associate function for each unique model if it exists
+const visitedModels = new Set();
+Object.values(models).forEach(model => {
+  if (model && model.associate && !visitedModels.has(model)) {
+    visitedModels.add(model);
+    model.associate(models);
   }
 });
 

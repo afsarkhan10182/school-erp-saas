@@ -244,7 +244,7 @@ const getSlotClasses = slot => {
   } else if (slot.slot_type === 'free') {
     return `${baseClasses} bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600`;
   } else {
-    return `${baseClasses} bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700`;
+    return `${baseClasses} bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700`;
   }
 };
 

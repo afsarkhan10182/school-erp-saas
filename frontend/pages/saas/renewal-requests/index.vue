@@ -23,7 +23,7 @@
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >Status</label
         >
-        <select v-model="filters.status" class="input-field">
+        <select v-model="filters.status" class="form-select">
           <option value="">All Status</option>
           <option value="pending">Pending</option>
           <option value="approved">Approved</option>
@@ -35,7 +35,7 @@
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >Request Type</label
         >
-        <select v-model="filters.request_type" class="input-field">
+        <select v-model="filters.request_type" class="form-select">
           <option value="">All Types</option>
           <option value="renewal">Renewal</option>
           <option value="upgrade">Upgrade</option>
@@ -47,7 +47,7 @@
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >School</label
         >
-        <select v-model="filters.school_id" class="input-field">
+        <select v-model="filters.school_id" class="form-select">
           <option value="">All Schools</option>
           <option v-for="school in schools" :key="school.id" :value="school.id">
             {{ school.name }}
@@ -114,7 +114,7 @@
                   {{ request.status }}
                 </span>
                 <span
-                  class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                  class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400"
                 >
                   {{ request.request_type }}
                 </span>
@@ -152,7 +152,7 @@
               </div>
             </div>
 
-            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <div class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
               <h4 class="font-medium text-gray-900 dark:text-white mb-2">Requested Plan</h4>
               <div class="space-y-1 text-sm">
                 <div class="flex justify-between">
@@ -236,7 +236,7 @@
             <textarea
               v-model="reviewForm.admin_response"
               rows="4"
-              class="input-field"
+              class="form-input"
               :placeholder="
                 reviewAction === 'Approve'
                   ? 'Optional notes for approval...'
@@ -444,7 +444,7 @@ onMounted(async () => {
 
 <style scoped>
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .btn-secondary {
@@ -457,9 +457,5 @@ onMounted(async () => {
 
 .btn-danger {
   @apply bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500;
-}
-
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
 </style>

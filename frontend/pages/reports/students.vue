@@ -584,32 +584,7 @@
               class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
-          <!-- School (Super Admin Only) -->
-          <div v-if="isSuperAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >School</label
-            >
-            <EnhancedDropdown
-              :options="schoolOptions"
-              v-model="filters.school_id"
-              placeholder="All Schools"
-              @update:modelValue="onSchoolChange"
-              :disabled="isLoading"
-            />
-          </div>
-          <!-- Branch (Super Admin and Admin) -->
-          <div v-if="isSuperAdmin || isAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Branch</label
-            >
-            <EnhancedDropdown
-              :options="branchOptions"
-              v-model="filters.branch_id"
-              placeholder="All Branches"
-              @update:modelValue="onBranchChange"
-              :disabled="isLoading"
-            />
-          </div>
+
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Class</label
@@ -849,7 +824,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import { useAuthStore } from '~/stores/auth';
 import {
   Download,
   Users,
@@ -866,7 +843,6 @@ import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
-import { useBranches } from '~/composables/useBranches';
 import Pagination from '~/components/ui/Pagination.vue';
 import { usePrintReport } from '~/composables/usePrintReport';
 import { useExportService } from '~/composables/useExportService';
@@ -889,7 +865,6 @@ const {
   fetchStreams
 } = useAcademics();
 const { schools, fetchSchools } = useSchools();
-const { branches, fetchBranches } = useBranches();
 
 // Get print and export composables
 const { printReport: printReportUtil } = usePrintReport();
@@ -933,12 +908,6 @@ const schoolOptions = computed(() => [
   }))
 ]);
 
-const branchOptions = computed(() => [
-  ...branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-]);
 
 const classOptions = computed(() => [
   ...classes.value.map(cls => ({
@@ -1002,20 +971,34 @@ const filters = reactive({
   status: ''
 });
 
-// Initialize filters based on user role
+const { selectedBranchId, currentSchool } = useGlobalBranch();
+const authStore = useAuthStore();
+
+// Initialize filters based on global selection
 const initializeFilters = () => {
-  if (isSuperAdmin.value) {
-    // Super admin can select any school
-    filters.school_id = '';
-  } else if (isAdmin.value) {
-    // School admin is restricted to their school
-    filters.school_id = user.value?.school_id;
-  } else if (isBranchAdmin.value) {
-    // Branch admin is restricted to their school and branch
-    filters.school_id = user.value?.school_id;
-    filters.branch_id = user.value?.branch_id;
-  }
+  filters.school_id = authStore.currentSchool?.id || user.value?.school_id || '';
+  filters.branch_id = selectedBranchId.value || '';
 };
+
+// Watch for global branch or school change
+watch(selectedBranchId, async newVal => {
+  filters.branch_id = newVal || '';
+  filters.class_id = '';
+  filters.section_id = '';
+  filters.stream_id = '';
+  await loadClasses();
+  await loadData();
+});
+
+watch(currentSchool, async () => {
+  filters.school_id = authStore.currentSchool?.id || user.value?.school_id || '';
+  filters.branch_id = selectedBranchId.value || '';
+  filters.class_id = '';
+  filters.section_id = '';
+  filters.stream_id = '';
+  await loadClasses();
+  await loadData();
+});
 
 // Pagination - using the new structure
 const currentPage = computed(() => pagination.value.current_page);
@@ -1269,22 +1252,6 @@ const loadStreams = async () => {
   }
 };
 
-const loadBranches = async () => {
-  try {
-    const options = {};
-
-    // Filter by school if selected (for super admin)
-    if (filters.school_id) {
-      options.schoolId = filters.school_id;
-    }
-
-    console.log('Loading branches with options:', options);
-    await fetchBranches(options);
-    console.log('Branches loaded:', branches.value.length);
-  } catch (error) {
-    console.error('Error loading branches:', error);
-  }
-};
 
 const loadSchools = async () => {
   if (isSuperAdmin.value) {
@@ -1338,7 +1305,7 @@ const getStatusClass = status => {
     active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     inactive: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     transferred: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    graduated: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    graduated: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
     dropped: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
   };
   return classes[status] || classes.active;
@@ -1661,8 +1628,6 @@ const onSchoolChange = async () => {
   filters.class_id = '';
   filters.section_id = '';
   filters.stream_id = '';
-
-  await loadBranches(); // Reload branches for selected school
   await loadClasses(); // Reload classes for selected school
   sections.value = []; // Clear sections
   streams.value = []; // Clear streams
@@ -1852,7 +1817,7 @@ const printStudentsReport = async () => {
           ? schools.value.find(s => s.id === filters.school_id)?.name
           : 'All Schools',
         Branch: filters.branch_id
-          ? branches.value.find(b => b.id === filters.branch_id)?.name
+          ? (filters.branch_id ? 'Selected Branch' : '')
           : 'All Branches',
         Class: filters.class_id
           ? classes.value.find(c => c.id === filters.class_id)?.name
@@ -1916,7 +1881,7 @@ onMounted(async () => {
     // Wait for auth store to initialize
     // Auth composable handles initialization automatically
 
-    await Promise.all([loadAcademicYears(), loadSchools(), loadBranches(), loadClasses()]);
+    await Promise.all([loadAcademicYears(), loadSchools(), loadClasses()]);
 
     // Initialize filters based on user role
     initializeFilters();

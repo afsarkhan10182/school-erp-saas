@@ -12,7 +12,7 @@
           class="absolute top-40 right-20 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000"
         ></div>
         <div
-          class="absolute bottom-20 left-1/3 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-2000"
+          class="absolute bottom-20 left-1/3 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse delay-2000"
         ></div>
       </div>
     </div>
@@ -51,7 +51,7 @@
         <!-- Loading Screen -->
         <div class="text-center">
           <div
-            class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+            class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
           >
             <span class="text-white font-bold text-2xl">S</span>
           </div>
@@ -72,11 +72,12 @@
             <!-- Logo/Brand -->
             <div class="text-center mb-8">
               <div
-                class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+                class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
               >
                 <span class="text-white font-bold text-2xl">S</span>
               </div>
-              <p class="text-white/70 text-sm">Sign in to your School ERP account</p>
+              <h1 class="text-white text-2xl font-semibold">{{ loginTitle }}</h1>
+              <p class="text-white/70 text-sm mt-2">{{ loginSubtitle }}</p>
             </div>
 
             <!-- Error Message -->
@@ -135,7 +136,7 @@
                 <button
                   type="button"
                   @click="showForgotPassword = true"
-                  class="text-sm text-blue-300 hover:text-blue-200 transition-colors cursor-pointer"
+                  class="text-sm text-indigo-300 hover:text-indigo-200 transition-colors cursor-pointer"
                 >
                   Forgot password?
                 </button>
@@ -144,7 +145,7 @@
               <button
                 type="submit"
                 :disabled="loading"
-                class="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span v-if="!loading">Sign In</span>
                 <span v-else class="flex items-center justify-center">
@@ -155,17 +156,28 @@
                 </span>
               </button>
 
-              <!-- Demo Quick Access -->
-              <div class="mt-4">
+            </form>
+
+            <div class="mt-6 border-t border-white/20 pt-4" aria-label="Choose login type">
+              <h2 class="mb-3 text-center text-sm font-semibold text-white">Explore the demo</h2>
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <button
+                  v-for="role in loginRoles"
+                  :key="role.key"
                   type="button"
-                  @click="fillDemoCredentials"
-                  class="w-full py-2 px-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white/80 font-medium rounded-xl hover:bg-white/20 hover:text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                  class="group flex min-h-[96px] flex-col items-center justify-center rounded-xl border px-2 py-3 text-center transition-all"
+                  :class="loginAudience === role.key || (!loginAudience && role.key === 'admin')
+                    ? 'border-pink-300 bg-white/10 text-white shadow-lg shadow-pink-500/10'
+                    : 'border-white/15 bg-white/5 text-white/75 hover:border-white/35 hover:bg-white/10'"
+                  @click="handleDemoLogin(role.key)"
                 >
-                  Quick Demo Login
+                  <span class="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-pink-200/15">
+                    <component :is="role.icon" class="h-4 w-4 opacity-90" />
+                  </span>
+                  <span class="block text-xs font-medium leading-tight">{{ role.label }}</span>
                 </button>
               </div>
-            </form>
+            </div>
 
             <!-- Copyright -->
             <div class="mt-6 pt-6 border-t border-white/20">
@@ -235,7 +247,7 @@
             <button
               type="submit"
               :disabled="forgotPasswordLoading"
-              class="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="flex-1 py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span v-if="!forgotPasswordLoading">Send Reset Link</span>
               <span v-else class="flex items-center justify-center">
@@ -254,7 +266,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { Mail, Lock, Sun, Moon, X } from 'lucide-vue-next';
+import { Mail, Lock, Sun, Moon, X, ShieldCheck, GitBranch, GraduationCap, Users, UserRound, Calculator, BookOpen } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { Auth } from '~/api';
 import { homePathForRole } from '~/utils/home-path';
@@ -289,37 +301,54 @@ const redirectTo = computed(() => {
   return redirect && typeof redirect === 'string' ? decodeURIComponent(redirect) : null;
 });
 
-const isDark = ref(false);
+const { isDark, toggleTheme, initializeTheme } = useTheme();
 
 // Dynamic year for copyright
 const currentYear = computed(() => new Date().getFullYear());
 
-// Apply theme using Nuxt's useHead - called once outside toggle
-const applyTheme = () => {
-  useHead({
-    htmlAttrs: {
-      class: isDark.value ? 'dark' : ''
-    }
-  });
+const loginAudience = computed(() => {
+  const audience = route.query.audience;
+  return audience === 'parent' || audience === 'student' ? audience : null;
+});
+const loginTitle = computed(() =>
+  loginAudience.value === 'parent'
+    ? 'Parent login'
+    : loginAudience.value === 'student'
+      ? 'Student login'
+      : 'School ERP login'
+);
+const loginSubtitle = computed(() =>
+  loginAudience.value
+    ? `Use the ${loginAudience.value} account provided by your school.`
+    : 'Sign in with your school, parent, or student account.'
+);
+
+const loginRoles = [
+  { key: 'admin', label: 'School admin', description: 'Manage your school', icon: ShieldCheck },
+  { key: 'branch_admin', label: 'Branch admin', description: 'Manage a branch', icon: GitBranch },
+  { key: 'student', label: 'Student', description: 'Open student portal', icon: GraduationCap },
+  { key: 'parent', label: 'Parent', description: 'View linked children', icon: Users },
+  { key: 'teacher', label: 'Teacher', description: 'Classes and attendance', icon: UserRound },
+  { key: 'receptionist', label: 'Receptionist', description: 'Front office access', icon: UserRound },
+  { key: 'accountant', label: 'Accountant', description: 'Fees and finance', icon: Calculator },
+  { key: 'librarian', label: 'Librarian', description: 'Library operations', icon: BookOpen }
+];
+
+const selectLoginRole = role => {
+  const accountRole = role === 'branch_admin' ? 'branch' : role;
+  form.email = `demo.${accountRole}@schoolerp.local`;
+  form.password = 'Demo@12345';
+  form.rememberMe = false;
+  const query = { ...route.query };
+  if (role === 'student' || role === 'parent') query.audience = role;
+  else delete query.audience;
+  router.replace({ query });
+  error.value = '';
 };
 
-const toggleTheme = () => {
-  isDark.value = !isDark.value;
-
-  if (import.meta.client) {
-    // Use the same approach as theme.client.ts
-    if (isDark.value) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-
-    // Also update cookie for SSR consistency
-    const themeCookie = useCookie('theme');
-    themeCookie.value = isDark.value ? 'dark' : 'light';
-  }
+const handleDemoLogin = async role => {
+  selectLoginRole(role);
+  await handleLogin();
 };
 
 // Note: "Remember Me" is now handled by cookie expiry on the backend
@@ -442,17 +471,13 @@ const checkExistingAuth = async () => {
 
 // Use Nuxt 3's onMounted lifecycle hook for theme setup and auth check
 onMounted(() => {
-  // Don't override theme - let theme.client.ts handle it
-  // Just sync with existing DOM state
-  if (import.meta.client) {
-    isDark.value = document.documentElement.classList.contains('dark');
-  }
-
+  initializeTheme();
   // Run auth check after component is mounted
   checkExistingAuth();
 });
 
 const handleLogin = async () => {
+  console.log('handleLogin called', form);
   error.value = '';
   loading.value = true;
 
@@ -465,6 +490,7 @@ const handleLogin = async () => {
       },
       redirectTo.value || undefined
     );
+    console.log('Login result:', result);
     if (result.success) {
       // Login successful - let the useAuth composable handle navigation
       // No need to navigate here as useAuth will do it
@@ -479,13 +505,6 @@ const handleLogin = async () => {
   }
 };
 
-// Fill demo credentials for quick access
-const fillDemoCredentials = () => {
-  form.email = 'demo@gmail.com';
-  form.password = 'demo@123';
-  form.rememberMe = false;
-  error.value = ''; // Clear any existing errors
-};
 </script>
 
 <style scoped>

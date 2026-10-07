@@ -17,7 +17,7 @@
       <button
         @click="checkAllStatuses"
         :disabled="isChecking"
-        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
       >
         <svg
           v-if="isChecking"
@@ -86,7 +86,8 @@
           <p><strong>Status Types:</strong></p>
           <ul class="list-disc list-inside space-y-1 ml-4">
             <li>
-              <span class="text-blue-600 dark:text-blue-400">Trial:</span> Schools on trial plans
+              <span class="text-indigo-600 dark:text-indigo-400">Trial:</span> Schools on trial
+              plans
             </li>
             <li>
               <span class="text-green-600 dark:text-green-400">Active:</span> Schools with active

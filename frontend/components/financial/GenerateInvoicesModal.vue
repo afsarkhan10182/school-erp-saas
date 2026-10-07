@@ -12,33 +12,12 @@
             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Payment Model <span class="text-red-500">*</span>
             </label>
-            <div class="relative">
-              <select
-                v-model="form.payment_model"
-                required
-                @change="onPaymentModelChange"
-                class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-              >
-                <option value="">Select Payment Model</option>
-                <option value="installment">Installment Payments</option>
-                <option value="monthly">Monthly Payments</option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg
-                  class="h-5 w-5 text-gray-400 dark:text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
+            <EnhancedDropdown
+              v-model="form.payment_model"
+              :options="paymentModelOptions"
+              @update:model-value="onPaymentModelChange"
+              placeholder="Select Payment Model"
+            />
           </div>
 
           <!-- Fee Structure Selection (Primary Selection) -->
@@ -46,46 +25,12 @@
             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Fee Structure <span class="text-red-500">*</span>
             </label>
-            <div class="relative">
-              <select
-                v-model="form.fee_structure_id"
-                required
-                @change="onFeeStructureChange"
-                class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-              >
-                <option value="">Select Fee Structure</option>
-                <option
-                  v-for="structure in availableFeeStructures"
-                  :key="structure.id"
-                  :value="structure.id"
-                >
-                  {{ structure.feeType?.name }} -
-                  {{
-                    structure.applicable_classes && structure.applicable_classes.length > 0
-                      ? structure.applicable_classes.join(', ')
-                      : structure.class_name
-                  }}{{ structure.section ? ` (${structure.section})` : ''
-                  }}{{ structure.stream_names ? ` - ${structure.stream_names}` : '' }} ({{
-                    structure.academic_year
-                  }})
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg
-                  class="h-5 w-5 text-gray-400 dark:text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
+            <EnhancedDropdown
+              v-model="form.fee_structure_id"
+              :options="feeStructureOptions"
+              @update:model-value="onFeeStructureChange"
+              placeholder="Select Fee Structure"
+            />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               Fee structure contains all context: Branch, Class, Section, Academic Year, and Amount
             </p>
@@ -167,16 +112,12 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Students (Optional)
             </label>
-            <div class="relative">
-              <select
-                v-model="form.student_selection"
-                @change="onStudentSelectionChange"
-                class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-              >
-                <option value="all">All Students in Class</option>
-                <option value="specific">Select Specific Students</option>
-              </select>
-            </div>
+            <EnhancedDropdown
+              v-model="form.student_selection"
+              :options="studentSelectionOptions"
+              @update:model-value="onStudentSelectionChange"
+              placeholder="Select student scope"
+            />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               Leave as "All Students" to generate for entire class, or select specific students
             </p>
@@ -339,6 +280,7 @@ import { useAuthStore } from '~/stores/auth';
 import { Students } from '~/api';
 import { useToast } from '~/composables/useToast';
 import Modal from '~/components/ui/Modal.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const props = defineProps({
   show: {
@@ -420,6 +362,24 @@ const form = reactive({
   student_selection: 'all', // 'all' or 'specific'
   selected_student_ids: [] // For specific student selection
 });
+const paymentModelOptions = [
+  { value: '', label: 'Select Payment Model' },
+  { value: 'installment', label: 'Installment Payments' },
+  { value: 'monthly', label: 'Monthly Payments' }
+];
+const feeStructureOptions = computed(() => [
+  { value: '', label: 'Select Fee Structure' },
+  ...availableFeeStructures.value.map(structure => ({
+    value: structure.id,
+    label: `${structure.feeType?.name || 'Fee'} - ${
+      structure.applicable_classes?.length ? structure.applicable_classes.join(', ') : structure.class_name
+    }${structure.section ? ` (${structure.section})` : ''}${structure.stream_names ? ` - ${structure.stream_names}` : ''} (${structure.academic_year})`
+  }))
+]);
+const studentSelectionOptions = [
+  { value: 'all', label: 'All Students in Class' },
+  { value: 'specific', label: 'Select Specific Students' }
+];
 
 const months = ref([
   { value: 1, label: 'January' },

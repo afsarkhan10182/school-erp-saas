@@ -112,15 +112,24 @@
         />
       </template>
     </Modal>
+    <ConfirmDialog
+      :open="deleteDialog.open"
+      title="Delete subject"
+      message="Are you sure you want to delete this subject?"
+      confirm-label="Delete"
+      @confirm="confirmDeleteSubject"
+      @cancel="deleteDialog.open = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { Plus, BookOpen } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import SubjectForm from '~/components/forms/SubjectForm.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 // Props
 const props = defineProps({
@@ -153,6 +162,7 @@ const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const isEditing = ref(false);
 const editingSubject = ref(null);
+const deleteDialog = reactive({ open: false, id: '' });
 
 // Methods
 const getCategoryBadgeClass = category => {
@@ -175,12 +185,18 @@ const editSubject = subject => {
 };
 
 const deleteSubject = async subject => {
-  if (!confirm(`Are you sure you want to delete "${subject.name}"?`)) return;
+  deleteDialog.id = subject.id;
+  deleteDialog.open = true;
+};
 
+const confirmDeleteSubject = async () => {
   try {
-    emit('delete', subject.id);
+    emit('delete', deleteDialog.id);
   } catch (error) {
     showToast('Failed to delete subject', 'error');
+  } finally {
+    deleteDialog.open = false;
+    deleteDialog.id = '';
   }
 };
 

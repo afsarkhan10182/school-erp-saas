@@ -12,7 +12,7 @@ const {
   Stream,
   Branch,
   User,
-  SchoolOpsRecord,
+  DynamicEntityRecord,
   StudentPromotion,
   LibraryIssue,
   LibraryBook
@@ -101,7 +101,7 @@ const applyAdmissionExtras = async (studentData, customFieldValues, schoolId) =>
     delete studentData[key];
   });
 
-  const fields = await SchoolOpsRecord.findAll({
+  const fields = await DynamicEntityRecord.findAll({
     where: { school_id: schoolId, entity_type: 'custom_field', status: 'active' }
   });
   const activeFields = fields
