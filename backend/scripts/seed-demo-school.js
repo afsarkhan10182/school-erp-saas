@@ -245,7 +245,7 @@ async function run() {
       subjects[code] = await Subject.create({ name, code, category, class_id: classOne.id, school_id: school.id, branch_id: branch.id, created_by: users.admin.id }, { transaction });
     }
     const riversideClass = await Class.create({ name: 'Class 2', code: 'C2-SECOND', numeric_value: 2, capacity: 30, school_id: school.id, branch_id: branchTwo.id, created_by: users.admin.id }, { transaction });
-    await Section.create({ name: 'A', capacity: 30, class_id: riversideClass.id, school_id: school.id, branch_id: branchTwo.id, created_by: users.admin.id }, { transaction });
+    const secondSection = await Section.create({ name: 'A', capacity: 30, class_id: riversideClass.id, school_id: school.id, branch_id: branchTwo.id, created_by: users.admin.id }, { transaction });
     await Subject.create({ name: 'English', code: 'ENG-SECOND', category: 'language', class_id: riversideClass.id, school_id: school.id, branch_id: branchTwo.id, created_by: users.admin.id }, { transaction });
     const studentCategory = await StudentCategory.create({ name: 'Demo General', description: 'Default demo student category', school_id: school.id, branch_id: branch.id, created_by: users.admin.id }, { transaction });
     await Stream.create({ name: 'Science', code: 'SCI', description: 'Demo science stream', school_id: school.id, branch_id: branch.id, class_id: classOne.id, created_by: users.admin.id }, { transaction });
@@ -267,6 +267,14 @@ async function run() {
       city: school.city, state: school.state, postal_code: school.postal_code, admission_class: 'Class 1',
       current_class: 'Class 1', section: 'A', class_id: classOne.id, section_id: section.id,
       academic_year: year.code, school_id: school.id, branch_id: branch.id, created_by: users.admin.id, category_id: studentCategory.id
+    }, { transaction });
+    await Student.create({
+      admission_number: 'DEMO-SECOND-001', roll_number: '1', first_name: 'Riya', last_name: 'Demo',
+      date_of_birth: '2017-11-03', gender: 'female', nationality: 'Indian', address: school.address,
+      city: school.city, state: school.state, postal_code: school.postal_code, admission_class: 'Class 2',
+      current_class: 'Class 2', section: 'A', class_id: riversideClass.id, section_id: secondSection.id,
+      academic_year: year.code, school_id: school.id, branch_id: branchTwo.id,
+      created_by: users.admin.id
     }, { transaction });
     const parent = await Parent.create({
       guardian_name: 'Demo Parent', guardian_phone: '+91 90000 00002', guardian_email: users.parent.email,
