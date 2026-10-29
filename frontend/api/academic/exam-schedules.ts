@@ -4,7 +4,8 @@ export interface ExamSchedule {
   id: string;
   exam_id: string;
   class_id: string;
-  section_id?: string;
+  section_id?: string | null;
+  subject_id?: string | null;
   hall_id: string;
   exam_date: string;
   start_time: string;
@@ -16,7 +17,7 @@ export interface ExamSchedule {
   assignment_marks?: number;
   total_marks?: number;
   pass_marks?: number;
-  status: 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | 'rescheduled';
   school_id: string;
   branch_id: string;
   created_by?: string;

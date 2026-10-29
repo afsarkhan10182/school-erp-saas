@@ -194,19 +194,6 @@ class ExamController {
   });
 
   /**
-   * Export exam results
-   */
-  static exportExamResults = asyncHandler(async (req, res) => {
-    const { id: examId } = req.params;
-    const { format = 'json' } = req.query;
-
-    const result = await ExamService.exportExamResults(examId, req.user, format);
-
-    // For now, return JSON data - PDF/Excel generation can be added later
-    success(res, result, 'Exam results exported successfully');
-  });
-
-  /**
    * Calculate grade based on percentage
    */
   static calculateGrade = asyncHandler(async (req, res) => {
@@ -250,7 +237,11 @@ class ExamController {
       studentId,
       currentAcademicYear,
       exam_types,
-      { autoPrint: auto_print === 'true' }
+      {
+        autoPrint: auto_print === 'true',
+        schoolId: req.schoolId,
+        branchId: req.branchId
+      }
     );
 
     // Generate report card in requested format
@@ -258,7 +249,11 @@ class ExamController {
       studentId,
       currentAcademicYear,
       format,
-      { autoPrint: auto_print === 'true' }
+      {
+        autoPrint: auto_print === 'true',
+        schoolId: req.schoolId,
+        branchId: req.branchId
+      }
     );
 
     const fileName = `report-card-${reportCardData.student.admission_number}-${currentAcademicYear}`;
@@ -266,6 +261,10 @@ class ExamController {
     if (format === 'json') {
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}.json"`);
+      res.send(reportCardContent);
+    } else if (format === 'pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}.pdf"`);
       res.send(reportCardContent);
     } else {
       res.setHeader('Content-Type', 'text/html');

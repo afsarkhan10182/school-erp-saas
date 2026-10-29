@@ -11,6 +11,8 @@
       <div>
         <button
           @click="openCreateModal"
+          :disabled="requiresBranchSelection"
+          :class="{ 'cursor-not-allowed opacity-50': requiresBranchSelection }"
           class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
         >
           <Plus class="w-4 h-4" />
@@ -18,6 +20,14 @@
         </button>
       </div>
     </div>
+
+    <p
+      v-if="requiresBranchSelection"
+      role="status"
+      class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-200"
+    >
+      All Branches is read-only for class creation. Select a branch in the global selector to add a class.
+    </p>
 
     <!-- Classes List -->
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
@@ -289,7 +299,7 @@ import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 const authStore = useAuthStore();
 const deleteDialog = reactive({ open: false, id: '' });
-const { currentBranch, currentSchool, selectedBranchId, branchScopeParams } = useGlobalBranch();
+const { currentBranch, currentSchool, selectedBranchId, effectiveBranchId, branchScopeParams } = useGlobalBranch();
 const { isStreamsEnabled } = useAcademicSettings();
 const { showError, showWarning, showSuccess } = useToast();
 const { classes, fetchClasses } = useAcademics();
@@ -308,6 +318,9 @@ const pagination = reactive({
 });
 
 const { user, isSuperAdmin, isAdmin } = useAuth();
+const requiresBranchSelection = computed(() =>
+  ['admin', 'super_admin'].includes(user.value?.role) && !effectiveBranchId.value
+);
 
 // School/Branch selection for super admin
 
@@ -356,6 +369,7 @@ const changeLimit = async newLimit => {
 const loadClasses = async () => {
   try {
     const options = {
+      schoolId: currentSchool.value?.id || user.value?.school_id,
       sort_by: 'sort_order',
       sort_order: 'ASC',
       page: pagination.page,
@@ -381,6 +395,7 @@ const loadClasses = async () => {
 };
 
 const openCreateModal = () => {
+  if (requiresBranchSelection.value) return;
   resetForm();
   isEditing.value = false;
   editingId.value = null;
@@ -411,6 +426,7 @@ const closeModal = () => {
 };
 
 const saveClass = async () => {
+  if (!isEditing.value && requiresBranchSelection.value) return;
   isSubmitting.value = true;
   try {
     const payload = {
@@ -424,7 +440,7 @@ const saveClass = async () => {
     // Add school_id and branch_id when creating a new class
     if (!isEditing.value) {
       payload.school_id = currentSchool.value?.id || user.value?.school_id;
-      payload.branch_id = selectedBranchId.value || user.value?.branch_id;
+      payload.branch_id = effectiveBranchId.value;
     }
 
     if (isEditing.value) {
@@ -487,7 +503,8 @@ onMounted(async () => {
 });
 
 // Watch global branch selection and reload classes
-watch(selectedBranchId, async () => {
+watch([selectedBranchId, effectiveBranchId, currentSchool], async () => {
+  if (showModal.value) closeModal();
   pagination.page = 1;
   await loadClasses();
 });

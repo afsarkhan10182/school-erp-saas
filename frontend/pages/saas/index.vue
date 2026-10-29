@@ -1,17 +1,17 @@
 <template>
-  <div class="container mx-auto py-8">
+  <div class="container mx-auto py-6 sm:py-8">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <div>
+    <div class="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">SaaS Dashboard</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">
           Overview of school subscriptions and platform metrics
         </p>
       </div>
-      <div class="flex gap-3">
-        <NuxtLink to="/saas/plans" class="btn-secondary"> Manage Plans </NuxtLink>
-        <NuxtLink to="/saas/renewal-requests" class="btn-secondary"> Renewal Requests </NuxtLink>
-        <NuxtLink to="/saas/schools/create" class="btn-primary"> Add School </NuxtLink>
+      <div class="flex w-full flex-wrap gap-3 sm:w-auto">
+        <NuxtLink to="/saas/plans" class="btn-secondary whitespace-nowrap"> Manage Plans </NuxtLink>
+        <NuxtLink to="/saas/renewal-requests" class="btn-secondary whitespace-nowrap"> Renewal Requests </NuxtLink>
+        <NuxtLink to="/saas/schools/create" class="btn-primary whitespace-nowrap"> Add School </NuxtLink>
       </div>
     </div>
 
@@ -40,12 +40,138 @@
       </div>
     </div>
 
+    <!-- Platform Overview Metrics -->
+    <div v-if="user?.role === 'super_admin'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Schools</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ overviewReport?.totalSchools ?? '...' }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <span class="text-emerald-600 font-semibold">{{ overviewReport?.activeSchools ?? 0 }} active</span> · {{ overviewReport?.trialSchools ?? 0 }} trial
+            </p>
+          </div>
+          <div class="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400">
+            <Building2 class="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Branches</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ overviewReport?.totalBranches ?? '...' }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Across all school tenants</p>
+          </div>
+          <div class="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl text-purple-600 dark:text-purple-400">
+            <Layers class="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Platform Users</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ overviewReport?.totalUsers ?? '...' }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Admins, teachers, parents, students</p>
+          </div>
+          <div class="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
+            <Users class="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Expiring Trials</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ (overviewReport?.expiringTrials || []).length }}</h3>
+            <p class="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">Need renewal or upgrade</p>
+          </div>
+          <div class="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-xl text-amber-600 dark:text-amber-400">
+            <AlertTriangle class="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Subscription Revenue (Month)</p>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mt-1 break-words">{{ formatSubscriptionRevenue(overviewReport?.subscriptionRevenueByCurrency) }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed platform payments</p>
+          </div>
+          <div class="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400">
+            <CreditCard class="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discoverable shortcuts to existing platform workflows -->
+    <section v-if="user?.role === 'super_admin'" class="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Platform tools</h2>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Find a workspace or jump to a common platform task.</p>
+        </div>
+        <label class="relative block w-full sm:max-w-xs">
+          <span class="sr-only">Search platform tools</span>
+          <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input v-model="toolSearch" type="search" aria-label="Search platform tools" placeholder="Search platform tools..." class="form-input w-full pl-9" />
+        </label>
+      </div>
+      <div v-if="filteredPlatformTools.length" class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <NuxtLink
+          v-for="tool in filteredPlatformTools"
+          :key="tool.to"
+          :to="tool.to"
+          class="group flex items-start gap-3 rounded-xl border border-gray-200 p-4 transition hover:border-indigo-300 hover:bg-indigo-50/60 dark:border-gray-700 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/20"
+        >
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">
+            <component :is="tool.icon" class="h-5 w-5" />
+          </span>
+          <span class="min-w-0">
+            <span class="block text-sm font-semibold text-gray-900 group-hover:text-indigo-700 dark:text-white dark:group-hover:text-indigo-300">{{ tool.title }}</span>
+            <span class="mt-1 block text-xs leading-5 text-gray-500 dark:text-gray-400">{{ tool.description }}</span>
+          </span>
+          <ArrowRight class="ml-auto mt-1 h-4 w-4 shrink-0 text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-indigo-600" />
+        </NuxtLink>
+      </div>
+      <p v-else class="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-gray-500 dark:bg-gray-900/40 dark:text-gray-400">No platform tools match “{{ toolSearch }}”.</p>
+    </section>
+
+    <!-- Quick School Audit Switcher Bar -->
+    <div
+      v-if="user?.role === 'super_admin'"
+      class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-4 dark:border-indigo-900/40 dark:from-indigo-950/20 dark:to-purple-950/20"
+    >
+      <div class="flex items-center gap-3">
+        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm">
+          <ShieldCheck class="h-5 w-5" />
+        </div>
+        <div>
+          <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Cross-Tenant School Inspection</h4>
+          <p class="text-xs text-gray-600 dark:text-gray-400">View real-time operational attendance, fees, exams, and student records inside school tenants.</p>
+        </div>
+      </div>
+      <NuxtLink
+        to="/dashboard"
+        class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-xs font-semibold text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-indigo-50 dark:bg-gray-800 dark:text-indigo-300 dark:ring-indigo-800"
+      >
+        <span>Open School Operations</span>
+        <ArrowRight class="h-3.5 w-3.5" />
+      </NuxtLink>
+    </div>
+
     <!-- Filters -->
     <div
       v-if="user?.role === 'super_admin'"
       class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6"
     >
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >Search</label
@@ -62,9 +188,11 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >Status</label
           >
-          <select v-model="filters.status" @change="fetchSchools" class="form-select">
+          <select v-model="filters.status" @change="applySchoolFilters" class="form-select">
             <option value="">All Status</option>
             <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="expiring">Expiring within 30 days</option>
             <option value="trial">Trial</option>
             <option value="suspended">Suspended</option>
             <option value="expired">Expired</option>
@@ -74,11 +202,31 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >Plan</label
           >
-          <select v-model="filters.subscription_plan" @change="fetchSchools" class="form-select">
+          <select v-model="filters.subscription_plan" @change="applySchoolFilters" class="form-select">
             <option value="">All Plans</option>
             <option v-for="plan in plans" :key="plan.code" :value="plan.code">
               {{ plan.name }}
             </option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Registered</label>
+          <select v-model="filters.registered_period" @change="applySchoolFilters" class="form-select">
+            <option value="">Any time</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="90d">Last 90 days</option>
+            <option value="365d">Last year</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sort</label>
+          <select v-model="filters.sort" @change="applySchoolFilters" class="form-select">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="name_asc">Name A–Z</option>
+            <option value="name_desc">Name Z–A</option>
+            <option value="expiry_soonest">Expiry soonest</option>
           </select>
         </div>
         <div class="flex items-end">
@@ -115,7 +263,15 @@
 
       <!-- Schools Table -->
       <div v-else>
-        <div class="overflow-x-auto">
+        <p class="mb-2 text-xs text-gray-500 dark:text-gray-400 sm:hidden">
+          Swipe the table horizontally to review every school field and its actions.
+        </p>
+        <div
+          class="overflow-x-auto"
+          role="region"
+          aria-label="School directory table"
+          tabindex="0"
+        >
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -186,8 +342,8 @@
                       ₹{{ school.plan_details.price }}/{{ school.plan_details.billing_cycle }}
                     </div>
                     <div class="text-xs text-gray-400 dark:text-gray-500">
-                      {{ school.plan_details.max_students }} students,
-                      {{ school.plan_details.max_branches }} branches
+                      {{ school.plan_details.max_students < 0 ? 'Unlimited' : school.plan_details.max_students }} students,
+                      {{ school.plan_details.max_branches < 0 ? 'Unlimited' : school.plan_details.max_branches }} branches
                     </div>
                   </div>
                   <div v-else class="text-sm text-gray-500 dark:text-gray-400">
@@ -249,6 +405,14 @@
                 <!-- Actions -->
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div class="flex space-x-2">
+                    <button
+                      type="button"
+                      @click="inspectSchool(school)"
+                      class="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 font-semibold"
+                      title="Inspect school operations, students, and finances"
+                    >
+                      Inspect Operations
+                    </button>
                     <NuxtLink
                       :to="`/saas/schools/${school.id}`"
                       class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300"
@@ -324,13 +488,23 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
+import { Building2, Users, AlertTriangle, ArrowRight, Layers, ShieldCheck, Search, CreditCard, ClipboardList, GitBranch, Settings, Plus } from 'lucide-vue-next';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
+import { Dashboard } from '~/api/shared/dashboard';
 import Pagination from '~/components/ui/Pagination.vue';
 
 const { isSuperAdmin, user } = useAuth();
+const { switchSchool } = useGlobalBranch();
+const router = useRouter();
 const { showError } = useToast();
+
+const inspectSchool = async school => {
+  switchSchool({ id: school.id, name: school.name });
+  await router.push('/dashboard');
+};
 
 // Access control - only Super Admin can access subscriptions
 
@@ -349,11 +523,29 @@ const filters = ref({
   search: '',
   status: '',
   subscription_plan: '',
+  registered_period: '',
+  sort: 'newest',
   page: 1,
   limit: 10
 });
 
 const pagination = ref(null);
+const toolSearch = ref('');
+const platformTools = [
+  { title: 'Schools Directory', description: 'Search tenants and manage school subscriptions.', to: '/saas', icon: Building2 },
+  { title: 'Subscription Plans', description: 'Review and configure plans and module limits.', to: '/saas/plans', icon: CreditCard },
+  { title: 'Renewal Requests', description: 'Review schools requesting a subscription renewal.', to: '/saas/renewal-requests', icon: ClipboardList },
+  { title: 'Add School', description: 'Onboard a new school tenant.', to: '/saas/schools/create', icon: Plus },
+  { title: 'Branches Directory', description: 'Review branch records across school tenants.', to: '/branches', icon: GitBranch },
+  { title: 'Bulk Operations', description: 'Open platform-level administrative operations.', to: '/saas/admin', icon: Layers },
+  { title: 'Platform Configuration', description: 'Manage shared platform settings.', to: '/admin/config', icon: Settings }
+];
+const filteredPlatformTools = computed(() => {
+  const query = toolSearch.value.trim().toLowerCase();
+  return query
+    ? platformTools.filter(tool => `${tool.title} ${tool.description}`.toLowerCase().includes(query))
+    : platformTools;
+});
 
 // VueUse debounced search
 const debouncedSearch = useDebounceFn(() => {
@@ -367,6 +559,11 @@ const fetchSchools = async () => {
   if (result) {
     pagination.value = result.pagination;
   }
+};
+
+const applySchoolFilters = () => {
+  filters.value.page = 1;
+  fetchSchools();
 };
 
 // Fetch plans for filter dropdown
@@ -394,6 +591,8 @@ const clearFilters = () => {
     search: '',
     status: '',
     subscription_plan: '',
+    registered_period: '',
+    sort: 'newest',
     page: 1,
     limit: 10
   };
@@ -485,6 +684,31 @@ const reactivateSchoolAction = async schoolId => {
   }
 };
 
+const overviewReport = ref(null);
+const loadingOverview = ref(false);
+
+const formatSubscriptionRevenue = rows => {
+  if (!rows?.length) return '—';
+  return rows
+    .map(({ currency, amount }) => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount) || 0))
+    .join(' · ');
+};
+
+const fetchOverview = async () => {
+  if (user.value?.role !== 'super_admin') return;
+  try {
+    loadingOverview.value = true;
+    const res = await Dashboard.getOverviewReport();
+    if (res && res.success) {
+      overviewReport.value = res.data;
+    }
+  } catch (err) {
+    console.error('Failed to fetch SaaS overview report:', err);
+  } finally {
+    loadingOverview.value = false;
+  }
+};
+
 // Watch for user role changes and load data
 watch(
   () => user.value?.role,
@@ -492,6 +716,7 @@ watch(
     if (role === 'super_admin') {
       fetchSchools();
       fetchPlansData();
+      fetchOverview();
     } else if (role && role !== 'super_admin') {
       showError('Access denied. Only Super Admin can manage subscriptions.');
       navigateTo('/dashboard');
@@ -505,6 +730,7 @@ onMounted(() => {
   if (user.value?.role === 'super_admin') {
     fetchSchools();
     fetchPlansData();
+    fetchOverview();
   }
 });
 </script>

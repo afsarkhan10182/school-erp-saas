@@ -9,17 +9,23 @@
         <div class="mt-4 sm:mt-0">
           <button
             @click="$router.push('/exams/schedules/create')"
+            :disabled="!effectiveBranchId"
+            :title="effectiveBranchId ? 'Create an exam schedule' : 'Select a branch first'"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            :class="{ 'cursor-not-allowed opacity-50': !effectiveBranchId }"
           >
             <Plus class="h-4 w-4 mr-2" />
             Create Schedule
           </button>
         </div>
       </div>
+      <p v-if="!effectiveBranchId" class="-mt-4 mb-6 text-sm text-amber-700 dark:text-amber-300">
+        Select a branch from the global selector before creating a schedule.
+      </p>
 
-      <!-- Select Ground Section -->
+      <!-- Schedule filters -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select Ground</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select filters</h2>
         <div class="flex items-end gap-4">
           <!-- Class Selection -->
           <div class="flex-1">
@@ -31,7 +37,7 @@
               :options="filteredClassOptions"
               placeholder="Select class"
               :loading="classesLoading"
-              :disabled="!selectedBranchId"
+              :disabled="classesLoading || filteredClassOptions.length === 0"
               @change="onClassChange"
             />
           </div>
@@ -390,10 +396,17 @@ import { examScheduleApi } from '~/api/academic/exam-schedules';
 const router = useRouter();
 const { showToast } = useToast();
 const { user } = useAuth();
-const { selectedBranchId } = useGlobalBranch();
-const { classes, classOptions, sectionOptions, sectionsLoading, fetchClasses, fetchSections } =
-  useAcademics();
-const { exams, examOptions, examsLoading, loadExams } = useExams();
+const { selectedBranchId, effectiveBranchId, currentSchool, isSuperAdmin } = useGlobalBranch();
+const {
+  classes,
+  classOptions,
+  sectionOptions,
+  sectionsLoading,
+  loading: classesLoading,
+  fetchClasses,
+  fetchSections
+} = useAcademics();
+const { exams, loadExams } = useExams();
 
 // Reactive data
 const loading = ref(false);
@@ -408,20 +421,31 @@ const selectedSectionId = ref('');
 const filterApplied = ref(false);
 const searchQuery = ref('');
 
-watch(selectedBranchId, async newBranchId => {
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  schedules.value = [];
-  filterApplied.value = false;
-  if (newBranchId) {
+const schoolId = computed(() =>
+  isSuperAdmin.value ? currentSchool.value?.id : user.value?.school_id
+);
+
+watch(
+  [selectedBranchId, schoolId],
+  async ([newBranchId, newSchoolId]) => {
+    selectedClassId.value = '';
+    selectedSectionId.value = '';
+    schedules.value = [];
+    filterApplied.value = false;
+    if (!newSchoolId) {
+      classes.value = [];
+      exams.value = [];
+      return;
+    }
+
+    const scope = { school_id: newSchoolId, ...(newBranchId && { branch_id: newBranchId }) };
     await Promise.all([
-      loadExams({ branch_id: newBranchId }),
-      fetchClasses({ branchId: newBranchId })
+      loadExams(scope),
+      fetchClasses({ schoolId: newSchoolId, branchId: newBranchId || undefined })
     ]);
-  } else {
-    await Promise.all([loadExams(), fetchClasses()]);
-  }
-});
+  },
+  { immediate: true }
+);
 
 // Pagination
 const currentPage = ref(1);
@@ -435,24 +459,18 @@ const rowsPerPageOptions = [
 
 // Computed properties
 const showSectionField = computed(() => {
-  const selectedClass = classes.value.find(cls => cls.id === selectedClassId.value);
-  return selectedClass?.has_sections || false;
+  return sectionOptions.value.some(section => section.class_id === selectedClassId.value);
 });
 
-const classesLoading = computed(() => false);
-
-// Check if branch dropdown should be shown
-
-// Get resolved branch ID (selected or default)
-
-// Filter classes based on selected branch
 const filteredClassOptions = computed(() => {
-  if (!selectedBranchId.value) {
-    return [];
-  }
-  return classOptions.value.filter(
-    classOption => !classOption.branch_id || classOption.branch_id === selectedBranchId.value
-  );
+  return classOptions.value.map(option => {
+    if (selectedBranchId.value) return option;
+    const classItem = classes.value.find(item => item.id === option.value);
+    return {
+      ...option,
+      label: `${option.label} (${classItem?.branch?.name || 'Branch'})`
+    };
+  });
 });
 
 const canApplyFilter = computed(() => {
@@ -516,10 +534,9 @@ const totalPages = computed(() => {
 const loadSchedules = async () => {
   try {
     loading.value = true;
-    const branchId = selectedBranchId.value || user.value.branch_id;
     const response = await examScheduleApi.getAll({
-      school_id: user.value.school_id,
-      branch_id: branchId,
+      school_id: schoolId.value,
+      ...(selectedBranchId.value && { branch_id: selectedBranchId.value }),
       class_id: selectedClassId.value || undefined,
       section_id: selectedSectionId.value || undefined
     });
@@ -546,28 +563,15 @@ const loadSchedules = async () => {
   }
 };
 
-const onBranchChange = async () => {
-  // Reset class and section when branch changes
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  filterApplied.value = false;
-  schedules.value = [];
-
-  if (selectedBranchId.value) {
-    // Load classes for the selected branch
-    await fetchClasses({ branchId: selectedBranchId.value });
-    // Load exams for the selected branch
-    await loadExams({ branch_id: selectedBranchId.value });
-  }
-};
-
 const onClassChange = async () => {
   selectedSectionId.value = '';
   if (selectedClassId.value) {
     const selectedClass = classes.value.find(cls => cls.id === selectedClassId.value);
-    if (selectedClass?.has_sections) {
-      await fetchSections({ classId: selectedClassId.value });
-    }
+    await fetchSections({
+      schoolId: schoolId.value,
+      branchId: selectedBranchId.value || selectedClass?.branch_id || selectedClass?.branch?.id,
+      classId: selectedClassId.value
+    });
   }
 };
 
@@ -618,9 +622,11 @@ const editScheduleGroup = examGroup => {
     query.section_id = examGroup.sectionId;
   }
 
-  if (selectedBranchId.value) {
-    query.branch_id = selectedBranchId.value;
-  }
+  const classItem = classes.value.find(item => item.id === examGroup.classId);
+  const classBranchId = classItem?.branch_id || classItem?.branch?.id;
+  const branchId = selectedBranchId.value || classBranchId;
+  if (branchId) query.branch_id = branchId;
+  if (schoolId.value) query.school_id = schoolId.value;
 
   // Navigate to create page with query params
   router.push({
@@ -678,16 +684,6 @@ const formatTime = time => {
   }
 };
 
-// Load initial data
-onMounted(async () => {
-  if (!user.value?.school_id) {
-    showToast('School ID is required', 'error');
-    return;
-  }
-
-  const branchId = selectedBranchId.value || user.value.branch_id;
-  await Promise.all([loadExams({ branch_id: branchId }), fetchClasses({ branchId: branchId })]);
-});
 </script>
 
 <style scoped>

@@ -1,8 +1,23 @@
 const {
   Student,
+  StudentImportBatch,
+  StudentImportBatchRow,
   StudentCategory,
   Parent,
   StudentParent,
+  ParentTeacherMeetingStudent,
+  GatePass,
+  AttendanceRecord,
+  AttendanceSession,
+  ExamPosition,
+  ExamResult,
+  HomeworkSubmission,
+  LibraryIssue,
+  OnlineExamAttempt,
+  StudentPromotion,
+  HostelAllocation,
+  StudentTransport,
+  Alumni,
   FeeStructure,
   FeeInvoice,
   FeeType,
@@ -13,17 +28,33 @@ const {
   Branch,
   User,
   DynamicEntityRecord,
-  StudentPromotion,
-  LibraryIssue,
-  LibraryBook
+  FeePayment,
+  LibraryBook,
+  Exam,
+  ExamSchedule,
+  GradingSystem,
+  GradeScale
 } = require('~/models');
-const { Op } = require('sequelize');
+const { Op, Transaction } = require('sequelize');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
 const { sequelize } = require('~/config/database');
+const getStudentInvoiceTotals = require('~/utils/financial/studentInvoiceTotals');
 const Papa = require('papaparse');
+const {
+  inspectStudentImport,
+  mapStudentImportRows,
+  STUDENT_IMPORT_FIELDS
+} = require('~/utils/academic/studentImportParser');
 const { sanitizeEnumFields } = require('~/utils/academic/studentUtils');
 const { getCurrentAcademicYearForSchool } = require('~/utils/academic/academicYearUtils');
+const getExamPassStatus = require('~/utils/academic/examPassStatus');
+const {
+  appendStudentCondition,
+  applyEnrollmentFilter,
+  applySiblingFilter
+} = require('~/utils/academic/studentFilters');
+const { getTeacherStudentWhere } = require('~/utils/academic/teacherStudentScope');
 const fs = require('fs').promises;
 const { resolveUploadsPath } = require('~/utils/shared/pathHelper');
 const {
@@ -55,6 +86,91 @@ const resolveStudentBranch = async (schoolId, branchId) => {
   throw new ApiError(400, 'Branch ID is required');
 };
 
+const getAssignedBranchId = req => {
+  if (req.user.role === 'branch_admin' && !req.user.branch_id) {
+    throw new ApiError(403, 'Branch assignment is required');
+  }
+  return req.user.role === 'branch_admin' ? req.user.branch_id : null;
+};
+
+const resolveStudentAcademicPlacement = async (data, schoolId, branchId) => {
+  const classId = data._class_id || data.class_id;
+  const streamId = data._stream_id || data.stream_id;
+  const sectionId = data._section_id || data.section_id;
+  const hasAcademicYearId = Boolean(data._academic_year_id || data.academic_year_id);
+  if (classId) {
+    const classRecord = await Class.findOne({
+      where: { id: classId, school_id: schoolId, branch_id: branchId, is_active: true }
+    });
+    if (!classRecord) throw new ApiError(400, 'Class must belong to this school and branch');
+    data.class_id = classRecord.id;
+    data.admission_class = classRecord.name;
+    data.current_class = classRecord.name;
+  } else if (sectionId || streamId) {
+    throw new ApiError(400, 'A valid class is required for section or stream placement');
+  }
+
+  if (streamId) {
+    const streamRecord = await Stream.findOne({
+      where: {
+        id: streamId,
+        class_id: classId,
+        school_id: schoolId,
+        branch_id: branchId,
+        is_active: true
+      }
+    });
+    if (!streamRecord)
+      throw new ApiError(400, 'Stream must belong to the selected class and branch');
+    data.stream_id = streamRecord.id;
+    data.stream = streamRecord.name;
+  }
+
+  if (sectionId) {
+    const sectionRecord = await Section.findOne({
+      where: {
+        id: sectionId,
+        class_id: classId,
+        stream_id: streamId || null,
+        school_id: schoolId,
+        branch_id: branchId,
+        is_active: true
+      }
+    });
+    if (!sectionRecord)
+      throw new ApiError(400, 'Section must belong to the selected class and branch');
+    data.section_id = sectionRecord.id;
+    data.section = sectionRecord.name;
+  }
+
+  if (data._academic_year_id) {
+    const year = await AcademicYear.findByPk(data._academic_year_id);
+    if (!year) throw new ApiError(400, 'Academic year not found');
+    data.academic_year = year.name;
+  }
+
+  delete data._class_id;
+  delete data._section_id;
+  delete data._stream_id;
+  delete data._academic_year_id;
+  delete data.academic_year_id;
+  delete data.user_id;
+  if (!classId) {
+    delete data.class_id;
+    delete data.admission_class;
+    delete data.current_class;
+  }
+  if (!sectionId) {
+    delete data.section_id;
+    delete data.section;
+  }
+  if (!streamId) {
+    delete data.stream_id;
+    delete data.stream;
+  }
+  return hasAcademicYearId;
+};
+
 const setCategoryId = async (data, req) => {
   const categoryId = data.category_id;
   if (!categoryId) {
@@ -65,14 +181,27 @@ const setCategoryId = async (data, req) => {
   const category = await StudentCategory.findOne({
     where: {
       id: categoryId,
-      school_id: req.user.role === 'super_admin' ? (req.schoolId || data.school_id) : req.schoolId,
-      ...(req.user.role === 'branch_admin' && req.user.branch_id ? { branch_id: req.user.branch_id } : {})
+      school_id: req.user.role === 'super_admin' ? req.schoolId || data.school_id : req.schoolId,
+      ...(req.user.role === 'branch_admin' && req.user.branch_id
+        ? { branch_id: req.user.branch_id }
+        : {})
     }
   });
   if (!category) throw new ApiError(400, 'Invalid student category');
 
   data.category_id = category.id;
   data.category = 'other';
+};
+
+const extractAcademicPlacement = (source, academicUpdates) => {
+  const nestedStudent = source.student && typeof source.student === 'object' ? source.student : {};
+  for (const field of ['class_id', 'section_id', 'stream_id', 'academic_year_id']) {
+    if (Object.prototype.hasOwnProperty.call(source, field)) {
+      academicUpdates[`_${field}`] = source[field];
+    } else if (Object.prototype.hasOwnProperty.call(nestedStudent, field)) {
+      academicUpdates[`_${field}`] = nestedStudent[field];
+    }
+  }
 };
 
 const ADMISSION_EXTRA_KEYS = [
@@ -83,6 +212,11 @@ const ADMISSION_EXTRA_KEYS = [
   'previous_school_name',
   'previous_school_qualification',
   'previous_school_remarks',
+  'house',
+  'pen',
+  'apaar_id',
+  'sr_no',
+  'previous_software_id',
   'transport_route_id',
   'transport_route',
   'transport_vehicle_id',
@@ -92,9 +226,10 @@ const ADMISSION_EXTRA_KEYS = [
 ];
 
 const applyAdmissionExtras = async (studentData, customFieldValues, schoolId) => {
-  const documents = studentData.documents && typeof studentData.documents === 'object'
-    ? { ...studentData.documents }
-    : {};
+  const documents =
+    studentData.documents && typeof studentData.documents === 'object'
+      ? { ...studentData.documents }
+      : {};
   documents.admission_extras = { ...(documents.admission_extras || {}) };
   ADMISSION_EXTRA_KEYS.forEach(key => {
     if (studentData[key] !== undefined) documents.admission_extras[key] = studentData[key] || null;
@@ -126,6 +261,18 @@ const applyAdmissionExtras = async (studentData, customFieldValues, schoolId) =>
     }, {})
   };
   studentData.documents = documents;
+};
+
+const getTeacherStudentScope = async (req, academicYear) => {
+  const year = academicYear || (await getCurrentAcademicYearForSchool(req.schoolId))?.code;
+  return {
+    year,
+    where: await getTeacherStudentWhere({
+      teacherId: req.user.id,
+      schoolId: req.schoolId,
+      academicYear: year
+    })
+  };
 };
 
 const handleEnumValidationError = error => {
@@ -224,6 +371,15 @@ const createStudent = async (req, res, next) => {
         if (req.body.stream_id) studentData._stream_id = req.body.stream_id;
       }
 
+      if (!studentData._class_id && studentData.class_id)
+        studentData._class_id = studentData.class_id;
+      if (!studentData._section_id && studentData.section_id)
+        studentData._section_id = studentData.section_id;
+      if (!studentData._stream_id && studentData.stream_id)
+        studentData._stream_id = studentData.stream_id;
+      if (!studentData._academic_year_id && studentData.academic_year_id)
+        studentData._academic_year_id = studentData.academic_year_id;
+
       // Ensure critical fields are properly extracted from nested structure
       if (req.body.student && req.body.student.gender) {
         studentData.gender = req.body.student.gender;
@@ -266,6 +422,11 @@ const createStudent = async (req, res, next) => {
 
     branch_id = await resolveStudentBranch(school_id, branch_id);
     await applyAdmissionExtras(studentData, customFieldValues, school_id);
+    const hasAcademicYearId = await resolveStudentAcademicPlacement(
+      studentData,
+      school_id,
+      branch_id
+    );
 
     // Check if student already exists
     const existingStudent = await Student.findOne({
@@ -324,62 +485,8 @@ const createStudent = async (req, res, next) => {
       }
     }
 
-    // Get class and section names from IDs if provided
-    if (studentData._class_id) {
-      try {
-        const classRecord = await Class.findByPk(studentData._class_id);
-        if (classRecord) {
-          studentData.admission_class = classRecord.name;
-          studentData.current_class = classRecord.name;
-          studentData.class_id = studentData._class_id; // Set the actual class_id
-        }
-      } catch (error) {
-        console.error('❌ Error fetching class:', error);
-      }
-      delete studentData._class_id;
-    }
-
-    if (studentData._section_id) {
-      try {
-        const sectionRecord = await Section.findByPk(studentData._section_id);
-        if (sectionRecord) {
-          studentData.section = sectionRecord.name;
-          studentData.section_id = studentData._section_id; // Set the actual section_id
-        }
-      } catch (error) {
-        console.error('❌ Error fetching section:', error);
-      }
-      delete studentData._section_id;
-    }
-
-    // Handle academic year - use provided ID or fallback to current academic year
-    if (studentData._academic_year_id) {
-      try {
-        const yearRecord = await AcademicYear.findByPk(studentData._academic_year_id);
-        if (yearRecord) {
-          studentData.academic_year = yearRecord.name;
-        }
-      } catch (error) {
-        console.error('❌ Error fetching academic year:', error);
-      }
-      delete studentData._academic_year_id;
-    }
-
-    // Handle stream - get stream name from ID if provided
-    if (studentData._stream_id) {
-      try {
-        const streamRecord = await Stream.findByPk(studentData._stream_id);
-        if (streamRecord) {
-          studentData.stream = streamRecord.name;
-          studentData.stream_id = studentData._stream_id; // Set the actual stream_id
-        } else {
-          console.log('❌ Stream not found with ID:', studentData._stream_id);
-        }
-      } catch (error) {
-        console.error('❌ Error fetching stream:', error);
-      }
-      delete studentData._stream_id;
-    } else {
+    // Handle academic year fallback when none was provided
+    if (!hasAcademicYearId) {
       // Fallback to current academic year if no ID provided
       try {
         const currentYear = await getCurrentAcademicYearForSchool(school_id);
@@ -537,14 +644,16 @@ const createStudent = async (req, res, next) => {
           : null;
         existingParent = siblingParent?.parent || null;
       }
-      existingParent = existingParent || await Parent.findOne({
-        where: {
-          guardian_phone: parentData.guardian_phone,
-          school_id: school_id,
-          branch_id: branch_id
-        },
-        transaction
-      });
+      existingParent =
+        existingParent ||
+        (await Parent.findOne({
+          where: {
+            guardian_phone: parentData.guardian_phone,
+            school_id: school_id,
+            branch_id: branch_id
+          },
+          transaction
+        }));
 
       if (existingParent) {
         console.log(
@@ -587,6 +696,7 @@ const createStudent = async (req, res, next) => {
 // Get all students
 const getStudents = async (req, res, next) => {
   try {
+    const assignedBranchId = getAssignedBranchId(req);
     const {
       page = 1,
       limit = 10,
@@ -595,15 +705,19 @@ const getStudents = async (req, res, next) => {
       class_name,
       section,
       status,
+      has_siblings,
       branch_id,
       class_id,
       section_id,
       stream_id,
-      school_id
+      school_id,
+      category_id,
+      enrollment
     } = req.query;
 
     // Build where clause for Student table
-    const whereClause = {};
+    const whereClause = { status: { [Op.ne]: 'deleted' } };
+    let teacherScope;
 
     // Handle school_id and branch_id filtering based on user role
     if (req.user.role === 'super_admin') {
@@ -618,7 +732,12 @@ const getStudents = async (req, res, next) => {
     } else if (req.user.role === 'branch_admin') {
       // Branch admin is restricted to their specific branch
       whereClause.school_id = req.schoolId;
-      whereClause.branch_id = req.user.branch_id;
+      whereClause.branch_id = assignedBranchId;
+    } else if (req.user.role === 'teacher') {
+      whereClause.school_id = req.schoolId;
+      teacherScope = await getTeacherStudentScope(req, academic_year);
+      whereClause.academic_year = teacherScope.year;
+      appendStudentCondition(whereClause, teacherScope.where);
     } else {
       // Default fallback for other roles
       whereClause.school_id = req.schoolId;
@@ -645,8 +764,8 @@ const getStudents = async (req, res, next) => {
     if (academic_year) whereClause.academic_year = academic_year;
     if (class_name) whereClause.current_class = class_name;
     if (section) whereClause.section = section;
-    if (status) whereClause.status = status;
-    if (branch_id) whereClause.branch_id = branch_id;
+    if (status && status !== 'deleted') whereClause.status = status;
+    if (branch_id && req.user.role !== 'branch_admin') whereClause.branch_id = branch_id;
 
     // Handle class_id and section_id using foreign keys
     if (class_id) {
@@ -660,6 +779,9 @@ const getStudents = async (req, res, next) => {
     if (stream_id) {
       whereClause.stream_id = stream_id;
     }
+    if (category_id) whereClause.category_id = category_id;
+    await applyEnrollmentFilter(whereClause, enrollment, academic_year);
+    await applySiblingFilter(whereClause, has_siblings);
 
     // Calculate pagination
     const offset = (page - 1) * limit;
@@ -674,7 +796,19 @@ const getStudents = async (req, res, next) => {
         {
           model: Parent,
           as: 'parents',
-          through: { attributes: [] }
+          through: { attributes: [] },
+          attributes:
+            ['super_admin', 'admin', 'branch_admin'].includes(req.user.role)
+              ? [
+                  'id',
+                  'father_name',
+                  'mother_name',
+                  'guardian_name',
+                  'father_phone',
+                  'mother_phone',
+                  'guardian_phone'
+                ]
+              : ['id', 'father_name', 'mother_name', 'guardian_name']
         },
         {
           model: StudentCategory,
@@ -706,9 +840,72 @@ const getStudents = async (req, res, next) => {
       offset: parseInt(offset)
     });
 
+    const studentRecords = students.map(student => student.toJSON());
+    const parentIds = [...new Set(studentRecords.flatMap(student =>
+      (student.parents || []).map(parent => parent.id)
+    ))];
+    const siblingLinks = parentIds.length
+      ? await StudentParent.findAll({
+          attributes: ['parent_id', 'student_id'],
+          where: { parent_id: { [Op.in]: parentIds } }
+        })
+      : [];
+    const siblingIds = [...new Set(siblingLinks.map(link => link.student_id))];
+    const siblingWhere = { id: { [Op.in]: siblingIds } };
+    if (req.user.role === 'super_admin') {
+      siblingWhere.school_id = whereClause.school_id || {
+        [Op.in]: [...new Set(studentRecords.map(student => student.school_id))]
+      };
+    } else {
+      siblingWhere.school_id = req.schoolId;
+    }
+    if (req.user.role === 'branch_admin') siblingWhere.branch_id = assignedBranchId;
+    if (teacherScope) {
+      siblingWhere.academic_year = teacherScope.year;
+      siblingWhere[Op.and] = [teacherScope.where];
+    }
+    const siblingRows = siblingIds.length
+      ? await Student.findAll({
+          where: siblingWhere,
+          attributes: ['id', 'school_id', 'first_name', 'last_name', 'current_class', 'section']
+        })
+      : [];
+    const studentInvoiceTotals = ['super_admin', 'admin', 'branch_admin'].includes(req.user.role)
+      ? await getStudentInvoiceTotals(studentRecords)
+      : new Map();
+    const siblingById = new Map(siblingRows.map(sibling => [sibling.id, sibling]));
+    const siblingIdsByParent = new Map();
+    siblingLinks.forEach(link => {
+      siblingIdsByParent.set(link.parent_id, [
+        ...(siblingIdsByParent.get(link.parent_id) || []),
+        link.student_id
+      ]);
+    });
+    const data = studentRecords.map(student => {
+      const ids = new Set(
+        (student.parents || []).flatMap(parent => siblingIdsByParent.get(parent.id) || [])
+      );
+      return {
+        ...student,
+        ...(['super_admin', 'admin', 'branch_admin'].includes(req.user.role)
+          ? studentInvoiceTotals.get(`${student.school_id}:${student.id}`) || {
+              total_billed: 0,
+              total_due: 0
+            }
+          : {}),
+        siblings: [...ids]
+          .filter(id => id !== student.id)
+          .map(id => siblingById.get(id))
+          .filter(sibling => sibling && sibling.school_id === student.school_id)
+          .map(({ id, first_name, last_name, current_class, section }) => ({
+            id, first_name, last_name, current_class, section
+          }))
+      };
+    });
+
     return res.status(200).json({
       success: true,
-      data: students,
+      data,
       pagination: {
         current_page: parseInt(page),
         total_pages: Math.ceil(totalCount / limit),
@@ -725,45 +922,67 @@ const getStudents = async (req, res, next) => {
 // Get student by ID
 const getStudentById = async (req, res, next) => {
   try {
+    const assignedBranchId = getAssignedBranchId(req);
     const { id } = req.params;
-    // First, try to find the student without school_id filter to see if it exists
-    const studentWithoutFilter = await Student.findByPk(id);
+    const where = {
+      id,
+      ...(req.user.role === 'super_admin' ? {} : { school_id: req.schoolId })
+    };
+    if (req.user.role === 'branch_admin') where.branch_id = assignedBranchId;
+    let teacherScope;
+    if (req.user.role === 'teacher') {
+      teacherScope = await getTeacherStudentScope(req);
+      where.academic_year = teacherScope.year;
+      where[Op.and] = [teacherScope.where];
+    }
 
     const student = await Student.findOne({
-      where: {
-        id,
-        ...(req.user.role === 'super_admin' ? {} : { school_id: req.schoolId })
-      },
+      where,
       include: [
         {
           model: Parent,
           as: 'parents',
           through: { attributes: ['relationship', 'is_primary'] },
-          attributes: [
-            'id',
-            'father_name',
-            'mother_name',
-            'guardian_name',
-            'father_phone',
-            'mother_phone',
-            'guardian_phone',
-            'father_email',
-            'mother_email',
-            'guardian_email',
-            'father_occupation',
-            'mother_occupation',
-            'father_qualification',
-            'mother_qualification',
-            'father_income',
-            'mother_income',
-            'guardian_income',
-            'guardian_education',
-            'guardian_occupation',
-            'guardian_relation',
-            'city',
-            'state',
-            'address'
-          ]
+          attributes:
+            req.user.role === 'teacher'
+              ? [
+                  'id',
+                  'father_name',
+                  'mother_name',
+                  'guardian_name',
+                  'father_phone',
+                  'mother_phone',
+                  'guardian_phone',
+                  'father_email',
+                  'mother_email',
+                  'guardian_email',
+                  'guardian_relation'
+                ]
+              : [
+                  'id',
+                  'father_name',
+                  'mother_name',
+                  'guardian_name',
+                  'father_phone',
+                  'mother_phone',
+                  'guardian_phone',
+                  'father_email',
+                  'mother_email',
+                  'guardian_email',
+                  'father_occupation',
+                  'mother_occupation',
+                  'father_qualification',
+                  'mother_qualification',
+                  'father_income',
+                  'mother_income',
+                  'guardian_income',
+                  'guardian_education',
+                  'guardian_occupation',
+                  'guardian_relation',
+                  'city',
+                  'state',
+                  'address'
+                ]
         },
         {
           model: StudentCategory,
@@ -801,27 +1020,57 @@ const getStudentById = async (req, res, next) => {
 
     const parentIds = student.parents.map(parent => parent.id);
     const [promotionHistory, bookIssues, siblingLinks] = await Promise.all([
-      StudentPromotion.findAll({ where: { student_id: id, school_id: student.school_id }, order: [['created_at', 'DESC']] }),
+      StudentPromotion.findAll({
+        where: { student_id: id, school_id: student.school_id },
+        order: [['created_at', 'DESC']]
+      }),
       LibraryIssue.findAll({
         where: { student_id: id, school_id: student.school_id },
         include: [{ model: LibraryBook, as: 'book', attributes: ['id', 'title'] }],
         order: [['issue_date', 'DESC']]
       }),
       parentIds.length
-        ? StudentParent.findAll({ where: { parent_id: { [Op.in]: parentIds }, student_id: { [Op.ne]: id } }, attributes: ['student_id'] })
+        ? StudentParent.findAll({
+            where: { parent_id: { [Op.in]: parentIds }, student_id: { [Op.ne]: id } },
+            attributes: ['student_id']
+          })
         : []
     ]);
     const siblingIds = [...new Set(siblingLinks.map(link => link.student_id))];
+    const siblingWhere = {
+      id: { [Op.in]: siblingIds },
+      school_id: student.school_id
+    };
+    if (teacherScope) {
+      siblingWhere.academic_year = teacherScope.year;
+      siblingWhere[Op.and] = [teacherScope.where];
+    }
     const siblings = siblingIds.length
       ? await Student.findAll({
-          where: { id: { [Op.in]: siblingIds }, school_id: student.school_id },
-          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'gender', 'current_class', 'section', 'roll_number', 'phone', 'photo']
+          where: siblingWhere,
+          attributes: [
+            'id',
+            'first_name',
+            'last_name',
+            'admission_number',
+            'gender',
+            'current_class',
+            'section',
+            'roll_number',
+            'phone',
+            'photo'
+          ]
         })
       : [];
 
     return res.status(200).json({
       success: true,
-      data: { ...student.toJSON(), promotion_history: promotionHistory, book_issues: bookIssues, siblings }
+      data: {
+        ...student.toJSON(),
+        promotion_history: promotionHistory,
+        book_issues: bookIssues,
+        siblings
+      }
     });
   } catch (error) {
     logger.error('Error fetching student:', error);
@@ -831,6 +1080,7 @@ const getStudentById = async (req, res, next) => {
 
 const setStudentAuthentication = async (req, res, next) => {
   try {
+    const assignedBranchId = getAssignedBranchId(req);
     const { id } = req.params;
     const enabled = req.body.enabled;
     if (typeof enabled !== 'boolean') {
@@ -838,7 +1088,11 @@ const setStudentAuthentication = async (req, res, next) => {
     }
 
     const student = await Student.findOne({
-      where: { id, school_id: req.schoolId }
+      where: {
+        id,
+        school_id: req.schoolId,
+        ...(req.user.role === 'branch_admin' && { branch_id: assignedBranchId })
+      }
     });
     if (!student) {
       throw new ApiError(404, 'Student not found');
@@ -867,13 +1121,15 @@ const setStudentAuthentication = async (req, res, next) => {
 // Update student
 const updateStudent = async (req, res, next) => {
   try {
+    const assignedBranchId = getAssignedBranchId(req);
     const { id } = req.params;
     const updates = req.body;
 
     const student = await Student.findOne({
       where: {
         id,
-        school_id: req.schoolId
+        school_id: req.schoolId,
+        ...(req.user.role === 'branch_admin' && { branch_id: assignedBranchId })
       }
     });
 
@@ -885,11 +1141,13 @@ const updateStudent = async (req, res, next) => {
     let studentUpdates = {};
     let academicUpdates = {};
     let customFieldValues = {};
+    let placementSource = updates;
 
     try {
       // Check if data is sent as FormData with JSON string
       if (updates.studentData) {
         const parsedData = JSON.parse(updates.studentData);
+        placementSource = parsedData;
 
         // Extract student data from nested structure
         if (parsedData.student && typeof parsedData.student === 'object') {
@@ -905,13 +1163,6 @@ const updateStudent = async (req, res, next) => {
         if (parsedData.category_id) academicUpdates.category_id = parsedData.category_id;
         if (parsedData.admission_number)
           academicUpdates.admission_number = parsedData.admission_number;
-
-        // Store class_id, section_id, and stream_id for later processing
-        if (parsedData.class_id) academicUpdates._class_id = parsedData.class_id;
-        if (parsedData.section_id) academicUpdates._section_id = parsedData.section_id;
-        if (parsedData.academic_year_id)
-          academicUpdates._academic_year_id = parsedData.academic_year_id;
-        if (parsedData.stream_id) academicUpdates._stream_id = parsedData.stream_id;
 
         if (studentUpdates.mobile_no) studentUpdates.phone = studentUpdates.mobile_no;
         if (typeof parsedData !== 'undefined' && 'admission_type' in parsedData)
@@ -929,12 +1180,6 @@ const updateStudent = async (req, res, next) => {
         if (updates.category_id) academicUpdates.category_id = updates.category_id;
         if (updates.admission_number) academicUpdates.admission_number = updates.admission_number;
 
-        // Store class_id and section_id for later processing
-        if (updates.class_id) academicUpdates._class_id = updates.class_id;
-        if (updates.section_id) academicUpdates._section_id = updates.section_id;
-        if (updates.academic_year_id) academicUpdates._academic_year_id = updates.academic_year_id;
-        if (updates.stream_id) academicUpdates._stream_id = updates.stream_id;
-
         if (studentUpdates.mobile_no) studentUpdates.phone = studentUpdates.mobile_no;
         if ('admission_type' in updates) studentUpdates.admission_type = updates.admission_type;
         if (updates.custom_fields && typeof updates.custom_fields === 'object') {
@@ -949,8 +1194,24 @@ const updateStudent = async (req, res, next) => {
       console.error('❌ JSON parse error:', parseError);
       // Fallback to flat structure
       studentUpdates = { ...updates };
+      placementSource = updates;
       console.log('🔍 Fallback to flat structure:', studentUpdates);
     }
+
+    extractAcademicPlacement(placementSource, academicUpdates);
+    [
+      'school_id',
+      'branch_id',
+      'user_id',
+      'class_id',
+      'section_id',
+      'stream_id',
+      'academic_year',
+      'academic_year_id',
+      'admission_class',
+      'current_class',
+      'section'
+    ].forEach(field => delete studentUpdates[field]);
 
     // Handle file uploads
     if (req.files && req.files.student_profile_picture) {
@@ -970,75 +1231,91 @@ const updateStudent = async (req, res, next) => {
     delete studentUpdates.created_by;
     studentUpdates.documents = studentUpdates.documents || student.documents || {};
     await applyAdmissionExtras(studentUpdates, customFieldValues, student.school_id);
-    // Get class and section names from IDs if provided
-    if (academicUpdates._class_id) {
-      try {
-        const classRecord = await Class.findByPk(academicUpdates._class_id);
-        if (classRecord) {
-          academicUpdates.admission_class = classRecord.name;
-          academicUpdates.current_class = classRecord.name;
-          academicUpdates.class_id = academicUpdates._class_id; // Set the actual class_id
-          console.log('🔍 Class name resolved:', classRecord.name);
+    const hasPlacement = field =>
+      Object.prototype.hasOwnProperty.call(academicUpdates, `_${field}`);
+    const classChanged = hasPlacement('class_id');
+    let targetClassId = student.class_id;
+    if (classChanged) {
+      if (!academicUpdates._class_id) throw new ApiError(400, 'A valid class is required');
+      const classRecord = await Class.findOne({
+        where: {
+          id: academicUpdates._class_id,
+          school_id: student.school_id,
+          branch_id: student.branch_id,
+          is_active: true
         }
-      } catch (error) {
-        console.error('❌ Error fetching class:', error);
-      }
-      delete academicUpdates._class_id;
+      });
+      if (!classRecord)
+        throw new ApiError(400, 'Class must belong to this student school and branch');
+      targetClassId = classRecord.id;
+      academicUpdates.admission_class = classRecord.name;
+      academicUpdates.current_class = classRecord.name;
+      academicUpdates.class_id = classRecord.id;
     }
+    delete academicUpdates._class_id;
 
-    if (academicUpdates._section_id) {
-      try {
-        console.log('🔍 Looking up section with ID:', academicUpdates._section_id);
-        const sectionRecord = await Section.findByPk(academicUpdates._section_id);
-        console.log(
-          '🔍 Section record found:',
-          sectionRecord
-            ? {
-                id: sectionRecord.id,
-                name: sectionRecord.name,
-                code: sectionRecord.code
-              }
-            : 'Not found'
-        );
+    let targetStreamId = student.stream_id;
+    if (hasPlacement('stream_id')) targetStreamId = academicUpdates._stream_id || null;
+    else if (classChanged) targetStreamId = null;
 
-        if (sectionRecord) {
-          academicUpdates.section = sectionRecord.name;
-          academicUpdates.section_id = academicUpdates._section_id; // Set the actual section_id
-          console.log('🔍 Section name resolved:', sectionRecord.name);
-        } else {
-        }
-      } catch (error) {
-        console.error('❌ Error fetching section:', error);
+    if (hasPlacement('section_id') || (classChanged && student.section)) {
+      const sectionId = hasPlacement('section_id') ? academicUpdates._section_id : null;
+      if (!sectionId) {
+        academicUpdates.section_id = null;
+        academicUpdates.section = null;
+      } else {
+        const sectionRecord = await Section.findOne({
+          where: {
+            id: sectionId,
+            class_id: targetClassId,
+            school_id: student.school_id,
+            branch_id: student.branch_id,
+            stream_id: targetStreamId,
+            is_active: true
+          }
+        });
+        if (!sectionRecord)
+          throw new ApiError(400, 'Section must belong to the selected class and branch');
+        academicUpdates.section = sectionRecord.name;
+        academicUpdates.section_id = sectionRecord.id;
       }
-      delete academicUpdates._section_id;
     }
+    delete academicUpdates._section_id;
 
-    if (academicUpdates._academic_year_id) {
-      try {
-        const yearRecord = await AcademicYear.findByPk(academicUpdates._academic_year_id);
-        if (yearRecord) {
-          academicUpdates.academic_year = yearRecord.name;
-          console.log('🔍 Academic year resolved:', yearRecord.name);
-        }
-      } catch (error) {
-        console.error('❌ Error fetching academic year:', error);
+    if (hasPlacement('academic_year_id')) {
+      const yearId = academicUpdates._academic_year_id;
+      if (!yearId) {
+        academicUpdates.academic_year = null;
+      } else {
+        const yearRecord = await AcademicYear.findByPk(yearId);
+        if (!yearRecord) throw new ApiError(400, 'Academic year not found');
+        academicUpdates.academic_year = yearRecord.name;
       }
-      delete academicUpdates._academic_year_id;
     }
+    delete academicUpdates._academic_year_id;
 
-    if (academicUpdates._stream_id) {
-      try {
-        const streamRecord = await Stream.findByPk(academicUpdates._stream_id);
-        if (streamRecord) {
-          academicUpdates.stream = streamRecord.name;
-          academicUpdates.stream_id = academicUpdates._stream_id; // Set the actual stream_id
-          console.log('🔍 Stream name resolved:', streamRecord.name);
-        }
-      } catch (error) {
-        console.error('❌ Error fetching stream:', error);
+    if (hasPlacement('stream_id') || (classChanged && student.stream_id)) {
+      const streamId = hasPlacement('stream_id') ? academicUpdates._stream_id : null;
+      if (!streamId) {
+        academicUpdates.stream_id = null;
+        academicUpdates.stream = null;
+      } else {
+        const streamRecord = await Stream.findOne({
+          where: {
+            id: streamId,
+            class_id: targetClassId,
+            school_id: student.school_id,
+            branch_id: student.branch_id,
+            is_active: true
+          }
+        });
+        if (!streamRecord)
+          throw new ApiError(400, 'Stream must belong to the selected class and branch');
+        academicUpdates.stream = streamRecord.name;
+        academicUpdates.stream_id = streamRecord.id;
       }
-      delete academicUpdates._stream_id;
     }
+    delete academicUpdates._stream_id;
 
     const updateData = {
       ...studentUpdates,
@@ -1048,8 +1325,17 @@ const updateStudent = async (req, res, next) => {
 
     await setCategoryId(updateData, req);
 
-    // Sanitize ENUM fields
-    sanitizeEnumFields(updateData);
+    const enumFields = ['gender', 'category', 'status', 'admission_sought_in'];
+    const suppliedEnumFields = new Set(
+      enumFields.filter(field => Object.hasOwn(updateData, field))
+    );
+    const sanitizedEnums = Object.fromEntries(
+      enumFields.map(field => [field, updateData[field] ?? student[field]])
+    );
+    sanitizeEnumFields(sanitizedEnums);
+    suppliedEnumFields.forEach(field => {
+      updateData[field] = sanitizedEnums[field];
+    });
 
     console.log('🔍 Data being sent to database update:', updateData);
     console.log('🔍 Section field in update data:', updateData.section);
@@ -1234,6 +1520,7 @@ const updateStudent = async (req, res, next) => {
 // Get students by class
 const getStudentsByClass = async (req, res, next) => {
   try {
+    const assignedBranchId = getAssignedBranchId(req);
     const {
       class_name,
       class_names,
@@ -1254,7 +1541,12 @@ const getStudentsByClass = async (req, res, next) => {
 
     // Add branch filtering for branch_admin
     if (req.user.role === 'branch_admin') {
-      whereClause.branch_id = req.user.branch_id;
+      whereClause.branch_id = assignedBranchId;
+    }
+    if (req.user.role === 'teacher') {
+      const teacherScope = await getTeacherStudentScope(req, academic_year);
+      whereClause.academic_year = teacherScope.year;
+      appendStudentCondition(whereClause, teacherScope.where);
     }
 
     // Handle fee structure ID - fetch students from all applicable classes
@@ -1335,9 +1627,22 @@ const getStudentsByClass = async (req, res, next) => {
 // Get student statistics
 const getStudentStats = async (req, res, next) => {
   try {
-    const { academic_year, branch_id, class_id, section_id, school_id } = req.query;
+    const assignedBranchId = getAssignedBranchId(req);
+    const {
+      academic_year,
+      branch_id,
+      class_id,
+      section_id,
+      stream_id,
+      school_id,
+      category_id,
+      status,
+      gender,
+      from_date,
+      to_date
+    } = req.query;
 
-    const whereClause = {};
+    const whereClause = { status: { [Op.ne]: 'deleted' } };
 
     // Handle school_id and branch_id filtering based on user role
     if (req.user.role === 'super_admin') {
@@ -1357,6 +1662,7 @@ const getStudentStats = async (req, res, next) => {
             newThisMonth: 0,
             classCount: 0,
             class_distribution: [],
+            gender_distribution: [],
             branch_distribution: []
           }
         });
@@ -1367,14 +1673,16 @@ const getStudentStats = async (req, res, next) => {
     } else if (req.user.role === 'branch_admin') {
       // Branch admin is restricted to their specific branch
       whereClause.school_id = req.schoolId;
-      whereClause.branch_id = req.user.branch_id;
+      whereClause.branch_id = assignedBranchId;
     } else {
       // Default fallback for other roles
       whereClause.school_id = req.schoolId;
     }
 
+    if (branch_id && req.user.role !== 'branch_admin') whereClause.branch_id = branch_id;
+
+    const summaryWhere = { ...whereClause };
     if (academic_year) whereClause.academic_year = academic_year;
-    if (branch_id) whereClause.branch_id = branch_id;
 
     // Handle class_id and section_id using foreign keys
     if (class_id) {
@@ -1384,6 +1692,40 @@ const getStudentStats = async (req, res, next) => {
     if (section_id) {
       whereClause.section_id = section_id;
     }
+    if (stream_id) whereClause.stream_id = stream_id;
+    if (category_id) whereClause.category_id = category_id;
+    if (status && status !== 'deleted') whereClause.status = status;
+    if (gender) whereClause.gender = gender;
+    if (from_date || to_date) {
+      whereClause.admission_date = {};
+      if (from_date) whereClause.admission_date[Op.gte] = new Date(from_date);
+      if (to_date) whereClause.admission_date[Op.lte] = new Date(to_date);
+    }
+
+    const currentAcademicYear =
+      academic_year || (await getCurrentAcademicYearForSchool(summaryWhere.school_id)).name;
+    const [allTimeTotal, currentSessionTotal, unassignedTotal] = await Promise.all([
+      Student.count({ where: summaryWhere }),
+      Student.count({
+        where: {
+          ...summaryWhere,
+          status: 'active',
+          academic_year: currentAcademicYear,
+          class_id: { [Op.not]: null }
+        }
+      }),
+      Student.count({
+        where: {
+          ...summaryWhere,
+          status: 'active',
+          [Op.or]: [
+            { academic_year: { [Op.ne]: currentAcademicYear } },
+            { academic_year: { [Op.is]: null } },
+            { class_id: { [Op.is]: null } }
+          ]
+        }
+      })
+    ]);
 
     const totalStudents = await Student.count({
       where: whereClause
@@ -1414,6 +1756,13 @@ const getStudentStats = async (req, res, next) => {
       ],
       group: ['current_class'],
       order: [['current_class', 'ASC']],
+      raw: true
+    });
+
+    const genderDistribution = await Student.findAll({
+      where: whereClause,
+      attributes: ['gender', [Student.sequelize.fn('COUNT', Student.sequelize.col('id')), 'count']],
+      group: ['gender'],
       raw: true
     });
 
@@ -1459,7 +1808,12 @@ const getStudentStats = async (req, res, next) => {
       dropped: droppedStudents,
       newThisMonth: newThisMonth,
       classCount: classCount,
+      current_academic_year: currentAcademicYear,
+      current_session_total: currentSessionTotal,
+      all_time_total: allTimeTotal,
+      unassigned_total: unassignedTotal,
       class_distribution: classDistribution,
+      gender_distribution: genderDistribution,
       branch_distribution: branchDistribution
     };
 
@@ -1473,25 +1827,32 @@ const getStudentStats = async (req, res, next) => {
 // Get student report with advanced filtering
 const getStudentReport = async (req, res, next) => {
   try {
+    const assignedBranchId = getAssignedBranchId(req);
     const {
       page = 1,
       limit = 10,
       academic_year,
       class_name,
+      class_id,
       section_name,
+      section_id,
+      stream_id,
+      category_id,
       status,
+      gender,
       search,
       from_date,
       to_date,
       sort_by = 'created_at',
       sort_order = 'DESC',
-      school_id
+      school_id,
+      branch_id
     } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     // Build where clause based on user role
-    let whereClause = {};
+    let whereClause = { status: { [Op.ne]: 'deleted' } };
 
     // Handle school_id filtering based on user role
     if (req.user.role === 'super_admin') {
@@ -1515,12 +1876,19 @@ const getStudentReport = async (req, res, next) => {
       // School admin and branch admin are restricted to their school
       whereClause.school_id = req.schoolId;
     }
+    if (req.user.role === 'branch_admin') whereClause.branch_id = assignedBranchId;
+    else if (branch_id) whereClause.branch_id = branch_id;
 
     // Add filters
     if (academic_year) whereClause.academic_year = academic_year;
     if (class_name) whereClause.current_class = class_name;
     if (section_name) whereClause.section = section_name;
-    if (status) whereClause.status = status;
+    if (class_id) whereClause.class_id = class_id;
+    if (section_id) whereClause.section_id = section_id;
+    if (stream_id) whereClause.stream_id = stream_id;
+    if (category_id) whereClause.category_id = category_id;
+    if (status && status !== 'deleted') whereClause.status = status;
+    if (gender) whereClause.gender = gender;
 
     // Add date range filters
     if (from_date || to_date) {
@@ -1595,37 +1963,356 @@ const getStudentReport = async (req, res, next) => {
   }
 };
 
+const getStudentRiskRegister = async (req, res, next) => {
+  try {
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 25));
+    const schoolId = req.user.role === 'super_admin' ? req.query.school_id : req.schoolId;
+    const assignedBranchId = req.user.role === 'branch_admin' ? getAssignedBranchId(req) : null;
+    let branchId = assignedBranchId || req.query.branch_id || null;
+    const attendanceBelow = Number(req.query.attendance_below ?? 75);
+    const overdueDays = Number(req.query.overdue_days ?? 30);
+    const minSignals = Number(req.query.min_signals ?? 2);
+    const wantsLibraryOut = req.query.library_out === 'true';
+    const wantsLibraryOverdue = req.query.library_overdue === 'true';
+    const wantsTransport = String(req.query.has_transport) === 'true';
+    const wantsHostel = String(req.query.has_hostel) === 'true';
+
+    if (!schoolId) throw new ApiError(400, 'School context is required');
+    if (req.user.role === 'branch_admin' && !assignedBranchId) {
+      throw new ApiError(403, 'Assigned branch is required');
+    }
+    if (branchId && !assignedBranchId) {
+      if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(branchId)) {
+        throw new ApiError(400, 'Invalid branch ID');
+      }
+      const branch = await Branch.findOne({
+        where: { id: branchId, school_id: schoolId, status: 'active' },
+        attributes: ['id']
+      });
+      if (!branch) throw new ApiError(400, 'Invalid branch for this school');
+      branchId = branch.id;
+    }
+    if (!Number.isFinite(attendanceBelow) || attendanceBelow < 0 || attendanceBelow > 100) {
+      throw new ApiError(400, 'attendance_below must be between 0 and 100');
+    }
+    if (!Number.isInteger(overdueDays) || overdueDays < 1 || overdueDays > 3650) {
+      throw new ApiError(400, 'overdue_days must be between 1 and 3650');
+    }
+    if (!Number.isInteger(minSignals) || minSignals < 1 || minSignals > 3) {
+      throw new ApiError(400, 'min_signals must be between 1 and 3');
+    }
+    for (const value of [req.query.library_out, req.query.library_overdue, req.query.has_transport, req.query.has_hostel]) {
+      if (value != null && !['true', 'false'].includes(String(value))) {
+        throw new ApiError(400, 'Service filters must be true or false');
+      }
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const fromDate = req.query.from_date || new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+    if (Number.isNaN(Date.parse(fromDate)) || Number.isNaN(Date.parse(today))) {
+      throw new ApiError(400, 'from_date must be a valid date');
+    }
+    const where = {
+      school_id: schoolId,
+      ...(branchId && { branch_id: branchId }),
+      status: 'active',
+      ...(req.query.class_id && { class_id: req.query.class_id }),
+      ...(req.query.section_id && { section_id: req.query.section_id }),
+      ...(req.query.category_id && { category_id: req.query.category_id }),
+      ...(req.query.gender && { gender: req.query.gender })
+    };
+    const membershipFilters = [];
+    let filteredLibraryIssues = null;
+    if (wantsLibraryOut || wantsLibraryOverdue) {
+      filteredLibraryIssues = await LibraryIssue.findAll({
+        where: {
+          school_id: schoolId,
+          ...(branchId && { branch_id: branchId }),
+          borrower_type: 'student',
+          student_id: { [Op.ne]: null },
+          status: { [Op.in]: ['issued', 'overdue'] },
+          ...(wantsLibraryOverdue && { due_date: { [Op.lt]: today } })
+        },
+        attributes: ['student_id', 'due_date', 'status']
+      });
+      membershipFilters.push(new Set(filteredLibraryIssues.map(issue => issue.student_id)));
+    }
+    if (wantsTransport || wantsHostel) {
+      const [transportMemberships, hostelMemberships] = await Promise.all([
+        wantsTransport ? StudentTransport.findAll({
+          where: { school_id: schoolId, ...(branchId && { branch_id: branchId }) },
+          attributes: ['student_id']
+        }) : null,
+        wantsHostel ? HostelAllocation.findAll({
+          where: { school_id: schoolId, ...(branchId && { branch_id: branchId }) },
+          attributes: ['student_id']
+        }) : null
+      ]);
+      if (wantsTransport) membershipFilters.push(new Set(transportMemberships.map(row => row.student_id)));
+      if (wantsHostel) membershipFilters.push(new Set(hostelMemberships.map(row => row.student_id)));
+    }
+    if (membershipFilters.length) {
+      const [first, ...rest] = membershipFilters;
+      where.id = { [Op.in]: [...first].filter(id => rest.every(ids => ids.has(id))) };
+    }
+    if (req.query.search) {
+      where[Op.or] = [
+        { first_name: { [Op.iLike]: `%${req.query.search}%` } },
+        { last_name: { [Op.iLike]: `%${req.query.search}%` } },
+        { admission_number: { [Op.iLike]: `%${req.query.search}%` } }
+      ];
+    }
+
+    const { count, rows } = await Student.findAndCountAll({
+      where,
+      include: [
+        { model: Class, as: 'class', attributes: ['id', 'name', 'code'] },
+        { model: Section, as: 'sectionInfo', attributes: ['id', 'name'] }
+      ],
+      order: [['first_name', 'ASC'], ['last_name', 'ASC']],
+      limit,
+      offset: (page - 1) * limit,
+      distinct: true
+    });
+
+    const studentIds = rows.map(student => student.id);
+    const scoped = { school_id: schoolId, student_id: { [Op.in]: studentIds } };
+    if (branchId) scoped.branch_id = branchId;
+    const [sessions, invoices, transportAssignments, hostelAssignments, examResults, gradingSystem] = studentIds.length
+      ? await Promise.all([
+          AttendanceSession.findAll({
+            where: {
+              school_id: schoolId,
+              ...(branchId && { branch_id: branchId }),
+              class_id: { [Op.in]: [...new Set(rows.map(student => student.class_id))] },
+              date: { [Op.gte]: fromDate, [Op.lte]: today },
+              status: 'published',
+              attendance_type: 'daily'
+            },
+            attributes: ['id', 'class_id', 'section_id', 'date']
+          }),
+          FeeInvoice.findAll({
+            where: {
+              ...scoped,
+              due_date: { [Op.lt]: today },
+              balance_amount: { [Op.gt]: 0 },
+              status: { [Op.notIn]: ['draft', 'cancelled'] }
+            },
+            attributes: ['student_id', 'balance_amount', 'due_date']
+          }),
+          StudentTransport.findAll({ where: scoped, attributes: ['student_id'] }),
+          HostelAllocation.findAll({ where: scoped, attributes: ['student_id'] }),
+          ExamResult.findAll({
+            where: scoped,
+            attributes: ['student_id', 'percentage', 'grade', 'is_absent', 'updated_at'],
+            include: [{
+              model: Exam,
+              as: 'exam',
+              attributes: ['id', 'name', 'publish_status', 'result_status'],
+              include: [{
+                model: ExamSchedule,
+                as: 'schedules',
+                attributes: ['class_id', 'section_id', 'exam_date'],
+                where: { status: { [Op.ne]: 'cancelled' } },
+                required: false
+              }]
+            }]
+          }),
+          GradingSystem.findOne({
+            where: { school_id: schoolId, is_active: true },
+            include: [{
+              model: GradeScale,
+              as: 'gradeScales',
+              attributes: ['min_percentage', 'max_percentage', 'is_passing']
+            }]
+          })
+        ])
+      : [[], [], [], [], [], null];
+
+    const pageLibraryIssues = filteredLibraryIssues || (studentIds.length
+      ? await LibraryIssue.findAll({
+          where: {
+            ...scoped,
+            borrower_type: 'student',
+            status: { [Op.in]: ['issued', 'overdue'] }
+          },
+          attributes: ['student_id', 'due_date', 'status']
+        })
+      : []);
+    const records = sessions.length
+      ? await AttendanceRecord.findAll({
+          where: {
+            ...scoped,
+            session_id: { [Op.in]: sessions.map(session => session.id) }
+          },
+          attributes: ['student_id', 'session_id', 'status']
+        })
+      : [];
+    const recordByStudentSession = new Map(
+      records.map(record => [`${record.student_id}:${record.session_id}`, record.status])
+    );
+    const feesByStudent = new Map();
+    for (const invoice of invoices) {
+      const value = feesByStudent.get(invoice.student_id) || { balance: 0, oldestDue: today };
+      value.balance += Number(invoice.balance_amount) || 0;
+      if (invoice.due_date < value.oldestDue) value.oldestDue = invoice.due_date;
+      feesByStudent.set(invoice.student_id, value);
+    }
+    const transportStudentIds = new Set(transportAssignments.map(assignment => assignment.student_id));
+    const hostelStudentIds = new Set(hostelAssignments.map(assignment => assignment.student_id));
+    const libraryOutStudentIds = new Set(pageLibraryIssues.map(issue => issue.student_id));
+    const libraryOverdueStudentIds = new Set(pageLibraryIssues
+      .filter(issue => issue.due_date < today)
+      .map(issue => issue.student_id));
+    const studentById = new Map(rows.map(student => [student.id, student]));
+    const latestResults = new Map();
+    for (const result of examResults) {
+      const student = studentById.get(result.student_id);
+      if (!student) continue;
+      const examDate = (result.exam?.schedules || []).reduce((latest, schedule) =>
+        (!schedule.class_id || schedule.class_id === student.class_id) &&
+        (!schedule.section_id || schedule.section_id === student.section_id) &&
+        schedule.exam_date <= today &&
+        (!latest || schedule.exam_date > latest)
+          ? schedule.exam_date
+          : latest, null);
+      if (!examDate) continue;
+      const current = latestResults.get(result.student_id);
+      if (current && (current.exam_date > examDate ||
+        (current.exam_date === examDate && String(current.updated_at || '') >= String(result.updated_at || '')))) continue;
+      latestResults.set(result.student_id, {
+        exam_date: examDate,
+        updated_at: result.updated_at,
+        result: {
+          exam_name: result.exam.name,
+          exam_date: examDate,
+          percentage: Number(result.percentage),
+          grade: result.grade,
+          is_absent: result.is_absent,
+          is_passed: getExamPassStatus(result.percentage, result.is_absent, gradingSystem),
+          published: result.exam.publish_status,
+          result_published: result.exam.result_status
+        }
+      });
+    }
+
+    const students = rows.map(student => {
+      const studentSessions = new Map();
+      for (const session of sessions) {
+        if (session.class_id !== student.class_id) continue;
+        if (session.section_id && session.section_id !== student.section_id) continue;
+        const existing = studentSessions.get(session.date);
+        if (!existing || session.section_id) studentSessions.set(session.date, session);
+      }
+      let attendedDays = 0;
+      let markedDays = 0;
+      for (const session of studentSessions.values()) {
+        const status = recordByStudentSession.get(`${student.id}:${session.id}`);
+        if (status === 'excused') continue;
+        markedDays += 1;
+        if (status === 'present' || status === 'late') attendedDays += 1;
+      }
+      const attendanceRate = markedDays
+        ? Number(((attendedDays / markedDays) * 100).toFixed(2))
+        : null;
+      const feeSummary = feesByStudent.get(student.id);
+      const daysOverdue = feeSummary
+        ? Math.floor((Date.parse(today) - Date.parse(feeSummary.oldestDue)) / 86400000)
+        : 0;
+      const riskSignals = [];
+      if (attendanceRate !== null && attendanceRate < attendanceBelow) riskSignals.push('low_attendance');
+      if (feeSummary && daysOverdue >= overdueDays) riskSignals.push('fees_overdue');
+      if (latestResults.get(student.id)?.result.is_passed === false) riskSignals.push('failed_latest_exam');
+      return {
+        ...student.toJSON(),
+        risk: {
+          attendance_rate: attendanceRate,
+          attendance_marked_days: markedDays,
+          overdue_balance: Number((feeSummary?.balance || 0).toFixed(2)),
+          oldest_overdue_days: daysOverdue,
+          signals: riskSignals,
+          service_memberships: {
+            transport: transportStudentIds.has(student.id),
+            hostel: hostelStudentIds.has(student.id),
+            library_books_out: libraryOutStudentIds.has(student.id),
+            library_books_overdue: libraryOverdueStudentIds.has(student.id)
+          },
+          latest_result: latestResults.get(student.id)?.result || null
+        }
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: students,
+      summary: {
+        page_at_risk: students.filter(student => student.risk.signals.length >= minSignals).length,
+        low_attendance: students.filter(student => student.risk.signals.includes('low_attendance')).length,
+        fees_overdue: students.filter(student => student.risk.signals.includes('fees_overdue')).length,
+        failed_latest_exam: students.filter(student => student.risk.signals.includes('failed_latest_exam')).length,
+        attendance_period: { from: fromDate, to: today, basis: 'published daily attendance; excused days excluded' },
+        risk_thresholds: { attendance_below: attendanceBelow, overdue_days: overdueDays, min_signals: minSignals }
+      },
+      pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) }
+    });
+  } catch (error) {
+    logger.error('Error fetching student risk register:', error);
+    return next(error);
+  }
+};
+
 // Export student report
 const exportStudentReport = async (req, res, next) => {
   try {
-    const { academic_year, class_name, section_name, status, school_id } = req.query;
+    const assignedBranchId = getAssignedBranchId(req);
+    const {
+      academic_year,
+      class_name,
+      section_name,
+      status,
+      gender,
+      search,
+      school_id,
+      branch_id,
+      class_id,
+      section_id,
+      stream_id,
+      category_id,
+      has_siblings,
+      enrollment
+    } = req.query;
+    const whereClause = { status: { [Op.ne]: 'deleted' } };
 
-    // Build where clause
-    const whereClause = {};
-
-    // Handle school_id filtering based on user role
     if (req.user.role === 'super_admin') {
-      // Super admin must provide school_id to see students
-      if (school_id) {
-        whereClause.school_id = school_id;
-      } else {
-        // If no school_id provided, return empty export for security
-        return res.status(200).json({
-          success: true,
-          data: [],
-          message: 'No data to export - school_id required for super admin'
-        });
-      }
+      if (!school_id) throw new ApiError(400, 'School ID is required for platform exports');
+      whereClause.school_id = school_id;
     } else {
-      // School admin and branch admin are restricted to their school
       whereClause.school_id = req.schoolId;
     }
+
+    if (req.user.role === 'branch_admin') whereClause.branch_id = assignedBranchId;
+    else if (branch_id) whereClause.branch_id = branch_id;
     if (academic_year) whereClause.academic_year = academic_year;
     if (class_name) whereClause.current_class = class_name;
     if (section_name) whereClause.section = section_name;
-    if (status) whereClause.status = status;
+    if (class_id) whereClause.class_id = class_id;
+    if (section_id) whereClause.section_id = section_id;
+    if (stream_id) whereClause.stream_id = stream_id;
+    if (category_id) whereClause.category_id = category_id;
+    if (status && status !== 'deleted') whereClause.status = status;
+    if (gender) whereClause.gender = gender;
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { admission_number: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+    await applyEnrollmentFilter(whereClause, enrollment, academic_year);
+    await applySiblingFilter(whereClause, has_siblings);
 
-    // Get students with related data
     const students = await Student.findAll({
       where: whereClause,
       include: [
@@ -1634,36 +2321,123 @@ const exportStudentReport = async (req, res, next) => {
           as: 'parents',
           through: { attributes: [] },
           attributes: ['guardian_name', 'guardian_phone', 'guardian_email', 'guardian_relation']
-        }
+        },
+        { model: Class, as: 'class', attributes: ['name'] },
+        { model: Section, as: 'sectionInfo', attributes: ['name'] }
       ],
       order: [['created_at', 'DESC']]
     });
 
-    // Return JSON data for frontend to handle
-    return res.status(200).json({
-      success: true,
-      data: students,
-      message: 'Student report generated successfully'
+    const safeCell = value => {
+      const text = value == null ? '' : String(value);
+      return /^[=+@\-\t\r]/.test(text) ? `'${text}` : text;
+    };
+    const rows = students.map(student => {
+      const row = student.toJSON();
+      const parent = row.parents?.[0] || {};
+      return {
+        'Admission Number': safeCell(row.admission_number),
+        'Roll Number': safeCell(row.roll_number),
+        'Student Name': safeCell([row.first_name, row.last_name].filter(Boolean).join(' ')),
+        Class: safeCell(row.class?.name || row.current_class),
+        Section: safeCell(row.sectionInfo?.name || row.section),
+        Status: safeCell(row.status),
+        Email: safeCell(row.email),
+        Phone: safeCell(row.phone),
+        Guardian: safeCell(parent.guardian_name),
+        'Guardian Phone': safeCell(parent.guardian_phone),
+        'Guardian Email': safeCell(parent.guardian_email)
+      };
     });
+    return res
+      .status(200)
+      .type('text/csv; charset=utf-8')
+      .attachment('students.csv')
+      .send(Papa.unparse(rows));
   } catch (error) {
     logger.error('Error exporting student report:', error);
     return next(error);
   }
 };
 
+const buildBulkImportGuardianData = (getValue, schoolId, branchId, userId) => {
+  const guardianName = getValue('GuardianName', 'guardianname');
+  const guardianPhone = getValue('GuardianMobileNo', 'guardianmobileno');
+  const guardianRelation =
+    getValue('GuardianRelation', 'guardianrelation')?.toLowerCase() || 'guardian';
+  const guardianEmail = getValue('GuardianEmail', 'guardianemail') || null;
+  const guardianOccupation = getValue('GuardianOccupation', 'guardianoccupation') || null;
+  const guardianEducation = getValue('GuardianEducation', 'guardianeducation') || null;
+  const guardianIncome = getValue('GuardianIncome', 'guardianincome') ?? null;
+  const guardianData = {
+    guardian_name: guardianName ? guardianName.substring(0, 100) : null,
+    guardian_phone: guardianPhone ? guardianPhone.substring(0, 20) : null,
+    guardian_email: guardianEmail,
+    guardian_relation: guardianRelation,
+    guardian_occupation: guardianOccupation,
+    guardian_income: guardianIncome,
+    guardian_education: guardianEducation,
+    address: getValue('GuardianAddress', 'guardianaddress') || null,
+    city: getValue('City', 'city') || null,
+    state: getValue('State', 'state') || null,
+    postal_code: getValue('PostalCode', 'postalcode') || null,
+    country: getValue('Country', 'country') || 'India',
+    emergency_contact: true,
+    school_id: schoolId,
+    branch_id: branchId,
+    created_by: userId,
+    updated_by: userId,
+    mother_name: getValue('MotherName', 'mothername') || null,
+    father_phone: getValue('FatherPhone', 'fatherphone') || null,
+    father_email: getValue('FatherEmail', 'fatheremail') || null,
+    father_occupation: getValue('FatherOccupation', 'fatheroccupation') || null,
+    father_qualification: getValue('FatherQualification', 'fatherqualification') || null,
+    father_income: getValue('FatherIncome', 'fatherincome') ?? null,
+    mother_phone: getValue('MotherPhone', 'motherphone') || null,
+    mother_email: getValue('MotherEmail', 'motheremail') || null,
+    mother_occupation: getValue('MotherOccupation', 'motheroccupation') || null,
+    mother_qualification: getValue('MotherQualification', 'motherqualification') || null,
+    mother_income: getValue('MotherIncome', 'motherincome') ?? null
+  };
+
+  if (guardianRelation === 'father') {
+    Object.assign(guardianData, {
+      father_name: guardianData.guardian_name,
+      father_phone: getValue('FatherPhone', 'fatherphone') || guardianData.guardian_phone,
+      father_email: getValue('FatherEmail', 'fatheremail') || guardianEmail,
+      father_occupation: getValue('FatherOccupation', 'fatheroccupation') || guardianOccupation,
+      father_qualification:
+        getValue('FatherQualification', 'fatherqualification') || guardianEducation,
+      father_income: getValue('FatherIncome', 'fatherincome') ?? guardianIncome
+    });
+  } else if (guardianRelation === 'mother') {
+    Object.assign(guardianData, {
+      mother_name: guardianData.guardian_name,
+      mother_phone: getValue('MotherPhone', 'motherphone') || guardianData.guardian_phone,
+      mother_email: getValue('MotherEmail', 'motheremail') || guardianEmail,
+      mother_occupation: getValue('MotherOccupation', 'motheroccupation') || guardianOccupation,
+      mother_qualification:
+        getValue('MotherQualification', 'motherqualification') || guardianEducation,
+      mother_income: getValue('MotherIncome', 'motherincome') ?? guardianIncome
+    });
+  }
+
+  const fatherName = getValue('FatherName', 'fathername');
+  const motherName = getValue('MotherName', 'mothername');
+  if (fatherName) guardianData.father_name = fatherName.substring(0, 100);
+  if (motherName) guardianData.mother_name = motherName.substring(0, 100);
+  return guardianData;
+};
+
 // Bulk import students from CSV
 const bulkImportStudents = async (req, res, next) => {
+  let importBatch = null;
   try {
     if (!req.file) {
       throw new ApiError(400, 'CSV file is required');
     }
 
-    const { branch_id, class_id, section_id, academic_year_id } = req.body;
-
-    // Validate required fields
-    if (!branch_id || !class_id) {
-      throw new ApiError(400, 'Branch and Class are required');
-    }
+    const { class_id, section_id, academic_year_id } = req.body;
 
     // Determine school_id and branch_id based on user role
     let school_id;
@@ -1676,42 +2450,91 @@ const bulkImportStudents = async (req, res, next) => {
       school_id = req.user.school_id;
     }
 
-    // Read and parse CSV file using proper CSV parser
+    let branchId = req.body.branch_id;
+    if (req.user.role === 'branch_admin') {
+      const assignedBranchId = getAssignedBranchId(req);
+      if (branchId && branchId !== assignedBranchId) {
+        throw new ApiError(403, 'Not authorized to import students into this branch');
+      }
+      branchId = assignedBranchId;
+    }
+
+    if (!branchId || !class_id) {
+      throw new ApiError(400, 'Branch and Class are required');
+    }
+    branchId = await resolveStudentBranch(school_id, branchId);
+
+    // Parse uploads in memory so preview never writes the original file to disk.
     if (!req.file || !req.file.buffer) {
-      throw new ApiError(400, 'CSV file is required and must be uploaded properly');
+      throw new ApiError(400, 'Student import file is required and must be uploaded properly');
     }
 
-    const csvContent = req.file.buffer.toString('utf-8');
-    if (!csvContent || csvContent.trim().length === 0) {
-      throw new ApiError(400, 'CSV file is empty');
+    const filename = req.file.originalname || 'students.csv';
+    const isSpreadsheet = /\.(xlsx|xls)$/i.test(filename);
+    const hasMapping = Boolean(req.body.column_mapping);
+    let dataRows;
+    if (req.query?.discover === 'true' || isSpreadsheet || hasMapping) {
+      let parsedFile;
+      try {
+        parsedFile = inspectStudentImport(req.file.buffer, filename);
+      } catch (error) {
+        throw new ApiError(400, error.message);
+      }
+
+      if (req.query?.discover === 'true') {
+        return res.status(200).json({
+          success: true,
+          data: {
+            headers: parsedFile.headers,
+            header_row: parsedFile.headerRow + 1,
+            total_rows: parsedFile.dataRows.length,
+            fields: STUDENT_IMPORT_FIELDS
+          }
+        });
+      }
+
+      let mapping;
+      try {
+        mapping = typeof req.body.column_mapping === 'string'
+          ? JSON.parse(req.body.column_mapping)
+          : req.body.column_mapping;
+        if (!mapping) throw new Error('Upload the file and match its columns before previewing');
+        dataRows = mapStudentImportRows(parsedFile.dataRows, mapping);
+      } catch (error) {
+        throw new ApiError(400, error.message);
+      }
+    } else {
+      const csvContent = req.file.buffer.toString('utf-8');
+      if (!csvContent || csvContent.trim().length === 0) {
+        throw new ApiError(400, 'CSV file is empty');
+      }
+
+      const result = Papa.parse(csvContent, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: header => header.trim(),
+        dynamicTyping: false,
+        delimiter: '',
+        newline: '',
+        quoteChar: '"',
+        escapeChar: '"'
+      });
+
+      if (result.errors.length > 0) {
+        throw new ApiError(
+          400,
+          `CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`
+        );
+      }
+
+      dataRows = result.data;
     }
-
-    // Parse CSV using Papa Parse
-    const result = Papa.parse(csvContent, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: header => header.trim(),
-      dynamicTyping: false, // Keep all values as strings for consistent processing
-      delimiter: '', // Auto-detect delimiter
-      newline: '', // Auto-detect newline
-      quoteChar: '"',
-      escapeChar: '"'
-    });
-
-    if (result.errors.length > 0) {
-      throw new ApiError(
-        400,
-        `CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`
-      );
-    }
-
-    const dataRows = result.data;
 
     if (dataRows.length === 0) {
-      throw new ApiError(400, 'CSV file must contain at least one data row');
+      throw new ApiError(400, 'Import file must contain at least one data row');
     }
 
-    // Validate required columns - all mandatory fields
+    // Keep the legacy fixed-header CSV contract intact; mapped imports validate required mappings above.
     const requiredColumns = [
       { pascalCase: 'FirstName', lowercase: 'firstname' },
       { pascalCase: 'Gender', lowercase: 'gender' },
@@ -1729,7 +2552,7 @@ const bulkImportStudents = async (req, res, next) => {
     }
 
     const headers = Object.keys(dataRows[0]);
-    const missingColumns = requiredColumns.filter(
+    const missingColumns = hasMapping ? [] : requiredColumns.filter(
       col => !headers.includes(col.pascalCase) && !headers.includes(col.lowercase)
     );
 
@@ -1742,17 +2565,40 @@ const bulkImportStudents = async (req, res, next) => {
     }
 
     // Get class and section names
-    const classRecord = await Class.findByPk(class_id);
+    const classRecord = await Class.findOne({
+      where: { id: class_id, school_id, branch_id: branchId, is_active: true }
+    });
     if (!classRecord) {
       throw new ApiError(400, 'Invalid class ID');
     }
 
     let sectionRecord = null;
     if (section_id) {
-      sectionRecord = await Section.findByPk(section_id);
+      sectionRecord = await Section.findOne({
+        where: {
+          id: section_id,
+          class_id,
+          school_id,
+          branch_id: branchId,
+          is_active: true
+        }
+      });
       if (!sectionRecord) {
         throw new ApiError(400, 'Invalid section ID');
       }
+    }
+
+    if (req.body.stream_id) {
+      const stream = await Stream.findOne({
+        where: {
+          id: req.body.stream_id,
+          class_id,
+          school_id,
+          branch_id: branchId,
+          is_active: true
+        }
+      });
+      if (!stream) throw new ApiError(400, 'Invalid stream for this class and branch');
     }
 
     // Get academic year name - use provided ID or fallback to current academic year
@@ -1785,6 +2631,10 @@ const bulkImportStudents = async (req, res, next) => {
       }
     }
 
+    const previewOnly = req.query?.preview === 'true';
+    const previewRows = [];
+    const previewAdmissionNumbers = new Set();
+    const previewRollNumbers = new Set();
     const results = {
       total: dataRows.length,
       successful: 0,
@@ -1792,39 +2642,71 @@ const bulkImportStudents = async (req, res, next) => {
       errors: []
     };
 
+    if (!previewOnly) {
+      importBatch = await StudentImportBatch.create({
+        school_id,
+        branch_id: branchId,
+        imported_by: req.user.id,
+        file_name: filename.replace(/^.*[\\/]/, '').slice(0, 255) || 'student-import',
+        total_rows: results.total,
+        status: 'in_progress'
+      });
+    }
+
     // Process each row with individual transactions
     for (let i = 0; i < dataRows.length; i++) {
       const rowData = dataRows[i];
       if (!rowData || Object.keys(rowData).length === 0) continue;
 
-      const rowTransaction = await sequelize.transaction();
+      const rowTransaction = previewOnly ? null : await sequelize.transaction();
 
       try {
         // Map category ID to category name
-        const categoryMapping = {
-          1: 'general',
-          2: 'obc',
-          3: 'sc',
-          4: 'st',
-          5: 'other'
-        };
-
-        const categoryId = rowData.Category?.toString() || rowData.CategoryID?.toString();
-        const category = categoryMapping[categoryId] || 'general';
-
         // Helper function to get value from row data with case-insensitive matching
         const getValue = (pascalCase, lowercase) => {
           return rowData[pascalCase] || rowData[lowercase] || null;
         };
 
+        const rawCategory = getValue('Category', 'category') || getValue('CategoryID', 'categoryid');
+        const categoryMapping = {
+          '1': 'general', '2': 'obc', '3': 'sc', '4': 'st', '5': 'other',
+          general: 'general', gen: 'general', obc: 'obc', sc: 'sc', st: 'st', other: 'other'
+        };
+        let category = rawCategory
+          ? categoryMapping[String(rawCategory).trim().toLowerCase()]
+          : 'general';
+        let categoryId = null;
+        if (rawCategory && !category) {
+          const categoryWhere = {
+            school_id,
+            is_active: true,
+            name: { [Op.iLike]: String(rawCategory).trim() }
+          };
+          const schoolCategoryOptions = { where: { ...categoryWhere, branch_id: null } };
+          const branchCategory = await StudentCategory.findOne({
+            where: { ...categoryWhere, branch_id: branchId }
+          });
+          const customCategory =
+            branchCategory || (await StudentCategory.findOne(schoolCategoryOptions));
+          if (!customCategory) {
+            throw new Error(`Unsupported student category "${rawCategory}"`);
+          }
+          category = 'other';
+          categoryId = customCategory.id;
+        }
+        const suppliedFirstName = getValue('FirstName', 'firstname');
+        const fullNameParts = String(getValue('FullName', 'fullname') || '').trim().split(/\s+/).filter(Boolean);
+        const firstName = suppliedFirstName || fullNameParts[0] || null;
+        const lastName = getValue('LastName', 'lastname') ||
+          (!suppliedFirstName && fullNameParts.length > 1 ? fullNameParts[fullNameParts.length - 1] : null);
+        const middleName = getValue('MiddleName', 'middlename') ||
+          (!suppliedFirstName && fullNameParts.length > 2 ? fullNameParts.slice(1, -1).join(' ') : null);
+
         // Validate and transform data
         const studentData = {
-          first_name: getValue('FirstName', 'firstname')
-            ? getValue('FirstName', 'firstname').substring(0, 50)
-            : null,
-          last_name: getValue('LastName', 'lastname')
-            ? getValue('LastName', 'lastname').substring(0, 50)
-            : null, // Now optional
+          first_name: firstName ? firstName.substring(0, 50) : null,
+          middle_name: middleName ? middleName.substring(0, 50) : null,
+          last_name: lastName ? lastName.substring(0, 50) : null,
           gender: getValue('Gender', 'gender')?.toLowerCase(),
           date_of_birth: getValue('Birthday', 'birthday'),
           admission_date: getValue('AdmissionDate', 'admissiondate'),
@@ -1837,12 +2719,17 @@ const bulkImportStudents = async (req, res, next) => {
           caste: getValue('Caste', 'caste') || null, // Always mapped
           aadhaar_number: getValue('AadhaarNumber', 'aadhaarnumber') || null, // Always mapped
           address: getValue('Address', 'address') || null, // Always mapped
+          postal_code: getValue('PostalCode', 'postalcode') || null,
+          country: getValue('Country', 'country') || 'India',
+          nationality: getValue('Nationality', 'nationality') || 'Indian',
           phone: getValue('Phone', 'phone') ? getValue('Phone', 'phone').substring(0, 20) : null,
+          emergency_contact: getValue('EmergencyContact', 'emergencycontact') || null,
           city: getValue('City', 'city') || null,
           state: getValue('State', 'state') || null,
           present_address: getValue('PresentAddress', 'presentaddress') || null,
           permanent_address: getValue('PermanentAddress', 'permanentaddress') || null,
           category: category,
+          category_id: categoryId,
           email: getValue('StudentEmail', 'studentemail') || null,
           // Junior college specific fields
           admission_sought_in: getValue('Stream', 'stream')?.toLowerCase() || null, // arts, commerce, science
@@ -1854,8 +2741,27 @@ const bulkImportStudents = async (req, res, next) => {
               return [];
             }
           })(),
+          medical_info: Object.fromEntries(
+            [
+              ['place_of_birth', getValue('PlaceOfBirth', 'placeofbirth')],
+              ['height', getValue('Height', 'height')],
+              ['weight', getValue('Weight', 'weight')],
+              ['medical_history', getValue('MedicalHistory', 'medicalhistory')]
+            ].filter(([, value]) => value)
+          ),
+          documents: {
+            admission_extras: Object.fromEntries(
+              [
+                ['house', getValue('House', 'house')],
+                ['pen', getValue('PEN', 'pen')],
+                ['apaar_id', getValue('APAARID', 'apaarid')],
+                ['sr_no', getValue('SRNo', 'srno')],
+                ['previous_software_id', getValue('PreviousSoftwareID', 'previoussoftwareid')]
+              ].filter(([, value]) => value)
+            )
+          },
           school_id,
-          branch_id,
+          branch_id: branchId,
           class_id,
           section_id: section_id || null,
           stream_id: req.body.stream_id || null, // Add stream_id from request body
@@ -1870,7 +2776,7 @@ const bulkImportStudents = async (req, res, next) => {
 
         // Validate student required fields with strict checking
         const studentRequiredFields = [
-          { field: 'FirstName', value: getValue('FirstName', 'firstname'), name: 'First Name' },
+          { field: 'FirstName', value: firstName, name: 'First Name' },
           { field: 'Gender', value: getValue('Gender', 'gender'), name: 'Gender' },
           { field: 'Birthday', value: getValue('Birthday', 'birthday'), name: 'Date of Birth' },
           {
@@ -1894,18 +2800,18 @@ const bulkImportStudents = async (req, res, next) => {
         }
 
         // Validate field lengths
-        const firstName = getValue('FirstName', 'firstname');
-        const lastName = getValue('LastName', 'lastname');
+        const firstNameValue = firstName;
+        const lastNameValue = lastName;
         const phone = getValue('Phone', 'phone');
 
-        if (firstName && firstName.length > 50) {
+        if (firstNameValue && firstNameValue.length > 50) {
           throw new Error(
-            `First name too long (${firstName.length} chars, max 50): ${firstName.substring(0, 30)}...`
+            `First name too long (${firstNameValue.length} chars, max 50): ${firstNameValue.substring(0, 30)}...`
           );
         }
-        if (lastName && lastName.length > 50) {
+        if (lastNameValue && lastNameValue.length > 50) {
           throw new Error(
-            `Last name too long (${lastName.length} chars, max 50): ${lastName.substring(0, 30)}...`
+            `Last name too long (${lastNameValue.length} chars, max 50): ${lastNameValue.substring(0, 30)}...`
           );
         }
         if (phone && phone.length > 20) {
@@ -1952,6 +2858,12 @@ const bulkImportStudents = async (req, res, next) => {
           );
         }
 
+        if (previewOnly && previewAdmissionNumbers.has(studentData.admission_number)) {
+          throw new Error(
+            `Admission number ${studentData.admission_number} is duplicated in this file`
+          );
+        }
+
         // Check for duplicate admission number
         const existingStudent = await Student.findOne({
           where: {
@@ -1967,17 +2879,29 @@ const bulkImportStudents = async (req, res, next) => {
           );
         }
 
+        const rollKey = [
+          branchId,
+          class_id,
+          section_id || '',
+          req.body.stream_id || '',
+          studentData.roll_number || ''
+        ].join('|');
+
         // Check for duplicate roll number in the same class-section-stream combination
         if (studentData.roll_number) {
           const rollNumberWhere = {
             roll_number: studentData.roll_number,
-            branch_id: branch_id,
+            branch_id: branchId,
             class_id: class_id
           };
 
           // Only include section_id in the query if it's provided
           if (section_id) {
             rollNumberWhere.section_id = section_id;
+          }
+
+          if (previewOnly && previewRollNumbers.has(rollKey)) {
+            throw new Error(`Roll number ${studentData.roll_number} is duplicated in this file`);
           }
 
           // Include stream_id in the check if it's provided (only if not null/undefined)
@@ -2006,114 +2930,79 @@ const bulkImportStudents = async (req, res, next) => {
           }
         }
 
+        if (previewOnly) {
+          const guardianData = buildBulkImportGuardianData(
+            getValue,
+            school_id,
+            branchId,
+            req.user.id
+          );
+          const existingParent = await Parent.findOne({
+            where: {
+              guardian_phone: guardianData.guardian_phone,
+              school_id,
+              branch_id: branchId
+            }
+          });
+          await Student.build(studentData).validate();
+          await Student.validateSubscriptionCapacity(school_id, results.successful);
+          if (!existingParent) await Parent.build(guardianData).validate();
+
+          previewAdmissionNumbers.add(studentData.admission_number);
+          if (studentData.roll_number) previewRollNumbers.add(rollKey);
+          previewRows.push({
+            row: i + 1,
+            admission_number: studentData.admission_number,
+            student_name: [studentData.first_name, studentData.last_name]
+              .filter(Boolean)
+              .join(' '),
+            class: classRecord.name,
+            section: sectionRecord?.name || null
+          });
+          results.successful++;
+          continue;
+        }
+
         // Create student
         const student = await Student.create(studentData, {
           transaction: rowTransaction
         });
-        // Create guardian/parent (required fields already validated)
-        {
-          const guardianData = {
-            guardian_name: getValue('GuardianName', 'guardianname')
-              ? getValue('GuardianName', 'guardianname').substring(0, 100)
-              : null,
-            guardian_phone: getValue('GuardianMobileNo', 'guardianmobileno')
-              ? getValue('GuardianMobileNo', 'guardianmobileno').substring(0, 20)
-              : null,
-            guardian_email: getValue('GuardianEmail', 'guardianemail') || null,
-            guardian_relation:
-              getValue('GuardianRelation', 'guardianrelation')?.toLowerCase() || 'guardian',
-            guardian_occupation: getValue('GuardianOccupation', 'guardianoccupation') || null,
-            guardian_income:
-              getValue('GuardianIncome', 'guardianincome') !== undefined
-                ? getValue('GuardianIncome', 'guardianincome')
-                : null, // Always mapped, allow null
-            guardian_education: getValue('GuardianEducation', 'guardianeducation') || null, // Always mapped, allow null
-            address: getValue('GuardianAddress', 'guardianaddress') || null,
-            city: getValue('City', 'city') || null,
-            state: getValue('State', 'state') || null,
-            country: 'India',
-            emergency_contact: true, // Set to true since this is the emergency contact
+        const guardianData = buildBulkImportGuardianData(
+          getValue,
+          school_id,
+          branchId,
+          req.user.id
+        );
+        const existingParent = await Parent.findOne({
+          where: {
+            guardian_phone: guardianData.guardian_phone,
             school_id,
-            branch_id,
-            created_by: req.user.id,
-            updated_by: req.user.id,
-            mother_name: getValue('MotherName', 'mothername') || null // Always mapped
-          };
-
-          // Set father or mother information based on relation
-          if (guardianData.guardian_relation === 'father') {
-            guardianData.father_name = getValue('GuardianName', 'guardianname')
-              ? getValue('GuardianName', 'guardianname').substring(0, 100)
-              : null;
-            guardianData.father_phone = getValue('GuardianMobileNo', 'guardianmobileno')
-              ? getValue('GuardianMobileNo', 'guardianmobileno').substring(0, 20)
-              : null;
-            guardianData.father_email = getValue('GuardianEmail', 'guardianemail') || null;
-            guardianData.father_occupation =
-              getValue('GuardianOccupation', 'guardianoccupation') || null;
-            guardianData.father_qualification =
-              getValue('GuardianEducation', 'guardianeducation') || null;
-            guardianData.father_income =
-              getValue('GuardianIncome', 'guardianincome') !== undefined
-                ? getValue('GuardianIncome', 'guardianincome')
-                : null;
-          } else if (guardianData.guardian_relation === 'mother') {
-            guardianData.mother_name = getValue('GuardianName', 'guardianname')
-              ? getValue('GuardianName', 'guardianname').substring(0, 100)
-              : null;
-            guardianData.mother_phone = getValue('GuardianMobileNo', 'guardianmobileno')
-              ? getValue('GuardianMobileNo', 'guardianmobileno').substring(0, 20)
-              : null;
-            guardianData.mother_email = getValue('GuardianEmail', 'guardianemail') || null;
-            guardianData.mother_occupation =
-              getValue('GuardianOccupation', 'guardianoccupation') || null;
-            guardianData.mother_qualification =
-              getValue('GuardianEducation', 'guardianeducation') || null;
-            guardianData.mother_income =
-              getValue('GuardianIncome', 'guardianincome') !== undefined
-                ? getValue('GuardianIncome', 'guardianincome')
-                : null;
-          }
-
-          // Set both father and mother names if provided separately
-          if (getValue('FatherName', 'fathername')) {
-            guardianData.father_name = getValue('FatherName', 'fathername').substring(0, 100);
-          }
-          if (getValue('MotherName', 'mothername')) {
-            guardianData.mother_name = getValue('MotherName', 'mothername').substring(0, 100);
-          }
-
-          // Check if parent already exists with same phone number in same school/branch
-          let guardian;
-          const existingParent = await Parent.findOne({
-            where: {
-              guardian_phone: guardianData.guardian_phone,
-              school_id: school_id,
-              branch_id: branch_id
-            },
-            transaction: rowTransaction
-          });
-
-          if (existingParent) {
-            guardian = existingParent;
-          } else {
-            guardian = await Parent.create(guardianData, {
-              transaction: rowTransaction
-            });
-          }
-
-          // Link student and guardian
-          await StudentParent.create(
-            {
-              student_id: student.id,
-              parent_id: guardian.id,
-              relationship: guardianData.guardian_relation,
-              is_primary: true,
-              is_emergency_contact: true
-            },
-            { transaction: rowTransaction }
-          );
-        }
+            branch_id: branchId
+          },
+          transaction: rowTransaction
+        });
+        const guardian =
+          existingParent || (await Parent.create(guardianData, { transaction: rowTransaction }));
+        const studentParent = await StudentParent.create(
+          {
+            student_id: student.id,
+            parent_id: guardian.id,
+            relationship: guardianData.guardian_relation,
+            is_primary: true,
+            is_emergency_contact: true
+          },
+          { transaction: rowTransaction }
+        );
+        await StudentImportBatchRow.create(
+          {
+            batch_id: importBatch.id,
+            student_id: student.id,
+            student_parent_id: studentParent.id,
+            parent_id: guardian.id,
+            parent_created: !existingParent
+          },
+          { transaction: rowTransaction }
+        );
 
         // Commit the row transaction
         await rowTransaction.commit();
@@ -2121,7 +3010,7 @@ const bulkImportStudents = async (req, res, next) => {
       } catch (error) {
         // Rollback the row transaction
         try {
-          await rowTransaction.rollback();
+          if (rowTransaction) await rowTransaction.rollback();
         } catch (rollbackError) {
           // Ignore rollback errors
         }
@@ -2130,18 +3019,303 @@ const bulkImportStudents = async (req, res, next) => {
         results.errors.push({
           row: i + 1, // +1 because of 0-based index
           error: error.message,
-          data: rowData
+          ...(!previewOnly && { data: rowData })
         });
       }
     }
 
+    let historySaved;
+    if (importBatch) {
+      try {
+        await importBatch.update({
+          status: results.successful === 0 ? 'failed' : results.failed ? 'partial' : 'completed',
+          successful_rows: results.successful,
+          failed_rows: results.failed,
+          row_errors: results.errors.slice(0, 500).map(({ row, error }) => ({ row, error })),
+          completed_at: new Date(),
+          undo_ready: results.successful > 0
+        });
+        historySaved = true;
+      } catch (error) {
+        logger.error('Could not save student import history summary:', error);
+        historySaved = false;
+      }
+    }
+
+    const responseData = previewOnly ? { ...results, previewRows } : results;
+    const responseMessage = previewOnly
+      ? `Preview complete. ${results.successful} students are ready to import, ${results.failed} rows need correction. No records were created.`
+      : `Import completed. ${results.successful} students imported successfully, ${results.failed} failed.`;
+
     res.status(200).json({
       success: true,
-      data: results,
-      message: `Import completed. ${results.successful} students imported successfully, ${results.failed} failed.`
+      ...(previewOnly && { previewOnly: true }),
+      ...(!previewOnly && { history_saved: historySaved }),
+      data: responseData,
+      message: responseMessage
     });
   } catch (error) {
+    if (importBatch) {
+      try {
+        await importBatch.update({ status: 'interrupted', completed_at: new Date() });
+      } catch (historyError) {
+        logger.error('Could not mark student import history as interrupted:', historyError);
+      }
+    }
     logger.error('Error in bulk import:', error);
+    return next(error);
+  }
+};
+
+const getStudentImportHistory = async (req, res, next) => {
+  try {
+    const schoolId =
+      req.user.role === 'super_admin'
+        ? req.query.school_id || req.schoolId
+        : req.schoolId || req.user.school_id;
+    if (!schoolId) throw new ApiError(400, 'School ID is required');
+
+    const where = { school_id: schoolId };
+    if (req.user.role === 'branch_admin') {
+      const assignedBranchId = getAssignedBranchId(req);
+      if (req.query.branch_id && req.query.branch_id !== assignedBranchId) {
+        throw new ApiError(403, 'Not authorized to view import history for this branch');
+      }
+      where.branch_id = assignedBranchId;
+    } else if (req.query.branch_id) {
+      const branch = await Branch.findOne({
+        where: { id: req.query.branch_id, school_id: schoolId, status: 'active' }
+      });
+      if (!branch) throw new ApiError(400, 'Invalid branch for this school');
+      where.branch_id = branch.id;
+    }
+
+    const batches = await StudentImportBatch.findAll({
+      where,
+      attributes: [
+        'id',
+        'branch_id',
+        'imported_by',
+        'file_name',
+        'status',
+        'total_rows',
+        'successful_rows',
+        'failed_rows',
+        'row_errors',
+        'created_at',
+        'completed_at',
+        'undo_ready',
+        'undone_at',
+        'undo_details'
+      ],
+      order: [['created_at', 'DESC']],
+      limit: 20
+    });
+
+    return res.status(200).json({ success: true, data: batches });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const assertStudentImportHasNoDependents = async (studentIds, transaction) => {
+  const studentWhere = { student_id: { [Op.in]: studentIds } };
+  const dependencies = [
+    [GatePass, studentWhere, 'gate passes'],
+    [ParentTeacherMeetingStudent, studentWhere, 'parent-teacher meetings'],
+    [AttendanceRecord, studentWhere, 'attendance records'],
+    [ExamPosition, studentWhere, 'exam positions'],
+    [ExamResult, studentWhere, 'exam results'],
+    [HomeworkSubmission, studentWhere, 'homework submissions'],
+    [LibraryIssue, studentWhere, 'library issues'],
+    [OnlineExamAttempt, studentWhere, 'online exam attempts'],
+    [StudentPromotion, studentWhere, 'promotion records'],
+    [FeeInvoice, studentWhere, 'fee invoices'],
+    [FeePayment, studentWhere, 'fee payments'],
+    [HostelAllocation, studentWhere, 'hostel allocations'],
+    [StudentTransport, studentWhere, 'transport assignments'],
+    [Alumni, studentWhere, 'alumni records'],
+    [DynamicEntityRecord, studentWhere, 'dynamic school records']
+  ];
+
+  for (const [Model, where, label] of dependencies) {
+    const dependent = await Model.findOne({
+      where,
+      attributes: ['id'],
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (dependent) {
+      throw new ApiError(409, `Undo blocked: imported students have ${label}.`);
+    }
+  }
+};
+
+const undoStudentImportBatch = async (req, res, next) => {
+  try {
+    const schoolId =
+      req.user.role === 'super_admin'
+        ? req.body.school_id || req.query.school_id || req.schoolId
+        : req.schoolId || req.user.school_id;
+    if (!schoolId) throw new ApiError(400, 'School ID is required');
+
+    const result = await sequelize.transaction(
+      { isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE },
+      async transaction => {
+        const where = { id: req.params.id, school_id: schoolId };
+        if (req.user.role === 'branch_admin') {
+          const assignedBranchId = getAssignedBranchId(req);
+          if (req.body.branch_id && req.body.branch_id !== assignedBranchId) {
+            throw new ApiError(403, 'Not authorized to undo imports for this branch');
+          }
+          where.branch_id = assignedBranchId;
+        }
+
+        const batch = await StudentImportBatch.findOne({
+          where,
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (!batch) throw new ApiError(404, 'Student import batch not found');
+        if (batch.undone_at || batch.status === 'undone') {
+          throw new ApiError(409, 'This student import was already undone');
+        }
+        if (!['completed', 'partial'].includes(batch.status) || !batch.undo_ready) {
+          throw new ApiError(409, 'This import does not have complete undo ownership records');
+        }
+
+        const batchRows = await StudentImportBatchRow.findAll({
+          where: { batch_id: batch.id },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (!batchRows.length || batchRows.length !== batch.successful_rows) {
+          throw new ApiError(409, 'Import ownership records are incomplete; no records were changed');
+        }
+        const studentIds = batchRows.map(row => row.student_id);
+        const studentParentIds = batchRows.map(row => row.student_parent_id);
+        if (
+          studentIds.some(id => !id) ||
+          studentParentIds.some(id => !id) ||
+          new Set(studentIds).size !== studentIds.length ||
+          new Set(studentParentIds).size !== studentParentIds.length
+        ) {
+          throw new ApiError(409, 'Import records changed after the run; no records were changed');
+        }
+
+        const students = await Student.findAll({
+          where: {
+            id: { [Op.in]: studentIds },
+            school_id: batch.school_id,
+            branch_id: batch.branch_id
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (students.length !== studentIds.length) {
+          throw new ApiError(409, 'Some imported students moved or no longer exist; no records were changed');
+        }
+        if (students.some(student => new Date(student.updated_at).getTime() > new Date(student.created_at).getTime())) {
+          throw new ApiError(409, 'Imported students were edited after the import; no records were changed');
+        }
+
+        const currentLinks = await StudentParent.findAll({
+          where: { student_id: { [Op.in]: studentIds } },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        const expectedLinkIds = new Set(studentParentIds);
+        if (
+          currentLinks.length !== studentParentIds.length ||
+          currentLinks.some(
+            link =>
+              !expectedLinkIds.has(link.id) ||
+              new Date(link.updated_at).getTime() > new Date(link.created_at).getTime()
+          )
+        ) {
+          throw new ApiError(409, 'Student-parent links changed after the import; no records were changed');
+        }
+
+        await assertStudentImportHasNoDependents(studentIds, transaction);
+
+        const createdParentIds = [
+          ...new Set(batchRows.filter(row => row.parent_created && row.parent_id).map(row => row.parent_id))
+        ];
+        const createdParents = createdParentIds.length
+          ? await Parent.findAll({
+              where: { id: { [Op.in]: createdParentIds }, school_id: batch.school_id },
+              transaction,
+              lock: transaction.LOCK.UPDATE
+            })
+          : [];
+
+        await StudentParent.destroy({
+          where: { id: { [Op.in]: studentParentIds }, student_id: { [Op.in]: studentIds } },
+          transaction
+        });
+        await Student.destroy({
+          where: {
+            id: { [Op.in]: studentIds },
+            school_id: batch.school_id,
+            branch_id: batch.branch_id
+          },
+          transaction
+        });
+
+        const remainingParentLinks = createdParentIds.length
+          ? await StudentParent.findAll({
+              where: { parent_id: { [Op.in]: createdParentIds } },
+              attributes: ['parent_id'],
+              transaction,
+              lock: transaction.LOCK.UPDATE
+            })
+          : [];
+        const inUseParentIds = new Set(remainingParentLinks.map(link => link.parent_id));
+        const removableParentIds = createdParents
+          .filter(parent => {
+            const changed = new Date(parent.updated_at).getTime() > new Date(parent.created_at).getTime();
+            return !parent.user_id && !changed && !inUseParentIds.has(parent.id);
+          })
+          .map(parent => parent.id);
+        if (removableParentIds.length) {
+          await Parent.destroy({
+            where: {
+              id: { [Op.in]: removableParentIds },
+              school_id: batch.school_id,
+              user_id: null
+            },
+            transaction
+          });
+        }
+
+        await batch.update(
+          {
+            status: 'undone',
+            undo_ready: false,
+            undone_at: new Date(),
+            undone_by: req.user.id,
+            undo_details: {
+              students_removed: students.length,
+              parents_removed: removableParentIds.length,
+              parents_preserved: createdParents.length - removableParentIds.length
+            }
+          },
+          { transaction }
+        );
+        return {
+          students_removed: students.length,
+          parents_removed: removableParentIds.length,
+          parents_preserved: createdParents.length - removableParentIds.length
+        };
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: { batch_id: req.params.id, ...result },
+      message: `Import undone. ${result.students_removed} students removed; ${result.parents_preserved} shared or updated parent records preserved.`
+    });
+  } catch (error) {
     return next(error);
   }
 };
@@ -2149,6 +3323,7 @@ const bulkImportStudents = async (req, res, next) => {
 // Get student invoice breakdown for accordion details
 const getStudentInvoiceBreakdown = async (req, res, next) => {
   try {
+    const assignedBranchId = getAssignedBranchId(req);
     const { id: studentId } = req.params;
     const { academic_year, status, payment_model } = req.query;
 
@@ -2156,7 +3331,11 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
     const student = await Student.findOne({
       where: {
         id: studentId,
-        school_id: req.schoolId
+        school_id: req.schoolId,
+        ...(['branch_admin', 'accountant'].includes(req.user.role) &&
+          (assignedBranchId || req.user.branch_id) && {
+            branch_id: assignedBranchId || req.user.branch_id
+          })
       },
       include: [
         {
@@ -2381,14 +3560,18 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
 
 module.exports = {
   createStudent,
+  resolveStudentAcademicPlacement,
   getStudents,
   getStudentById,
   updateStudent,
   getStudentsByClass,
   getStudentStats,
   getStudentReport,
+  getStudentRiskRegister,
   exportStudentReport,
   bulkImportStudents,
+  getStudentImportHistory,
+  undoStudentImportBatch,
   getStudentInvoiceBreakdown,
   setStudentAuthentication
 };

@@ -26,9 +26,9 @@ class StreamController {
       if (req.user.role === 'super_admin') {
         // Super admin can see all streams
         logger.debug('getAllStreams: Super admin - no additional constraints');
-      } else if (req.user.role === 'admin') {
+      } else if (req.user.role === 'admin' || req.user.role === 'accountant') {
         whereClause.school_id = req.user.school_id;
-        logger.debug('getAllStreams: School admin - filtering by school_id:', req.user.school_id);
+        logger.debug('getAllStreams: School-scoped user - filtering by school_id:', req.user.school_id);
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
         whereClause.branch_id = req.user.branch_id;
@@ -65,7 +65,7 @@ class StreamController {
       }
 
       // Add school_id filter
-      if (school_id) {
+      if (school_id && req.user.role === 'super_admin') {
         whereClause.school_id = school_id;
       }
 

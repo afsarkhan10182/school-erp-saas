@@ -1,20 +1,26 @@
-const { Op } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 const {
   Student,
   Class,
   Section,
   Exam,
   ExamResult,
-  Subject,
+  ExamSchedule,
+  ExamSubjectMark,
   School,
   User,
   GradingSystem,
-  GradeScale
+  GradeScale,
+  Subject,
+  AttendanceRecord,
+  AttendanceSession
 } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const ApiError = require('~/utils/shared/ApiError');
 const { resolveTemplatesPath } = require('~/utils/shared/pathHelper');
 const TemplateEngine = require(resolveTemplatesPath('template-engine'));
+const PDFDocument = require('pdfkit');
+const { completeSubjectMarkRollups } = require('~/utils/academic/completeSubjectMarkRollups');
 
 class ReportCardService {
   constructor() {
@@ -29,17 +35,24 @@ class ReportCardService {
       const {
         includeAttendance = true,
         includeSubjectAnalysis = true,
-        autoPrint = false
+        autoPrint = false,
+        publishedOnly = false,
+        schoolId,
+        branchId
       } = options;
 
       // Get student details with all necessary associations
-      const student = await this.getStudentWithAssociations(studentId);
+      const student = await this.getStudentWithAssociations(studentId, schoolId, branchId);
       if (!student) {
         throw new ApiError(404, 'Student not found');
       }
 
       // Get academic data
-      const academicData = await this.getAcademicData(studentId, academicYear, examTypes);
+      const academicData = await this.getAcademicData(studentId, academicYear, examTypes, {
+        schoolId,
+        branchId,
+        publishedOnly
+      });
 
       // Calculate performance metrics
       const performanceData = await this.calculatePerformanceMetrics(
@@ -55,7 +68,7 @@ class ReportCardService {
 
       // Get attendance data if requested
       const attendanceData = includeAttendance
-        ? await this.getAttendanceData(studentId, academicYear)
+        ? await this.getAttendanceData(student, academicYear)
         : null;
 
       // Generate remarks
@@ -85,9 +98,13 @@ class ReportCardService {
   /**
    * Get student with all necessary associations
    */
-  async getStudentWithAssociations(studentId) {
+  async getStudentWithAssociations(studentId, schoolId, branchId) {
     return await Student.findOne({
-      where: { id: studentId },
+      where: {
+        id: studentId,
+        ...(schoolId && { school_id: schoolId }),
+        ...(branchId && { branch_id: branchId })
+      },
       include: [
         {
           model: Class,
@@ -102,7 +119,7 @@ class ReportCardService {
         {
           model: School,
           as: 'school',
-          attributes: ['id', 'name', 'address', 'phone', 'email', 'logo_url']
+          attributes: ['id', 'name', 'address', 'phone', 'email', 'logo']
         }
       ]
     });
@@ -111,63 +128,134 @@ class ReportCardService {
   /**
    * Get academic data (exams and results)
    */
-  async getAcademicData(studentId, academicYear, examTypes = null) {
-    // Build exam filter
-    const examFilter = {
-      academic_year: academicYear
-    };
-
-    if (examTypes) {
-      examFilter.exam_type = { [Op.in]: examTypes.split(',') };
-    }
-
-    // Get all exams for the student's class/section
-    const student = await Student.findByPk(studentId, {
-      attributes: ['class_id', 'section_id']
+  async getAcademicData(studentId, academicYear, examTypes = null, context = {}) {
+    const student = await Student.findOne({
+      where: {
+        id: studentId,
+        ...(context.schoolId && { school_id: context.schoolId }),
+        ...(context.branchId && { branch_id: context.branchId })
+      },
+      attributes: ['class_id', 'section_id', 'school_id', 'branch_id']
     });
 
     if (!student) {
       throw new ApiError(404, 'Student not found');
     }
 
-    examFilter.class_id = student.class_id;
+    const examFilter = {
+      academic_year: academicYear,
+      school_id: student.school_id,
+      branch_id: student.branch_id
+    };
+    if (context.publishedOnly) examFilter.result_status = true;
+    const scheduleWhere = {
+      school_id: student.school_id,
+      branch_id: student.branch_id,
+      class_id: student.class_id,
+      is_active: true,
+      status: { [Op.ne]: 'cancelled' }
+    };
     if (student.section_id) {
-      examFilter.section_id = student.section_id;
+      scheduleWhere[Op.or] = [{ section_id: student.section_id }, { section_id: null }];
+    } else {
+      scheduleWhere.section_id = null;
+    }
+    if (examTypes) {
+      const typeIds = examTypes.split(',').map(Number).filter(Number.isInteger);
+      if (typeIds.length) examFilter.type_id = { [Op.in]: typeIds };
     }
 
     const exams = await Exam.findAll({
       where: examFilter,
       include: [
         {
-          model: Subject,
-          as: 'subject',
-          attributes: ['id', 'name', 'code', 'category']
+          model: ExamSchedule,
+          as: 'schedules',
+          attributes: ['id', 'exam_id', 'class_id', 'section_id', 'subject_id', 'total_marks', 'is_active', 'status'],
+          where: scheduleWhere,
+          required: true,
+          include: [
+            {
+              model: Subject,
+              as: 'subject',
+              attributes: ['id', 'name', 'code', 'category'],
+              required: false
+            }
+          ]
         }
       ],
-      order: [['exam_date', 'ASC']]
+      distinct: true,
+      order: [['created_at', 'ASC']]
     });
 
     // Get all exam results for the student
-    const results = await ExamResult.findAll({
+    const resultRows = await ExamResult.findAll({
       where: {
         student_id: studentId,
+        school_id: student.school_id,
+        branch_id: student.branch_id,
         exam_id: { [Op.in]: exams.map(e => e.id) }
       },
       include: [
         {
           model: Exam,
-          as: 'exam',
-          include: [
-            {
-              model: Subject,
-              as: 'subject',
-              attributes: ['id', 'name', 'code', 'category']
-            }
-          ]
+          as: 'exam'
         }
       ],
-      order: [['exam', 'exam_date', 'ASC']]
+      order: [['created_at', 'ASC']]
     });
+
+    const subjectsByExam = new Map(exams.map(exam => {
+      const subjects = new Map();
+      (exam.schedules || []).forEach(schedule => {
+        const subject = schedule.subject;
+        if (subject?.id) subjects.set(subject.id, subject.toJSON ? subject.toJSON() : subject);
+      });
+      return [exam.id, subjects.size === 1 ? subjects.values().next().value : null];
+    }));
+    const legacyResults = resultRows.map(result => {
+      const data = result.toJSON ? result.toJSON() : result;
+      const subject = subjectsByExam.get(data.exam_id);
+      return subject ? { ...data, exam: { ...data.exam, subject } } : data;
+    });
+
+    const schedules = exams.flatMap(exam => (exam.schedules || []).map(schedule =>
+      schedule.toJSON ? schedule.toJSON() : schedule
+    ));
+    const subjectMarks = schedules.length
+      ? await ExamSubjectMark.findAll({
+          where: {
+            exam_schedule_id: { [Op.in]: schedules.map(schedule => schedule.id) },
+            student_id: studentId,
+            school_id: student.school_id,
+            branch_id: student.branch_id
+          }
+        })
+      : [];
+    const resolved = completeSubjectMarkRollups({
+      exams: exams.map(exam => exam.toJSON ? exam.toJSON() : exam),
+      students: [{ id: studentId, class_id: student.class_id, section_id: student.section_id }],
+      schedules,
+      subjectMarks,
+      examResults: legacyResults
+    });
+    const results = [...resolved.values()]
+      .map(result => {
+        const subject = subjectsByExam.get(result.exam_id);
+        return result.is_subject_rollup && subject
+          ? { ...result, exam: { ...result.exam, subject } }
+          : result;
+      })
+      .sort((a, b) =>
+        exams.findIndex(exam => exam.id === a.exam_id) - exams.findIndex(exam => exam.id === b.exam_id)
+      );
+    const subjectRollups = results.filter(result => result.is_subject_rollup);
+    if (subjectRollups.length) {
+      const gradingSystem = await this.getGradingSystem(student.school_id);
+      subjectRollups.forEach(result => {
+        result.grade = this.calculateGrade(Number(result.percentage), gradingSystem);
+      });
+    }
 
     return { exams, results };
   }
@@ -324,7 +412,7 @@ class ReportCardService {
     const subjectPerformance = {};
 
     validResults.forEach(result => {
-      const subjectName = result.exam.subject.name;
+      const subjectName = result.exam.subject?.name || result.exam.name || 'Exam';
       if (!subjectPerformance[subjectName]) {
         subjectPerformance[subjectName] = {
           total_marks: 0,
@@ -355,12 +443,12 @@ class ReportCardService {
 
     // Group results by subject
     results.forEach(result => {
-      const subjectName = result.exam.subject.name;
+      const subjectName = result.exam.subject?.name || result.exam.name || 'Exam';
       if (!subjectAnalysis[subjectName]) {
         subjectAnalysis[subjectName] = {
           subject_name: subjectName,
-          subject_code: result.exam.subject.code,
-          category: result.exam.subject.category,
+          subject_code: result.exam.subject?.code || null,
+          category: result.exam.subject?.category || null,
           exams: [],
           total_marks: 0,
           max_marks: 0,
@@ -372,8 +460,8 @@ class ReportCardService {
 
       subjectAnalysis[subjectName].exams.push({
         exam_name: result.exam.name,
-        exam_type: result.exam.exam_type,
-        exam_date: result.exam.exam_date,
+        exam_type: result.exam.type_id,
+        exam_date: result.exam.created_at,
         marks_obtained: result.marks_obtained,
         max_marks: result.exam.max_marks,
         percentage: result.percentage,
@@ -428,17 +516,53 @@ class ReportCardService {
   /**
    * Get attendance data for the student
    */
-  async getAttendanceData(studentId, academicYear) {
+  async getAttendanceData(student, academicYear) {
     try {
-      // This would integrate with the attendance module
-      // For now, return placeholder data - in production, this would query attendance tables
-      return {
-        total_days: 180,
-        present_days: 165,
-        absent_days: 10,
-        late_days: 5,
-        attendance_percentage: 91.67
+      const rows = await AttendanceRecord.findAll({
+        where: {
+          student_id: student.id,
+          school_id: student.school_id,
+          branch_id: student.branch_id
+        },
+        attributes: ['status', [fn('COUNT', col('AttendanceRecord.id')), 'record_count']],
+        include: [
+          {
+            model: AttendanceSession,
+            as: 'session',
+            attributes: [],
+            where: {
+              school_id: student.school_id,
+              branch_id: student.branch_id,
+              status: 'published',
+              ...(academicYear
+                ? { [Op.or]: [{ academic_year: academicYear }, { academic_year: null }] }
+                : {})
+            },
+            required: true
+          },
+        ],
+        group: ['AttendanceRecord.status']
+      });
+      const attendance = {
+        total_days: 0,
+        present_days: 0,
+        absent_days: 0,
+        late_days: 0,
+        excused_days: 0
       };
+      rows.forEach(row => {
+        const count = Number(row.record_count ?? row.get?.('record_count') ?? 0);
+        attendance.total_days += count;
+        if (row.status === 'present') attendance.present_days = count;
+        if (row.status === 'absent') attendance.absent_days = count;
+        if (row.status === 'late') attendance.late_days = count;
+        if (row.status === 'excused') attendance.excused_days = count;
+      });
+      attendance.attendance_percentage = attendance.total_days
+        ? ((attendance.present_days + attendance.late_days) / attendance.total_days) * 100
+        : null;
+      attendance.attended_days = attendance.present_days + attendance.late_days;
+      return attendance;
     } catch (error) {
       logger.error('Error getting attendance data:', error);
       return null;
@@ -539,7 +663,7 @@ class ReportCardService {
       const html = await this.templateEngine.renderTemplate('reports', 'report-card', {
         ...reportCardData,
         generatedAt: new Date().toLocaleDateString(),
-        schoolLogo: reportCardData.student.school?.logo_url || null
+        schoolLogo: reportCardData.student.school?.logo || null
       });
       return html;
     } catch (error) {
@@ -549,20 +673,87 @@ class ReportCardService {
     }
   }
 
-  /**
-   * Generate PDF report card using HTML template
-   */
+  /** Generate a downloadable PDF report card. */
   async generatePDFReportCard(reportCardData) {
-    try {
-      const html = await this.generateHTMLReportCard(reportCardData);
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'A4', margin: 48 });
+      const chunks = [];
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
 
-      // For now, return HTML - PDF generation can be implemented with puppeteer or similar
-      // This would require additional dependencies like puppeteer
-      return html;
-    } catch (error) {
-      logger.error('Error generating PDF report card:', error);
-      throw error;
-    }
+      try {
+        const {
+          student,
+          academic_year,
+          performance,
+          attendance,
+          results = [],
+          remarks = []
+        } = reportCardData;
+        const fullName =
+          `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student';
+
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(18)
+          .text(student.school?.name || 'School', { align: 'center' });
+        doc.fontSize(15).text('Student Report Card', { align: 'center' });
+        doc.moveDown();
+        doc.font('Helvetica-Bold').fontSize(11).text('Student Information');
+        doc.font('Helvetica').fontSize(10);
+        doc.text(`Name: ${fullName}`);
+        doc.text(`Admission No.: ${student.admission_number || 'N/A'}`);
+        doc.text(
+          `Class: ${student.class?.name || 'N/A'}${student.sectionInfo?.name ? ` - ${student.sectionInfo.name}` : ''}`
+        );
+        doc.text(`Academic Year: ${academic_year || 'N/A'}`);
+        doc.moveDown();
+
+        doc.font('Helvetica-Bold').fontSize(11).text('Academic Summary');
+        doc.font('Helvetica').fontSize(10);
+        doc.text(
+          `Exams: ${performance.total_exams}    Average: ${Number(performance.average_percentage || 0).toFixed(2)}%    Overall Grade: ${performance.overall_grade || 'N/A'}`
+        );
+        doc.text(
+          `Marks: ${performance.total_marks}/${performance.max_marks}    GPA: ${Number(performance.average_gpa || 0).toFixed(2)}`
+        );
+        doc.moveDown();
+
+        doc.font('Helvetica-Bold').fontSize(11).text('Exam Results');
+        doc.font('Helvetica').fontSize(10);
+        for (const result of results) {
+          const subject = result.exam?.subject?.name || result.exam?.name || 'Subject';
+          const marks = result.is_absent
+            ? 'Absent'
+            : `${result.marks_obtained ?? 0}/${result.exam?.max_marks ?? 0}`;
+          doc.text(
+            `${subject}: ${marks}  |  ${Number(result.percentage || 0).toFixed(2)}%  |  Grade ${result.grade || 'N/A'}`
+          );
+        }
+
+        if (attendance) {
+          doc.moveDown();
+          doc.font('Helvetica-Bold').fontSize(11).text('Attendance');
+          doc.font('Helvetica').fontSize(10);
+          doc.text(attendance.total_days
+            ? `${attendance.attended_days ?? attendance.present_days}/${attendance.total_days} days attended (${Number(attendance.attendance_percentage).toFixed(2)}%)`
+            : 'No published attendance records');
+        }
+
+        if (remarks.length) {
+          doc.moveDown();
+          doc.font('Helvetica-Bold').fontSize(11).text('Remarks');
+          doc.font('Helvetica').fontSize(10);
+          remarks.forEach(remark => doc.text(`• ${remark}`, { paragraphGap: 3 }));
+        }
+
+        doc.end();
+      } catch (error) {
+        logger.error('Error generating PDF report card:', error);
+        reject(error);
+      }
+    });
   }
 
   /**

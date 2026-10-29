@@ -38,22 +38,37 @@
           <div>
             <div class="flex items-center space-x-2">
               <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-                {{ currentBranch?.name || 'Active Branch' }}
+                {{ currentBranch?.name || currentSchool?.name || 'School' }}
               </h3>
               <span
+                v-if="currentBranch"
                 class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-full font-medium"
               >
                 Active Branch
               </span>
             </div>
-            <p v-if="currentSchool" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p
+              v-if="currentBranch && currentSchool"
+              class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
+            >
               {{ currentSchool.name }}
             </p>
           </div>
         </div>
-        <div class="text-xs text-gray-500 dark:text-gray-400 italic hidden sm:block">
+        <div
+          v-if="currentBranch"
+          class="text-xs text-gray-500 dark:text-gray-400 italic hidden sm:block"
+        >
           Branch context selected from Top Navigation
         </div>
+      </div>
+
+      <div
+        v-if="!isEditing && !form.branch_id"
+        role="alert"
+        class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+      >
+        Select a specific branch from the top navigation before creating a student.
       </div>
 
       <!-- Academic Details -->
@@ -1328,7 +1343,7 @@
       <!-- Action Buttons -->
       <div class="flex justify-end space-x-4">
         <button type="button" @click="resetForm" class="btn-secondary">Reset Form</button>
-        <button type="submit" :disabled="loading" class="btn-primary">
+        <button type="submit" :disabled="loading || !form.branch_id" class="btn-primary">
           <span v-if="loading" class="flex items-center">
             <svg
               class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
@@ -1695,6 +1710,7 @@ watch(
         form.admission_date = date.toISOString().split('T')[0];
       }
       if (newData.category) form.category = newData.category;
+      form.category_id = newData.category_id || newData.categoryInfo?.id || '';
 
       // Use class and section IDs directly from API response if available
       if (newData.class_id) {
@@ -1822,7 +1838,20 @@ watch(
           // Set guardian name based on relation
           if (parent.guardian_name) {
             form.guardian.name = parent.guardian_name;
-            form.guardian.relation = parent.guardian_relation || 'guardian';
+            const relation = String(parent.guardian_relation || 'guardian')
+              .trim()
+              .toLowerCase();
+            form.guardian.relation = [
+              'father',
+              'mother',
+              'guardian',
+              'uncle',
+              'aunt',
+              'grandparent',
+              'other'
+            ].includes(relation)
+              ? relation
+              : 'other';
           } else if (parent.father_name) {
             form.guardian.name = parent.father_name;
             form.guardian.relation = 'father';
@@ -3241,8 +3270,7 @@ onMounted(async () => {
         authStore.currentBranch?.school_id ||
         user.value?.school_id ||
         '';
-      form.branch_id =
-        selectedBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
+      form.branch_id = selectedBranchId.value || authStore.currentBranch?.id || '';
       if (form.branch_id) {
         await onBranchChange();
       }
@@ -3254,13 +3282,13 @@ onMounted(async () => {
 
     // Watch top bar branch switch for create mode
     watch(selectedBranchId, async newVal => {
-      if (!props.isEditing && newVal && newVal !== form.branch_id) {
+      if (!props.isEditing && newVal !== form.branch_id) {
         form.school_id =
           currentSchool.value?.id ||
           authStore.currentBranch?.school_id ||
           user.value?.school_id ||
           '';
-        form.branch_id = newVal;
+        form.branch_id = newVal || '';
         await onBranchChange();
       }
     });

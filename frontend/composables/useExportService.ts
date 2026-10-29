@@ -50,6 +50,31 @@ export const useExportService = () => {
       value: 'attendance',
       label: 'Attendance Report',
       description: 'Export attendance records with student and class details'
+    },
+    {
+      value: 'library',
+      label: 'Library Catalog Report',
+      description: 'Export branch-scoped library catalog details'
+    },
+    {
+      value: 'homeworks',
+      label: 'Homework Assignments',
+      description: 'Export assignments matching the selected school and branch filters'
+    },
+    {
+      value: 'gate_passes',
+      label: 'Gate Pass Register',
+      description: 'Export safe gate pass register fields for the selected school and branch'
+    },
+    {
+      value: 'visitors',
+      label: 'Visitor Register',
+      description: 'Export visitor register fields for the selected school and branch'
+    },
+    {
+      value: 'admission_enquiries',
+      label: 'Admission Enquiries',
+      description: 'Export safe admission enquiry fields for the selected school and branch'
     }
   ];
 

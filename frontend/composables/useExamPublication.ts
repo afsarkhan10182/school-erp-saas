@@ -34,6 +34,8 @@ export const useExamPublication = () => {
     exam_id: string;
     publish_status: boolean;
     result_status: boolean;
+    school_id?: string;
+    branch_id?: string;
     notify_students?: boolean;
     notify_parents?: boolean;
     notification_message?: string;
@@ -55,6 +57,8 @@ export const useExamPublication = () => {
     exam_ids: string[];
     publish_status: boolean;
     result_status: boolean;
+    school_id?: string;
+    branch_id?: string;
   }) => {
     try {
       publishing.value = true;
@@ -74,6 +78,8 @@ export const useExamPublication = () => {
     settings: {
       email_enabled: boolean;
       sms_enabled: boolean;
+      school_id?: string;
+      branch_id?: string;
       email_template?: string;
       sms_template?: string;
       notification_message?: string;

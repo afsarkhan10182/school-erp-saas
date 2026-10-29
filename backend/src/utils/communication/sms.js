@@ -1,5 +1,5 @@
 const config = require('~/config/config');
-const logger = require('../shared/logger');
+const { logger } = require('../shared/logger');
 const ApiError = require('../shared/ApiError');
 const httpStatus = require('http-status');
 
@@ -27,7 +27,7 @@ const sendSMS = async options => {
 
     // TODO: Integrate with SMS provider (Twilio, AWS SNS, etc.)
     // For now, we'll log the SMS instead of actually sending
-    if (config.env === 'development') {
+    if (config.app.env === 'development') {
       logger.info('SMS would be sent:', {
         to,
         message: message.substring(0, 50) + '...',

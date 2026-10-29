@@ -4,12 +4,18 @@ const {
   OnlineExamQuestion,
   OnlineExamAttempt,
   Student,
+  Parent,
   Class
 } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const { schoolWhere, schoolIdOf, resolveSchoolBranchScope } = require('~/utils/shared/requestScope');
 
 const STAFF_ROLES = new Set(['super_admin', 'admin', 'branch_admin', 'teacher']);
+
+const attemptDeadline = (attempt, exam) => {
+  const durationEnd = new Date(new Date(attempt.createdAt).getTime() + Number(exam.duration_minutes || 60) * 60000);
+  return exam.end_at && new Date(exam.end_at) < durationEnd ? new Date(exam.end_at) : durationEnd;
+};
 
 const list = async (req, res) => {
   try {
@@ -50,6 +56,9 @@ const list = async (req, res) => {
 
 const getOne = async (req, res) => {
   try {
+    if (!STAFF_ROLES.has(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Only exam staff can manage online exams' });
+    }
     const exam = await OnlineExam.findOne({
       where: { id: req.params.id, ...schoolWhere(req) },
       include: [
@@ -64,9 +73,6 @@ const getOne = async (req, res) => {
     });
     if (!exam) return res.status(404).json({ success: false, message: 'Not found' });
     const data = exam.toJSON();
-    if (!STAFF_ROLES.has(req.user.role)) {
-      data.questions = (data.questions || []).map(({ correct_option, ...q }) => q);
-    }
     return res.json({ success: true, data: { exam: data } });
   } catch (error) {
     logger.error('online exam get', error);
@@ -77,11 +83,31 @@ const getOne = async (req, res) => {
 const available = async (req, res) => {
   try {
     const where = { ...schoolWhere(req), status: 'published' };
+    let student;
     if (req.user.role === 'student') {
-      const student = await Student.findOne({ where: { user_id: req.user.id, school_id: schoolIdOf(req) } });
+      student = await Student.findOne({ where: { user_id: req.user.id, school_id: schoolIdOf(req) } });
       if (!student) return res.json({ success: true, data: { exams: [] } });
       where[Op.or] = [{ class_id: student.class_id }, { class_id: null }];
       if (student.branch_id) where.branch_id = student.branch_id;
+    } else if (req.user.role === 'parent') {
+      const parent = await Parent.findOne({
+        where: { user_id: req.user.id, school_id: schoolIdOf(req) },
+        attributes: ['id'],
+        include: [{
+          model: Student,
+          as: 'students',
+          attributes: ['class_id', 'branch_id'],
+          through: { attributes: [] }
+        }]
+      });
+      const childScopes = [...new Map((parent?.students || []).flatMap(student => [
+        { class_id: student.class_id, branch_id: student.branch_id },
+        { class_id: student.class_id, branch_id: null },
+        { class_id: null, branch_id: student.branch_id },
+        { class_id: null, branch_id: null }
+      ]).map(scope => [`${scope.class_id || '*'}:${scope.branch_id || '*'}`, scope])).values()];
+      if (!childScopes.length) return res.json({ success: true, data: { exams: [] } });
+      where[Op.or] = childScopes;
     }
     const exams = await OnlineExam.findAll({
       where,
@@ -89,10 +115,89 @@ const available = async (req, res) => {
       include: [{ model: Class, as: 'class', attributes: ['id', 'name'], required: false }],
       order: [['start_at', 'ASC'], ['created_at', 'DESC']]
     });
-    return res.json({ success: true, data: { exams } });
+    let attemptStatuses = new Map();
+    if (req.user.role === 'student' && exams.length) {
+      const attempts = await OnlineExamAttempt.findAll({
+        where: { student_id: student.id, online_exam_id: { [Op.in]: exams.map(exam => exam.id) } },
+        attributes: ['online_exam_id', 'status']
+      });
+      attemptStatuses = new Map(attempts.map(attempt => [attempt.online_exam_id, attempt.status]));
+    }
+    return res.json({
+      success: true,
+      data: { exams: exams.map(exam => ({ ...exam.toJSON(), attempt_status: attemptStatuses.get(exam.id) || null })) }
+    });
   } catch (error) {
     logger.error('online exam available', error);
     return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const parentProgress = async (req, res) => {
+  try {
+    const studentId = req.query.student_id;
+    if (!studentId) {
+      return res.status(400).json({ success: false, message: 'Student is required.' });
+    }
+    const parent = await Parent.findOne({
+      where: { user_id: req.user.id, school_id: schoolIdOf(req) },
+      attributes: ['id'],
+      include: [{
+        model: Student,
+        as: 'students',
+        attributes: ['id', 'school_id', 'branch_id'],
+        through: { attributes: [] }
+      }]
+    });
+    const student = parent?.students?.find(child => child.id === studentId);
+    if (!student || student.school_id !== schoolIdOf(req)) {
+      return res.status(404).json({ success: false, message: 'Linked student not found.' });
+    }
+
+    const attempts = await OnlineExamAttempt.findAll({
+      where: { student_id: student.id, school_id: schoolIdOf(req) },
+      attributes: ['id', 'status', 'score', 'submitted_at'],
+      include: [{
+        model: OnlineExam,
+        as: 'exam',
+        where: {
+          school_id: schoolIdOf(req),
+          ...(student.branch_id
+            ? { [Op.or]: [{ branch_id: student.branch_id }, { branch_id: null }] }
+            : { branch_id: null })
+        },
+        attributes: ['id', 'title', 'total_marks', 'pass_marks'],
+        required: true
+      }],
+      order: [['submitted_at', 'DESC']]
+    });
+    return res.json({
+      success: true,
+      data: {
+        attempts: attempts.map(attempt => {
+          const row = attempt.toJSON();
+          const submitted = row.status === 'submitted';
+          const totalMarks = Number(row.exam.total_marks);
+          const score = Number(row.score);
+          const passMarks = Number(row.exam.pass_marks);
+          const scoreAvailable =
+            submitted && Number.isFinite(score) && Number.isFinite(totalMarks) && totalMarks > 0;
+          const passThresholdAvailable =
+            scoreAvailable && Number.isFinite(passMarks) && passMarks > 0 && passMarks <= totalMarks;
+          return {
+            id: row.id,
+            status: row.status,
+            submitted_at: row.submitted_at,
+            exam: row.exam,
+            score: scoreAvailable ? row.score : null,
+            passed: passThresholdAvailable ? score >= passMarks : null
+          };
+        })
+      }
+    });
+  } catch (error) {
+    logger.error('online exam parent progress', error);
+    return res.status(500).json({ success: false, message: 'Unable to load exam progress.' });
   }
 };
 
@@ -211,8 +316,12 @@ const addQuestion = async (req, res) => {
 
 const deleteQuestion = async (req, res) => {
   try {
+    const exam = await OnlineExam.findOne({
+      where: { id: req.params.id, ...schoolWhere(req) }
+    });
+    if (!exam) return res.status(404).json({ success: false, message: 'Exam not found' });
     const q = await OnlineExamQuestion.findOne({
-      where: { id: req.params.questionId, school_id: schoolIdOf(req) }
+      where: { id: req.params.questionId, online_exam_id: exam.id, school_id: schoolIdOf(req) }
     });
     if (!q) return res.status(404).json({ success: false, message: 'Not found' });
     const examId = q.online_exam_id;
@@ -229,6 +338,9 @@ const deleteQuestion = async (req, res) => {
 /** Take paper for student — hide correct answers */
 const takePaper = async (req, res) => {
   try {
+    if (!STAFF_ROLES.has(req.user.role) && req.user.role !== 'student') {
+      return res.status(403).json({ success: false, message: 'Only students can take online exams' });
+    }
     const exam = await OnlineExam.findOne({
       where: { id: req.params.id, ...schoolWhere(req), status: 'published' },
       include: [
@@ -241,6 +353,51 @@ const takePaper = async (req, res) => {
       ]
     });
     if (!exam) return res.status(404).json({ success: false, message: 'Exam not available' });
+    let remainingSeconds;
+    let savedAnswers;
+    if (req.user.role === 'student') {
+      const student = await Student.findOne({ where: { user_id: req.user.id, school_id: exam.school_id } });
+      if (!student || (exam.branch_id && student.branch_id !== exam.branch_id) || (exam.class_id && student.class_id !== exam.class_id)) {
+        return res.status(404).json({ success: false, message: 'Exam not available' });
+      }
+      const now = new Date();
+      if (exam.start_at && now < new Date(exam.start_at)) {
+        return res.status(400).json({ success: false, message: 'Exam is not currently available' });
+      }
+      let attempt = await OnlineExamAttempt.findOne({ where: { online_exam_id: exam.id, student_id: student.id } });
+      if (exam.end_at && now > new Date(exam.end_at)) {
+        if (attempt?.status === 'in_progress') await attempt.update({ status: 'expired' });
+        return res.status(400).json({ success: false, message: 'Exam is not currently available' });
+      }
+      if (attempt && attempt.status !== 'in_progress') {
+        return res.status(409).json({ success: false, message: attempt.status === 'expired' ? 'Exam attempt expired' : 'Exam already submitted' });
+      }
+      if (attempt && now >= attemptDeadline(attempt, exam)) {
+        await attempt.update({ status: 'expired' });
+        return res.status(410).json({ success: false, message: 'Exam attempt expired' });
+      }
+      if (!attempt) {
+        try {
+          attempt = await OnlineExamAttempt.create({
+            online_exam_id: exam.id,
+            student_id: student.id,
+            answers_json: {},
+            score: 0,
+            status: 'in_progress',
+            school_id: exam.school_id,
+            submitted_at: null
+          });
+        } catch (error) {
+          if (error.name !== 'SequelizeUniqueConstraintError') throw error;
+          attempt = await OnlineExamAttempt.findOne({ where: { online_exam_id: exam.id, student_id: student.id } });
+          if (!attempt || attempt.status !== 'in_progress') {
+            return res.status(409).json({ success: false, message: 'Exam already submitted' });
+          }
+        }
+      }
+      remainingSeconds = Math.max(0, Math.ceil((attemptDeadline(attempt, exam).getTime() - now.getTime()) / 1000));
+      savedAnswers = attempt.answers_json || {};
+    }
     const paper = exam.toJSON();
     paper.questions = (paper.questions || []).map(q => ({
       id: q.id,
@@ -249,9 +406,66 @@ const takePaper = async (req, res) => {
       marks: q.marks,
       sort_order: q.sort_order
     }));
-    return res.json({ success: true, data: { exam: paper } });
+    return res.json({
+      success: true,
+      data: {
+        exam: paper,
+        remaining_seconds: remainingSeconds,
+        ...(req.user.role === 'student' ? { answers_json: savedAnswers } : {})
+      }
+    });
   } catch (error) {
     logger.error('online exam take', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const saveAnswers = async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ success: false, message: 'Only students can save exam answers' });
+    }
+    const exam = await OnlineExam.findOne({
+      where: { id: req.params.id, ...schoolWhere(req), status: 'published' }
+    });
+    if (!exam) return res.status(404).json({ success: false, message: 'Exam not available' });
+    const student = await Student.findOne({ where: { user_id: req.user.id, school_id: exam.school_id } });
+    if (!student || (exam.branch_id && student.branch_id !== exam.branch_id) || (exam.class_id && student.class_id !== exam.class_id)) {
+      return res.status(404).json({ success: false, message: 'Exam not available' });
+    }
+    const answers = req.body.answers_json;
+    if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
+      return res.status(400).json({ success: false, message: 'answers_json must be an object' });
+    }
+    const attempt = await OnlineExamAttempt.findOne({
+      where: { online_exam_id: exam.id, student_id: student.id }
+    });
+    if (!attempt || attempt.status !== 'in_progress') {
+      return res.status(409).json({ success: false, message: 'No active exam attempt to save' });
+    }
+    const now = new Date();
+    if ((exam.start_at && now < new Date(exam.start_at)) || (exam.end_at && now > new Date(exam.end_at)) || now >= attemptDeadline(attempt, exam)) {
+      await attempt.update({ status: 'expired' });
+      return res.status(410).json({ success: false, message: 'Exam attempt expired' });
+    }
+    const questions = await OnlineExamQuestion.findAll({
+      where: { online_exam_id: exam.id, school_id: exam.school_id },
+      attributes: ['id', 'options_json']
+    });
+    const questionById = new Map(questions.map(question => [question.id, question]));
+    const saved = {};
+    for (const [questionId, choice] of Object.entries(answers)) {
+      const options = questionById.get(questionId)?.options_json;
+      const optionIndex = Number(choice);
+      if (!Array.isArray(options) || !Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= options.length) {
+        return res.status(400).json({ success: false, message: 'One or more answers are invalid' });
+      }
+      saved[questionId] = optionIndex;
+    }
+    await attempt.update({ answers_json: saved });
+    return res.json({ success: true, data: { saved: true } });
+  } catch (error) {
+    logger.error('online exam save answers', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -267,7 +481,7 @@ const submit = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Exam is not published' });
     }
     const now = new Date();
-    if ((exam.start_at && now < new Date(exam.start_at)) || (exam.end_at && now > new Date(exam.end_at))) {
+    if (exam.start_at && now < new Date(exam.start_at)) {
       return res.status(400).json({ success: false, message: 'Exam is not currently available' });
     }
 
@@ -291,7 +505,15 @@ const submit = async (req, res) => {
     const existing = await OnlineExamAttempt.findOne({
       where: { online_exam_id: exam.id, student_id }
     });
-    if (existing) {
+    if (req.user.role === 'student') {
+      if (!existing || existing.status !== 'in_progress') {
+        return res.status(409).json({ success: false, message: existing?.status === 'expired' ? 'Exam attempt expired' : 'Start the exam before submitting' });
+      }
+      if ((exam.end_at && now > new Date(exam.end_at)) || now >= attemptDeadline(existing, exam)) {
+        await existing.update({ status: 'expired' });
+        return res.status(410).json({ success: false, message: 'Exam attempt expired' });
+      }
+    } else if (existing) {
       return res.status(409).json({ success: false, message: 'Exam already submitted' });
     }
 
@@ -304,15 +526,17 @@ const submit = async (req, res) => {
       }
     });
 
-    const attempt = await OnlineExamAttempt.create({
-      online_exam_id: exam.id,
-      student_id,
-      answers_json: answers,
-      score,
-      status: 'submitted',
-      school_id: exam.school_id,
-      submitted_at: new Date()
-    });
+    const attempt = req.user.role === 'student'
+      ? await existing.update({ answers_json: answers, score, status: 'submitted', submitted_at: now })
+      : await OnlineExamAttempt.create({
+        online_exam_id: exam.id,
+        student_id,
+        answers_json: answers,
+        score,
+        status: 'submitted',
+        school_id: exam.school_id,
+        submitted_at: now
+      });
 
     const passed = score >= Number(exam.pass_marks || 0);
     return res.json({
@@ -337,7 +561,7 @@ const results = async (req, res) => {
     });
     if (!exam) return res.status(404).json({ success: false, message: 'Not found' });
     const attempts = await OnlineExamAttempt.findAll({
-      where: { online_exam_id: exam.id },
+      where: { online_exam_id: exam.id, status: 'submitted' },
       include: [
         {
           model: Student,
@@ -370,12 +594,14 @@ module.exports = {
   list,
   getOne,
   available,
+  parentProgress,
   create,
   update,
   remove,
   addQuestion,
   deleteQuestion,
   takePaper,
+  saveAnswers,
   submit,
   results
 };

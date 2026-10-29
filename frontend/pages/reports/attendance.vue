@@ -274,7 +274,7 @@
               type="text"
               :disabled="loading"
               class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              placeholder="2024-25"
+              placeholder="YYYY-YYYY"
             />
           </div>
 
@@ -645,7 +645,7 @@ const { isSuperAdmin, isAdmin } = useAuth();
 
 // Export and print services
 const { generateReport, isGenerating } = useExportService();
-const { printReport: printReportCommon } = usePrintReport();
+const { printReport: printReportCommon, openPrintWindow } = usePrintReport();
 
 // Academic composables
 const { classes, sections, fetchClasses, fetchSections } = useAcademics();
@@ -997,8 +997,15 @@ const validateDataAvailability = (action = 'export') => {
 
 // Print functionality
 const printAttendanceReport = async () => {
+  let printWindow: Window | null = null;
   try {
     if (!validateColumnVisibility('print')) {
+      return;
+    }
+
+    printWindow = openPrintWindow();
+    if (!printWindow) {
+      showToast('Please allow popups to print the report', 'error');
       return;
     }
 
@@ -1006,6 +1013,7 @@ const printAttendanceReport = async () => {
     const allRecords = await load(1, true);
 
     if (!allRecords || allRecords.length === 0) {
+      printWindow.close();
       showToast('No data to print. Please load some attendance records first.', 'warning');
       return;
     }
@@ -1051,9 +1059,11 @@ const printAttendanceReport = async () => {
       showSummary: true,
       showFilters: true,
       showFooter: true,
-      autoPrint: true
+      autoPrint: true,
+      printWindow
     });
   } catch (error) {
+    printWindow?.close();
     showToast('Error printing report', 'error');
   }
 };

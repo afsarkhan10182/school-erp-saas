@@ -8,6 +8,16 @@ const { logger } = require('~/utils/shared/logger');
 const path = require('path');
 const fs = require('fs').promises;
 
+const findReportTemplate = (schoolId, reportType, templateId) =>
+  ReportTemplate.findOne({
+    where: {
+      ...(templateId ? { id: templateId } : { is_default: true }),
+      report_type: reportType,
+      is_active: true,
+      [Op.or]: [{ school_id: schoolId }, { school_id: null }]
+    }
+  });
+
 class ExamReportController {
   /**
    * Get generated reports by exam ID
@@ -85,30 +95,7 @@ class ExamReportController {
       throw new ApiError(404, 'Exam not found');
     }
 
-    // Get template
-    let template = null;
-    if (template_id) {
-      template = await ReportTemplate.findOne({
-        where: {
-          id: template_id,
-          report_type,
-          is_active: true
-        }
-      });
-    } else {
-      // Get default template for report type
-      template = await ReportTemplate.findOne({
-        where: {
-          report_type,
-          is_default: true,
-          is_active: true,
-          [Op.or]: [
-            { school_id: req.user.school_id },
-            { school_id: null } // Global templates
-          ]
-        }
-      });
-    }
+    const template = await findReportTemplate(req.user.school_id, report_type, template_id);
 
     if (!template) {
       throw new ApiError(404, 'No template found for this report type');
@@ -157,30 +144,7 @@ class ExamReportController {
       throw new ApiError(404, 'Exam not found');
     }
 
-    // Get template
-    let template = null;
-    if (template_id) {
-      template = await ReportTemplate.findOne({
-        where: {
-          id: template_id,
-          report_type,
-          is_active: true
-        }
-      });
-    } else {
-      // Get default template for report type
-      template = await ReportTemplate.findOne({
-        where: {
-          report_type,
-          is_default: true,
-          is_active: true,
-          [Op.or]: [
-            { school_id: req.user.school_id },
-            { school_id: null } // Global templates
-          ]
-        }
-      });
-    }
+    const template = await findReportTemplate(req.user.school_id, report_type, template_id);
 
     if (!template) {
       throw new ApiError(404, 'No template found for this report type');

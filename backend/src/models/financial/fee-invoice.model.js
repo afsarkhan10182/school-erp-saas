@@ -122,6 +122,10 @@ const FeeInvoice = sequelize.define(
       allowNull: false,
       defaultValue: 0.0
     },
+    late_fee_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true
+    },
     payment_terms: {
       type: DataTypes.TEXT,
       allowNull: true
@@ -321,6 +325,11 @@ FeeInvoice.associate = models => {
   FeeInvoice.hasMany(models.FeePayment, {
     foreignKey: 'invoice_id',
     as: 'payments'
+  });
+
+  FeeInvoice.hasMany(models.FeeInvoiceAdjustment, {
+    foreignKey: 'invoice_id',
+    as: 'adjustments'
   });
 };
 

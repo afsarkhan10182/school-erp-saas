@@ -4,7 +4,12 @@
     <div class="modal-header">
       <div class="modal-title">Receipt Viewer</div>
       <div class="modal-actions">
-        <button @click="printReceipt" class="action-button print-button" title="Print Receipt">
+        <button
+          @click="printReceipt"
+          :disabled="receiptData.payment_status === 'reversed'"
+          class="action-button print-button disabled:opacity-50"
+          :title="receiptData.payment_status === 'reversed' ? 'Reversed receipts cannot be reprinted' : 'Print Receipt'"
+        >
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               stroke-linecap="round"
@@ -29,8 +34,14 @@
     </div>
 
     <!-- Receipt Container -->
-    <div class="receipt-container" ref="receiptContainer">
-      <div class="receipt" :class="{ 'receipt-print': isPrinting }">
+    <div class="receipt-container">
+      <div
+        v-if="receiptData.payment_status === 'reversed'"
+        class="mb-3 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
+      >
+        REVERSED — {{ receiptData.reversal_reason }}
+      </div>
+      <div class="receipt">
         <!-- Header -->
         <div class="header">
           <img
@@ -308,8 +319,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useToast } from '~/composables/useToast';
+import { computed } from 'vue';
 
 const props = defineProps({
   receiptData: {
@@ -323,10 +333,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
-
-const { showToast } = useToast();
-const receiptContainer = ref(null);
-const isPrinting = ref(false);
 
 // Computed properties
 const isJuniorCollege = computed(() => {
@@ -551,183 +557,8 @@ const getReceiptTitle = () => {
 };
 
 const printReceipt = () => {
-  isPrinting.value = true;
-
-  // Create a new window for printing
-  const printContent = receiptContainer.value.innerHTML;
-  const printWindow = window.open('', '_blank');
-
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Receipt Print</title>
-      <style>
-        @page {
-          margin: 0.3in;
-          size: A4;
-        }
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: Arial, sans-serif;
-          font-size: 12px;
-          line-height: 1.2;
-        }
-        .receipt {
-          width: 100%;
-          max-width: 400px;
-          margin: 0 auto;
-          background: white;
-          border: 1px solid #ddd;
-          padding: 15px;
-          box-sizing: border-box;
-        }
-        .header {
-          padding: 15px;
-          border-bottom: 2px solid #333;
-          background: #f8f9fa;
-          display: flex;
-          align-items: flex-start;
-          gap: 15px;
-        }
-        .receipt-logo {
-          width: 60px;
-          height: 60px;
-          border-radius: 50%;
-          border: 2px solid #333;
-          object-fit: contain;
-          background: white;
-          flex-shrink: 0;
-        }
-        .header-content {
-          flex: 1;
-          text-align: center;
-        }
-        .trust-name {
-          font-size: 10px;
-          font-weight: bold;
-          color: #333;
-          margin-bottom: 5px;
-          text-transform: uppercase;
-        }
-        .school-name {
-          font-size: 14px;
-          font-weight: bold;
-          color: #000;
-          margin-bottom: 5px;
-          text-transform: uppercase;
-        }
-        .school-address {
-          font-size: 10px;
-          color: #666;
-        }
-        .receipt-title {
-          text-align: center;
-          font-size: 16px;
-          font-weight: bold;
-          color: #000;
-          margin: 15px 0;
-          text-transform: uppercase;
-        }
-        .receipt-info {
-          padding: 10px;
-        }
-        .info-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 6px;
-          font-size: 11px;
-        }
-        .info-label {
-          font-weight: bold;
-          color: #333;
-        }
-        .info-value {
-          color: #000;
-          font-weight: 500;
-        }
-        .fee-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 10px 0;
-          border: 1px solid #ddd;
-        }
-        .fee-table th {
-          background-color: #f8f9fa;
-          font-weight: bold;
-          text-align: center;
-          border: 1px solid #ddd;
-          padding: 6px;
-          font-size: 10px;
-        }
-        .fee-table td {
-          text-align: left;
-          border: 1px solid #ddd;
-          padding: 6px;
-          font-size: 10px;
-        }
-        .fee-table td:last-child {
-          text-align: right;
-        }
-        .summary-section {
-          margin: 10px 0;
-          padding: 8px;
-          background-color: #f8f9fa;
-          border: 1px solid #ddd;
-        }
-        .remaining-info {
-          background-color: #fff3cd;
-          border: 1px solid #ffeaa7;
-          padding: 8px;
-          margin: 10px 0;
-          border-radius: 3px;
-        }
-        .remaining-title {
-          font-weight: bold;
-          color: #856404;
-          margin-bottom: 3px;
-          font-size: 10px;
-        }
-        .signature-section {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 15px;
-          padding-top: 10px;
-          border-top: 1px solid #ddd;
-        }
-        .signature {
-          text-align: center;
-          font-size: 10px;
-          color: #333;
-          font-weight: 500;
-        }
-        .signature-line {
-          width: 80px;
-          border-top: 1px solid #000;
-          margin: 3px auto;
-        }
-      </style>
-    </head>
-    <body>
-      ${printContent}
-    </body>
-    </html>
-  `);
-
-  printWindow.document.close();
-
-  // Wait for content to load, then print
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-    isPrinting.value = false;
-  }, 500);
+  window.print();
 };
-
-onMounted(() => {
-  // Component mounted - no additional setup needed
-});
 </script>
 
 <style scoped>
@@ -799,9 +630,47 @@ onMounted(() => {
   }
 }
 
-.receipt-print {
-  box-shadow: none;
-  border: none;
+@media print {
+  @page {
+    margin: 0.3in;
+    size: A4;
+  }
+
+  :global(body *) {
+    visibility: hidden !important;
+  }
+
+  .receipt-viewer,
+  .receipt-viewer * {
+    visibility: visible !important;
+  }
+
+  .receipt-viewer {
+    position: fixed !important;
+    inset: 0 auto auto 0;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  .modal-header {
+    display: none !important;
+  }
+
+  .receipt-container {
+    padding: 0 !important;
+  }
+
+  .receipt {
+    width: 100% !important;
+    max-width: 400px !important;
+    margin: 0 auto !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
 }
 
 .header {

@@ -24,6 +24,10 @@ class SubscriptionLifecycleService {
     const startDate = school.subscription_start_date;
     const endDate = school.subscription_end_date;
 
+    if (school.status === 'suspended' || school.status === 'expired') {
+      return school.status;
+    }
+
     // Check if it's a lifetime plan based on billing cycle
     if (
       school.plan_details?.billing_cycle === 'lifetime' ||

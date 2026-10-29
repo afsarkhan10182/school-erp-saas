@@ -127,7 +127,7 @@ export const examApi = {
   },
 
   // Export exam results
-  exportResults: async (examId: string, format: string = 'pdf') => {
+  exportResults: async (examId: string, format: 'csv' | 'json' = 'csv') => {
     return apiCall('get', `/exams/${examId}/results/export`, { params: { format } });
   },
 
@@ -159,7 +159,7 @@ export const examApi = {
   ) => {
     const api = createApiInstance();
     const response = await api.get(`/exams/student/${studentId}/report-card`, {
-      params,
+      params: { ...params, format: 'pdf' },
       responseType: 'blob'
     });
     return response;

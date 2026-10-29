@@ -10,7 +10,7 @@
       </div>
 
       <!-- Academic Year Selector -->
-      <div class="flex items-center space-x-4">
+      <div class="flex items-end space-x-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >Academic Year</label
@@ -22,6 +22,14 @@
             @update:model-value="loadMyTimetable"
           />
         </div>
+        <button
+          v-if="myTimetable && scheduleSlots.length"
+          type="button"
+          class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+          @click="printMyTimetable"
+        >
+          Print / Save as PDF
+        </button>
       </div>
     </div>
 
@@ -164,6 +172,7 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { Academic } from '~/api';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import { buildTeacherTimetablePrintReport } from '~/utils/teacherTimetablePrint';
 
 // Composables
 const { academicYears, fetchAcademicYears } = useAcademics();
@@ -174,6 +183,8 @@ const loading = ref(false);
 const error = ref(null);
 const myTimetable = ref(null);
 const selectedAcademicYear = ref('');
+const scheduleSlots = computed(() => Object.values(myTimetable.value?.schedule || {}).flat());
+const { printReport } = usePrintReport();
 
 // Computed
 const academicYearOptions = computed(() =>
@@ -217,7 +228,7 @@ const loadMyTimetable = async () => {
     error.value = null;
 
     const response = await Academic.getMyTimetable({ academic_year: selectedAcademicYear.value });
-    myTimetable.value = response.data;
+    myTimetable.value = response.data?.timetable || response.data;
   } catch (err) {
     console.error('Error loading timetable:', err);
     error.value = err.message || 'Failed to load timetable';
@@ -230,6 +241,25 @@ const loadMyTimetable = async () => {
 const getSlotsForDayAndPeriod = (day, periodNumber) => {
   if (!myTimetable.value?.schedule?.[day]) return [];
   return myTimetable.value.schedule[day].filter(slot => slot.period_number === periodNumber);
+};
+
+const printMyTimetable = async () => {
+  if (!scheduleSlots.value.length) {
+    showToast('No timetable data to print', 'warning');
+    return;
+  }
+
+  try {
+    await printReport(buildTeacherTimetablePrintReport({
+      timetable: myTimetable.value,
+      weekDays,
+      periods,
+      academicYear: selectedAcademicYear.value
+    }), { showHeader: true, showSummary: false, showFilters: true, showFooter: true, autoPrint: true });
+  } catch (printError) {
+    console.error('Error printing teacher timetable:', printError);
+    showToast('Unable to prepare the timetable for printing', 'error');
+  }
 };
 
 const getSlotClasses = slot => {

@@ -19,7 +19,7 @@
         </div>
         <div class="mt-4 sm:mt-0 flex items-center space-x-3">
           <button
-            v-if="exam && exam.status === 'marks_entered'"
+            v-if="exam && examResults.length > 0 && !exam.result_status"
             @click="handleCalculateGrades"
             :disabled="calculatingGrades"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -50,8 +50,10 @@
           <div>
             <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>
             <p class="text-lg font-semibold text-gray-900 dark:text-white">
-              <span :class="getStatusClass(exam.status)">
-                {{ formatStatus(exam.status) }}
+              <span
+                :class="exam.result_status ? 'text-green-600' : 'text-gray-600 dark:text-gray-400'"
+              >
+                {{ exam.result_status ? 'Published' : 'Hidden' }}
               </span>
             </p>
           </div>
@@ -239,7 +241,7 @@
                 <td
                   class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white"
                 >
-                  {{ result.is_absent ? '-' : result.percentage?.toFixed(2) || '0.00' }}%
+                  {{ result.is_absent ? '-' : Number(result.percentage ?? 0).toFixed(2) }}%
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                   <span
@@ -254,7 +256,7 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                   <span
                     :class="
-                      result.is_absent
+                      result.is_absent || result.is_passed == null
                         ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                         : result.is_passed
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
@@ -262,7 +264,15 @@
                     "
                     class="px-2 py-1 rounded-full text-xs font-medium"
                   >
-                    {{ result.is_absent ? 'Absent' : result.is_passed ? 'Passed' : 'Failed' }}
+                    {{
+                      result.is_absent
+                        ? 'Absent'
+                        : result.is_passed == null
+                          ? 'N/A'
+                          : result.is_passed
+                            ? 'Passed'
+                            : 'Failed'
+                    }}
                   </span>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
@@ -378,7 +388,7 @@ const passedCount = computed(() => {
 });
 
 const failedCount = computed(() => {
-  return examResults.value.filter(r => !r.is_passed && !r.is_absent).length;
+  return examResults.value.filter(r => r.is_passed === false && !r.is_absent).length;
 });
 
 const filteredResults = computed(() => {
@@ -429,7 +439,7 @@ const loadExam = async () => {
   try {
     const response = await examApi.getById(examId);
     if (response.success) {
-      exam.value = response.data;
+      exam.value = response.data?.exam || response.data;
     }
   } catch (err) {
     showToast(err?.message || 'Failed to load exam details', 'error');
@@ -453,7 +463,7 @@ const loadResults = async () => {
         page: response.data.pagination?.page || pagination.value.page,
         limit: response.data.pagination?.limit || pagination.value.limit,
         total: response.data.pagination?.total || 0,
-        pages: response.data.pagination?.pages || 0
+        pages: response.data.pagination?.totalPages ?? response.data.pagination?.pages ?? 0
       };
     }
   } catch (err) {
@@ -540,25 +550,6 @@ const loadPage = page => {
 const getStudentName = student => {
   if (!student) return 'N/A';
   return `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'N/A';
-};
-
-const formatStatus = status => {
-  if (!status) return 'N/A';
-  return status
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
-const getStatusClass = status => {
-  const classes = {
-    draft: 'text-gray-600 dark:text-gray-400',
-    scheduled: 'text-indigo-600 dark:text-indigo-400',
-    marks_entered: 'text-yellow-600 dark:text-yellow-400',
-    grades_calculated: 'text-purple-600 dark:text-purple-400',
-    completed: 'text-green-600 dark:text-green-400'
-  };
-  return classes[status] || classes.draft;
 };
 
 const getGradeClass = grade => {

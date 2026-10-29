@@ -359,7 +359,7 @@ interface Exam {
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
-const { selectedBranchId } = useGlobalBranch();
+const { selectedBranchId, branchScopeParams } = useGlobalBranch();
 const { classes, classOptions, fetchClasses, loading: classesLoading } = useAcademics();
 const {
   getPublicationStatus,
@@ -438,10 +438,15 @@ const onBranchChange = async () => {
 };
 
 const loadPublicationExams = async () => {
+  const scopeParams = branchScopeParams.value;
+  if (user.value?.role === 'super_admin' && !scopeParams.school_id) {
+    showToast('Select a school in the inspection workspace before loading exam results.', 'error');
+    return;
+  }
+
   try {
     const filters: any = {
-      school_id: user.value?.school_id,
-      branch_id: selectedBranchId.value || user.value?.branch_id
+      ...scopeParams
     };
 
     if (selectedExamId.value) {
@@ -491,8 +496,7 @@ const togglePublish = async (exam: Exam) => {
       exam_id: exam.id,
       publish_status: !exam.publish_status,
       result_status: exam.result_status,
-      notify_students: true,
-      notify_parents: true
+      ...branchScopeParams.value
     });
 
     if (response.success) {
@@ -512,10 +516,12 @@ const togglePublish = async (exam: Exam) => {
 
 const bulkPublish = async () => {
   try {
+    const publishedCount = selectedExams.value.length;
     const response = await bulkPublishAPI({
       exam_ids: selectedExams.value,
       publish_status: true,
-      result_status: true
+      result_status: true,
+      ...branchScopeParams.value
     });
 
     if (response.success) {
@@ -533,7 +539,7 @@ const bulkPublish = async () => {
       });
 
       selectedExams.value = [];
-      showToast(`Published ${selectedExams.value.length} exams successfully`, 'success');
+      showToast(`Published ${publishedCount} exams successfully`, 'success');
     }
   } catch (error) {
     showToast('Failed to publish exams', 'error');
@@ -560,15 +566,15 @@ const sendNotifications = async () => {
   try {
     const response = await sendNotificationsAPI(
       selectedExamForNotification.value.id,
-      notificationSettings
+      { ...notificationSettings, ...branchScopeParams.value }
     );
 
     if (response.success) {
       showToast('Notifications sent successfully', 'success');
       closeNotificationModal();
     }
-  } catch (error) {
-    showToast('Failed to send notifications', 'error');
+  } catch (error: any) {
+    showToast(error?.response?.data?.message || 'Exam-result notification delivery is not configured.', 'error');
   }
 };
 

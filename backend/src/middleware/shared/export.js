@@ -9,7 +9,7 @@ const validateExportRequest = (req, res, next) => {
     const { report_type, format } = req.query;
 
     // Validate report type
-    const supportedReportTypes = ['receipts', 'fees', 'students', 'attendance'];
+    const supportedReportTypes = ['receipts', 'fees', 'students', 'attendance', 'transactions'];
     if (!report_type || !supportedReportTypes.includes(report_type)) {
       throw new ApiError(
         400,
@@ -69,7 +69,8 @@ const checkExportPermissions = (req, res, next) => {
       receipts: ['super_admin', 'admin', 'branch_admin', 'accountant'],
       fees: ['super_admin', 'admin', 'branch_admin', 'accountant'],
       students: ['super_admin', 'admin', 'branch_admin', 'teacher'],
-      attendance: ['super_admin', 'admin', 'branch_admin', 'teacher']
+      attendance: ['super_admin', 'admin', 'branch_admin', 'teacher'],
+      transactions: ['super_admin', 'admin', 'branch_admin', 'accountant']
     };
 
     const allowedRoles = permissions[report_type] || [];

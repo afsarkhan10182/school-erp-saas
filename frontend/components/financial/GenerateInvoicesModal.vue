@@ -137,6 +137,11 @@
                 <span class="ml-2 text-sm text-gray-500">Loading students...</span>
               </div>
 
+              <div v-else-if="studentsLoadError" class="text-center py-4 text-sm text-red-600">
+                {{ studentsLoadError }}
+                <button type="button" class="ml-2 underline" @click="fetchStudents">Retry</button>
+              </div>
+
               <!-- No students found -->
               <div
                 v-else-if="availableStudents.length === 0"
@@ -185,6 +190,12 @@
                 </div>
               </div>
             </div>
+            <p
+              v-if="availableStudents.length && !form.selected_student_ids.length"
+              class="text-xs text-amber-700 dark:text-amber-400"
+            >
+              Select at least one student to generate invoices for a specific group.
+            </p>
           </div>
 
           <!-- Monthly Payment Specific Fields -->
@@ -277,7 +288,7 @@
 import { ref, reactive, watch, computed, onMounted, nextTick } from 'vue';
 import { Plus, GraduationCap, Calendar, Building2 } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
-import { Students } from '~/api';
+import { FeeInvoices } from '~/api/students/fee-invoices';
 import { useToast } from '~/composables/useToast';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
@@ -489,187 +500,85 @@ const selectedFeeStructure = computed(() => {
 // Students state
 const availableStudents = ref([]);
 const loadingStudents = ref(false);
+const studentsLoadError = ref('');
+let studentFetchVersion = 0;
+
+const clearStudentOptions = () => {
+  studentFetchVersion++;
+  availableStudents.value = [];
+  loadingStudents.value = false;
+  studentsLoadError.value = '';
+};
 
 // Fetch students based on selected fee structure
 const fetchStudents = async () => {
+  const fetchVersion = ++studentFetchVersion;
   if (!form.fee_structure_id) {
     availableStudents.value = [];
+    studentsLoadError.value = '';
+    if (fetchVersion === studentFetchVersion) loadingStudents.value = false;
     return;
   }
 
   loadingStudents.value = true;
+  studentsLoadError.value = '';
   try {
     const selectedStructure = availableFeeStructures.value.find(
       s => s.id === form.fee_structure_id
     );
     if (!selectedStructure) {
-      availableStudents.value = [];
+      if (fetchVersion === studentFetchVersion) availableStudents.value = [];
       return;
     }
 
-    // Build params for student filtering
-    const params = {
-      branch_id: selectedStructure.branch_id
-      // Note: academic_year will be automatically used from the fee structure
-    };
-
-    // Add section filter if available
-    if (selectedStructure.section && selectedStructure.section !== 'All Sections') {
-      params.section = selectedStructure.section;
-    }
-
-    // If fee structure has applicable_classes (array), we need to fetch students for each class
-    if (selectedStructure.applicable_classes && selectedStructure.applicable_classes.length > 0) {
-      // Fetch students for all applicable classes
-      const allStudents = [];
-
-      for (const className of selectedStructure.applicable_classes) {
-        try {
-          // Find the class ID for the class name
-          const classItem = props.classes?.find(c => c.name === className);
-          const classId = classItem?.id;
-
-          if (!classId) {
-            continue;
-          }
-
-          // If fee structure has streams, fetch students for each stream
-          if (selectedStructure.stream_ids && selectedStructure.stream_ids.length > 0) {
-            for (const streamId of selectedStructure.stream_ids) {
-              const streamParams = {
-                ...params,
-                class_id: classId,
-                stream_id: streamId,
-                limit: 1000
-              };
-              const response = await Students.getAll(streamParams);
-
-              // Handle different response structures
-              let students = [];
-              if (response.data && Array.isArray(response.data)) {
-                students = response.data;
-              } else if (
-                response.data &&
-                response.data.students &&
-                Array.isArray(response.data.students)
-              ) {
-                students = response.data.students;
-              } else if (
-                response.data &&
-                response.data.items &&
-                Array.isArray(response.data.items)
-              ) {
-                students = response.data.items;
-              }
-
-              if (students.length > 0) {
-                allStudents.push(...students);
-              }
-            }
-          } else {
-            // No streams, fetch all students for the class
-            const classParams = { ...params, class_id: classId, limit: 1000 };
-            const response = await Students.getAll(classParams);
-
-            // Handle different response structures
-            let students = [];
-            if (response.data && Array.isArray(response.data)) {
-              students = response.data;
-            } else if (
-              response.data &&
-              response.data.students &&
-              Array.isArray(response.data.students)
-            ) {
-              students = response.data.students;
-            } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
-              students = response.data.items;
-            }
-
-            if (students.length > 0) {
-              allStudents.push(...students);
-            }
-          }
-        } catch (error) {
-          // Error handling
-        }
-      }
-
-      availableStudents.value = allStudents;
-    } else {
-      // Use single class_name - find the class ID
-      const classItem = props.classes?.find(c => c.name === selectedStructure.class_name);
-      const classId = classItem?.id;
-
-      if (!classId) {
-        availableStudents.value = [];
-        return;
-      }
-
-      // If fee structure has streams, fetch students for each stream
-      if (selectedStructure.stream_ids && selectedStructure.stream_ids.length > 0) {
-        const allStudents = [];
-        for (const streamId of selectedStructure.stream_ids) {
-          const streamParams = { ...params, class_id: classId, stream_id: streamId, limit: 1000 };
-          const response = await Students.getAll(streamParams);
-
-          // Handle different response structures
-          let students = [];
-          if (response.data && Array.isArray(response.data)) {
-            students = response.data;
-          } else if (
-            response.data &&
-            response.data.students &&
-            Array.isArray(response.data.students)
-          ) {
-            students = response.data.students;
-          } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
-            students = response.data.items;
-          }
-
-          if (students.length > 0) {
-            allStudents.push(...students);
-          }
-        }
-        availableStudents.value = allStudents;
-      } else {
-        // No streams, fetch all students for the class
-        params.class_id = classId;
-        params.limit = 1000; // Set high limit to get all students
-
-        const response = await Students.getAll(params);
-
-        // Handle different response structures
-        let students = [];
-        if (response.data && Array.isArray(response.data)) {
-          students = response.data;
-        } else if (
-          response.data &&
-          response.data.students &&
-          Array.isArray(response.data.students)
-        ) {
-          students = response.data.students;
-        } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
-          students = response.data.items;
-        }
-
-        availableStudents.value = students;
-      }
+    const classNames = selectedStructure.applicable_classes?.length
+      ? selectedStructure.applicable_classes
+      : [selectedStructure.class_name];
+    const streamIds = selectedStructure.stream_ids?.length ? selectedStructure.stream_ids : [null];
+    const responses = await Promise.all(
+      classNames.flatMap(className =>
+        streamIds.map(streamId =>
+          FeeInvoices.searchStudents({
+            class_name: className,
+            academic_year: selectedStructure.academic_year,
+            branch_id: selectedStructure.branch_id,
+            ...(selectedStructure.section && selectedStructure.section !== 'All Sections' && {
+              section: selectedStructure.section
+            }),
+            ...(streamId && { stream_id: streamId })
+          })
+        )
+      )
+    );
+    if (fetchVersion === studentFetchVersion) {
+      availableStudents.value = [
+        ...new Map(responses.flatMap(response => response.data || []).map(student => [student.id, student])).values()
+      ];
     }
   } catch (error) {
-    availableStudents.value = [];
-    showToast('Error loading students', 'error');
+    if (fetchVersion === studentFetchVersion) {
+      availableStudents.value = [];
+      studentsLoadError.value = error?.message || 'Unable to load students. Try again.';
+      showToast(studentsLoadError.value, 'error');
+    }
   } finally {
-    loadingStudents.value = false;
+    if (fetchVersion === studentFetchVersion) loadingStudents.value = false;
   }
 };
 
 const canSubmit = computed(() => {
   const baseRequirements = !!(form.payment_model && form.fee_structure_id);
+  const validStudentSelection =
+    form.student_selection === 'all' ||
+    (!loadingStudents.value &&
+      !studentsLoadError.value &&
+      form.selected_student_ids.length > 0 &&
+      form.selected_student_ids.every(id => availableStudents.value.some(student => student.id === id)));
 
   if (form.payment_model === 'monthly') {
-    return baseRequirements && !!(form.year && form.months.length > 0);
+    return baseRequirements && validStudentSelection && !!(form.year && form.months.length > 0);
   } else if (form.payment_model === 'installment') {
-    return baseRequirements; // No due_date requirement since it comes from fee structure
+    return baseRequirements && validStudentSelection; // No due_date requirement since it comes from fee structure
   }
 
   return baseRequirements;
@@ -714,7 +623,8 @@ const getClassPlaceholder = () => {
 const onPaymentModelChange = async () => {
   // Clear fee structure and months when payment model changes
   form.fee_structure_id = '';
-  availableStudents.value = [];
+  clearStudentOptions();
+  form.selected_student_ids = [];
 
   if (form.payment_model === 'monthly') {
     // Automatically select all 12 months for monthly payments
@@ -731,16 +641,20 @@ const onPaymentModelChange = async () => {
 };
 
 const onFeeStructureChange = async () => {
+  // Selections belong to the previous structure and must not leak into this invoice batch.
+  form.selected_student_ids = [];
+  availableStudents.value = [];
+
   // Clear months for monthly payments if switching to installment
   if (form.payment_model === 'installment') {
     form.months = [];
   }
 
   // Fetch students when fee structure changes
-  if (form.fee_structure_id) {
+  if (form.student_selection === 'specific' && form.fee_structure_id) {
     await fetchStudents();
   } else {
-    availableStudents.value = [];
+    clearStudentOptions();
   }
 
   // Emit change event to parent
@@ -751,6 +665,7 @@ const onStudentSelectionChange = async () => {
   // Clear selected students if switching to 'all'
   if (form.student_selection === 'all') {
     form.selected_student_ids = [];
+    clearStudentOptions();
   } else if (form.student_selection === 'specific' && form.fee_structure_id) {
     // Fetch students if switching to specific selection
     await fetchStudents();
@@ -765,19 +680,25 @@ const selectAllMonths = () => {
 };
 
 const generateInvoices = () => {
+  if (
+    form.student_selection === 'specific' &&
+    (!form.selected_student_ids.length ||
+      form.selected_student_ids.some(id => !availableStudents.value.some(student => student.id === id)))
+  ) {
+    showToast('Select at least one available student before generating invoices.', 'error');
+    return;
+  }
+
   // Prepare form data based on payment model
   // Note: Always passing student_ids when available enables batching support in the parent component
   const formData = {
     payment_model: form.payment_model,
-    fee_structure_ids: [form.fee_structure_id] // Send as array for invoice generation
+    fee_structure_ids: [form.fee_structure_id], // Send as array for invoice generation
+    student_selection: form.student_selection
   };
 
-  // Always pass student_ids when available for batching support
-  if (form.student_selection === 'specific' && form.selected_student_ids.length > 0) {
+  if (form.student_selection === 'specific') {
     formData.student_ids = form.selected_student_ids;
-  } else if (form.student_selection === 'all' && availableStudents.value.length > 0) {
-    // For "all students" selection, pass all available student IDs for batching
-    formData.student_ids = availableStudents.value.map(student => student.id);
   }
 
   // Add payment model specific fields
@@ -815,6 +736,7 @@ const initializeComponent = async () => {
   // Set default values
   form.student_selection = 'all';
   form.selected_student_ids = [];
+  clearStudentOptions();
 
   if (userRole.value === 'admin') {
     // Set school for school admin
@@ -864,6 +786,8 @@ watch(
       // Add a small delay to ensure props are properly initialized
       await nextTick();
       await initializeComponent();
+    } else {
+      clearStudentOptions();
     }
   }
 );

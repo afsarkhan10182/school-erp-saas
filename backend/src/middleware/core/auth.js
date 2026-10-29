@@ -4,8 +4,9 @@ const { getRedisClient } = require('~/config/redis');
 const ApiError = require('~/utils/shared/ApiError');
 const { robustMiddleware, safeMiddleware } = require('~/middleware/shared/robust');
 const { School, Branch } = require('~/models');
+const auditContext = require('~/utils/shared/auditContext');
 
-const verifyToken = async (req, res, next) => {
+const verifyTokenRequest = async (req, res, next) => {
   try {
     // Get token from cookies or header (prioritize new accessToken cookie)
     let token;
@@ -81,6 +82,12 @@ const verifyToken = async (req, res, next) => {
 
     // Add user to request object
     req.user = decoded;
+    auditContext.update({
+      actor_id: decoded.id,
+      actor_role: decoded.role,
+      school_id: decoded.school_id || null,
+      branch_id: decoded.branch_id || null
+    });
     logger.debug('Token verification successful - User:', {
       id: decoded.id,
       role: decoded.role,
@@ -94,6 +101,11 @@ const verifyToken = async (req, res, next) => {
     return next(new ApiError(401, 'Authentication failed'));
   }
 };
+
+const verifyToken = (req, res, next) => auditContext.run({
+  request_method: req.method,
+  request_path: req.path
+}, () => verifyTokenRequest(req, res, next));
 
 // Role-based authorization middleware
 const authorize = roles => {
@@ -188,6 +200,7 @@ const setSchoolContext = (req, res, next) => {
     if (req.user.role === 'super_admin') {
       // Super admin can specify school_id via query, params, or body
       req.schoolId = req.query?.school_id || req.params?.school_id || req.body?.school_id;
+      auditContext.update({ school_id: req.schoolId || null });
 
       // If no schoolId is provided for super admin, allow access to all schools
       if (!req.schoolId) {
@@ -203,6 +216,7 @@ const setSchoolContext = (req, res, next) => {
 
     // For other roles, they can only access their assigned school
     req.schoolId = req.user.school_id;
+    auditContext.update({ school_id: req.schoolId });
     logger.debug(
       'setSchoolContext: User role (' + req.user.role + ') - schoolId set to:',
       req.schoolId
@@ -238,13 +252,17 @@ const setBranchContext = async (req, res, next) => {
     if (['super_admin', 'admin'].includes(req.user.role)) {
       // If branch_id is provided in query/params, use it
       req.branchId = req.query?.branch_id || req.params?.branch_id || req.body?.branch_id;
+      auditContext.update({ branch_id: req.branchId || null });
       if (req.branchId) {
         const branch = await Branch.findByPk(req.branchId);
         if (!branch) return next(new ApiError(400, 'Invalid branch context'));
         if (req.schoolId && branch.school_id !== req.schoolId) {
           return next(new ApiError(403, 'Not authorized to access this branch context'));
         }
-        if (req.user.role === 'super_admin' && !req.schoolId) req.schoolId = branch.school_id;
+        if (req.user.role === 'super_admin' && !req.schoolId) {
+          req.schoolId = branch.school_id;
+          auditContext.update({ school_id: req.schoolId });
+        }
       }
       logger.debug('setBranchContext: Super/School admin - branchId set to:', req.branchId);
       return next();
@@ -257,6 +275,7 @@ const setBranchContext = async (req, res, next) => {
         return next(new ApiError(403, 'Not authorized to access this branch context'));
       }
       req.branchId = req.user.branch_id;
+      auditContext.update({ branch_id: req.branchId });
       logger.debug(
         'setBranchContext: User role (' + req.user.role + ') - branchId set to:',
         req.branchId

@@ -37,7 +37,7 @@ const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     try {
       // Get school ID from request (should be set by auth middleware)
-      const schoolId = req.user?.school_id || req.school_id;
+      const schoolId = req.schoolId || req.user?.school_id || req.school_id;
 
       if (!schoolId) {
         return cb(new Error('School ID is required for file uploads'), null);
@@ -74,6 +74,8 @@ const storage = multer.diskStorage({
 
       // Get current year for partitioning (optional)
       const year = getCurrentYear();
+
+      req.uploadMetadata = { schoolCode, type: uploadType, year };
 
       // Ensure school-specific directory exists
       const fullPath = ensureSchoolUploadDir(schoolCode, uploadType, year);
@@ -149,22 +151,37 @@ const uploadSingle = fieldName => (req, res, next) => {
 };
 
 // Middleware for handling CSV file upload in memory
-const uploadCSV = fieldName => (req, res, next) => {
+const uploadCSV = (
+  fieldName,
+  { spreadsheets = false, maxFileSize = config.uploads?.maxFileSize || 5 * 1024 * 1024 } = {}
+) => (req, res, next) => {
   const csvUpload = multer({
     storage: multer.memoryStorage(),
     fileFilter: (req, file, cb) => {
       const allowedTypes = ['text/csv', 'application/csv'];
-      if (allowedTypes.includes(file.mimetype)) {
+      if (spreadsheets) {
+        allowedTypes.push(
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/octet-stream'
+        );
+      }
+      const extension = path.extname(file.originalname).toLowerCase();
+      const allowedExtensions = spreadsheets ? ['.csv', '.xls', '.xlsx'] : ['.csv'];
+      if (allowedTypes.includes(file.mimetype) && allowedExtensions.includes(extension)) {
         cb(null, true);
       } else {
         cb(
-          new ApiError(httpStatus.BAD_REQUEST, 'Invalid file type. Only CSV files are allowed.'),
+          new ApiError(
+            httpStatus.BAD_REQUEST,
+            `Invalid file type. Only ${allowedExtensions.join(', ')} files are allowed.`
+          ),
           false
         );
       }
     },
     limits: {
-      fileSize: config.uploads?.maxFileSize || 5 * 1024 * 1024 // 5MB default
+      fileSize: maxFileSize
     }
   });
 
@@ -174,7 +191,7 @@ const uploadCSV = fieldName => (req, res, next) => {
         return next(
           new ApiError(
             httpStatus.BAD_REQUEST,
-            `File too large. Max size is ${config.uploads?.maxFileSize || 5 * 1024 * 1024} bytes.`
+            `File too large. Max size is ${maxFileSize} bytes.`
           )
         );
       }

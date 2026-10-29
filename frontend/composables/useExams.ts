@@ -240,22 +240,16 @@ export const useExams = () => {
     }
   };
 
-  const exportExamResults = async (examId: string, format: 'excel' | 'pdf' = 'excel') => {
+  const exportExamResults = async (examId: string) => {
     try {
-      const response = await examApi.exportResults(examId, format);
+      const response = await examApi.exportResults(examId, 'csv');
 
-      // Create download link
-      const blob = new Blob([response.data], {
-        type:
-          format === 'pdf'
-            ? 'application/pdf'
-            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
+      const blob = new Blob([response], { type: 'text/csv;charset=utf-8' });
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `exam-results.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+      link.download = `exam-results-${examId}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

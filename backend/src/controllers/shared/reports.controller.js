@@ -24,6 +24,13 @@ const suite = async (req, res) => {
     const type = req.query.type || 'summary';
     const where = schoolWhere(req);
 
+    if (req.user?.role === 'accountant' && moduleKey !== 'accounting') {
+      return res.status(403).json({ success: false, message: 'Accountants can only access accounting reports' });
+    }
+    if (req.user?.role === 'accountant' && req.user.branch_id) {
+      where.branch_id = req.user.branch_id;
+    }
+
     if (moduleKey === 'students') {
       return studentModule(req, res, where, type);
     }
@@ -49,14 +56,17 @@ const suite = async (req, res) => {
       return dynamicEntityReport(req, res, 'inventory_product', type);
     }
     if (moduleKey === 'accounting') {
-      return dynamicEntityReport(req, res, 'voucher', type);
+      return dynamicEntityReport(req, res, 'voucher', type, where);
     }
     if (moduleKey === 'exams') {
       return res.json({
         success: true,
         data: {
           message: 'Use /api/exam-reports for tabulation, progress and marksheet',
-          links: ['/exam-reports/tabulation', '/exam-reports/progress', '/reports/exams']
+          links: [
+            { label: 'Tabulation, progress and marksheets', to: '/reports/exams' },
+            { label: 'Generate report cards', to: '/exams/report-cards' }
+          ]
         }
       });
     }
@@ -434,8 +444,13 @@ const transportModule = async (req, res, type) => {
   return dynamicEntityReport(req, res, 'transport_assignment', type);
 };
 
-const dynamicEntityReport = async (req, res, entityType, type) => {
-  const where = { ...schoolWhere(req), entity_type: entityType };
+const dynamicEntityReport = async (req, res, entityType, type, scope = schoolWhere(req)) => {
+  const where = { ...scope, entity_type: entityType };
+  if (entityType === 'voucher' && (req.query.from_date || req.query.to_date)) {
+    where.date_value = {};
+    if (req.query.from_date) where.date_value[Op.gte] = req.query.from_date;
+    if (req.query.to_date) where.date_value[Op.lte] = req.query.to_date;
+  }
   const records = await DynamicEntityRecord.findAll({
     where,
     include: [{ model: Student, as: 'student', attributes: ['first_name', 'last_name', 'admission_number'], required: false }],
@@ -547,65 +562,29 @@ const hrModule = async (req, res, type) => {
 };
 
 const catalog = async (req, res) => {
+  const modules = [
+    {
+      key: 'students',
+      title: 'Student Reports',
+      types: ['summary', 'credentials', 'admissions', 'class-section', 'siblings'],
+      module: 'students'
+    },
+    { key: 'fees', title: 'Fees Reports', types: ['summary', 'due'], module: 'fees' },
+    { key: 'attendance', title: 'Attendance Reports', types: ['summary'], module: 'attendance' },
+    { key: 'library', title: 'Library Reports', types: ['summary', 'books', 'issued'], module: 'library' },
+    { key: 'hostel', title: 'Hostel Reports', types: ['summary', 'list'], module: 'hostel' },
+    { key: 'transport', title: 'Transport Reports', types: ['summary', 'list', 'student-allocations'], module: 'transport' },
+    { key: 'hr', title: 'HR / Leave Reports', types: ['summary', 'list'], module: 'hr' },
+    { key: 'inventory', title: 'Inventory Reports', types: ['summary', 'list'], module: 'inventory' },
+    { key: 'exams', title: 'Exam Reports', types: ['summary'], module: 'exams' },
+    { key: 'accounting', title: 'Accounting Reports', types: ['summary', 'list'], module: 'accounting' }
+  ];
   return res.json({
     success: true,
     data: {
-      modules: [
-        {
-          key: 'students',
-          title: 'Student Reports',
-          types: ['summary', 'credentials', 'admissions', 'class-section', 'siblings'],
-          module: 'students'
-        },
-        {
-          key: 'fees',
-          title: 'Fees Reports',
-          types: ['summary', 'due'],
-          module: 'fees'
-        },
-        {
-          key: 'attendance',
-          title: 'Attendance Reports',
-          types: ['summary'],
-          module: 'attendance'
-        },
-        {
-          key: 'library',
-          title: 'Library Reports',
-          types: ['summary', 'books', 'issued'],
-          module: 'library'
-        },
-        {
-          key: 'hostel',
-          title: 'Hostel Reports',
-          types: ['summary', 'list'],
-          module: 'hostel'
-        },
-        {
-          key: 'transport',
-          title: 'Transport Reports',
-          types: ['summary', 'list', 'student-allocations'],
-          module: 'transport'
-        },
-        {
-          key: 'hr',
-          title: 'HR / Leave Reports',
-          types: ['summary', 'list'],
-          module: 'hr'
-        },
-        {
-          key: 'inventory',
-          title: 'Inventory Reports',
-          types: ['summary', 'list'],
-          module: 'inventory'
-        },
-        {
-          key: 'accounting',
-          title: 'Accounting Reports',
-          types: ['summary', 'list'],
-          module: 'accounting'
-        }
-      ]
+      modules: req.user?.role === 'accountant'
+        ? modules.filter(report => report.module === 'accounting')
+        : modules
     }
   });
 };

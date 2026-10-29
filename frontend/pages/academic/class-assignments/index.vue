@@ -11,7 +11,7 @@
     </div>
 
     <!-- Tab Navigation -->
-    <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event" />
+    <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="setActiveTab" />
 
     <!-- Tab Content -->
     <div
@@ -90,6 +90,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch, reactive } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useAuth } from '~/composables/useAuth';
@@ -109,6 +110,8 @@ import Pagination from '~/components/ui/Pagination.vue';
 
 // Composables
 const authStore = useAuthStore();
+const route = useRoute();
+const router = useRouter();
 const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const { showToast } = useToast();
 const {
@@ -140,7 +143,22 @@ const tabs = [
 ];
 
 // Reactive data
-const activeTab = ref('class-assignment');
+const activeTab = ref(route.query.tab === 'teacher' ? 'class-teachers' : 'class-assignment');
+
+const setActiveTab = tab => {
+  activeTab.value = tab;
+  const query = { ...route.query };
+  if (tab === 'class-teachers') query.tab = 'teacher';
+  else delete query.tab;
+  router.replace({ query });
+};
+
+watch(
+  () => route.query.tab,
+  tab => {
+    activeTab.value = tab === 'teacher' ? 'class-teachers' : 'class-assignment';
+  }
+);
 const classSubjectMappings = ref([]);
 const classTeacherAllocations = ref([]);
 const mappingsLoading = ref(false);

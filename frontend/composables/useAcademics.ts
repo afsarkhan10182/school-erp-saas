@@ -23,6 +23,7 @@ interface Class {
   code: string;
   numeric_value?: number;
   is_active?: boolean;
+  branch_id?: string;
   has_stream?: boolean; // Add has_stream field
   branch?: {
     id: string;
@@ -372,7 +373,9 @@ export function useAcademics() {
       if (options?.schoolId) params.school_id = options.schoolId;
       if (options?.branchId) params.branch_id = options.branchId;
 
-      const response = await Users.getAll(params);
+      const response = user.value?.role === 'branch_admin' && options.branchId
+        ? await Users.getByBranch(options.branchId, { role: 'teacher', limit: 1000 })
+        : await Users.getAll(params);
       teachers.value = response.data?.users || [];
 
       // Update dropdown options

@@ -13,6 +13,7 @@ export interface StudentForPosition {
   teacher_comment?: string;
   principal_comment?: string;
   is_absent?: boolean;
+  is_passed?: boolean;
 }
 
 export interface PositionFilters {
@@ -26,6 +27,8 @@ export interface PositionFilters {
 export interface CalculatePositionsData {
   exam_id: string;
   class_id: string;
+  school_id: string;
+  branch_id: string;
   section_id?: string;
   calculation_method: 'total_marks' | 'percentage' | 'grade_points';
   tie_breaking_method: 'average' | 'first' | 'manual';
@@ -35,6 +38,8 @@ export interface CalculatePositionsData {
 export interface SavePositionsData {
   exam_id: string;
   class_id: string;
+  school_id: string;
+  branch_id: string;
   positions: Array<{
     student_id: string;
     position: number;

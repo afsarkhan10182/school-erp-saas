@@ -5,6 +5,14 @@ export interface FeeInvoiceParams {
   limit?: number;
   academic_year?: string;
   status?: string;
+  search?: string;
+        school_id?: string;
+  class_name?: string;
+  section?: string;
+  branch_id?: string;
+  due_from?: string;
+  due_to?: string;
+  payment_method?: string;
   student_id?: string;
   class_id?: string;
   section_id?: string;
@@ -13,11 +21,14 @@ export interface FeeInvoiceParams {
   from_date?: string;
   to_date?: string;
   payment_model?: string;
-  months?: number[];
+  periods?: string;
+  months?: string | number[];
 }
 
 export interface PaymentData {
   student_id: string;
+  school_id?: string;
+  branch_id?: string;
   payment_amount: number;
   payment_method?: string;
   payment_date?: string;
@@ -26,9 +37,91 @@ export interface PaymentData {
   cheque_number?: string;
   bank_name?: string;
   reference_number?: string;
+  payment_mode?: 'auto' | 'manual';
+  selected_invoice_ids?: string[];
 }
 
+const pendingPaymentKeys = new Map<string, { fingerprint: string; key: string }>();
+
+const stableJson = (value: any): string => {
+  if (Array.isArray(value))
+    return `[${value.map(item => stableJson(item === undefined ? null : item)).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value)
+      .filter(key => value[key] !== undefined)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+};
+
+const fingerprintPayment = async (data: Record<string, any>) => {
+  const bytes = new TextEncoder().encode(stableJson(data));
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const postIdempotentPayment = async (
+  scope: string,
+  endpoint: string,
+  data: Record<string, any>
+) => {
+  const payload = { ...data };
+  delete payload.idempotency_key;
+  const fingerprint = await fingerprintPayment(payload);
+  const storageKey = `fee-payment:${scope}`;
+  let key: string | undefined;
+
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
+    key = saved?.fingerprint === fingerprint ? saved.key : undefined;
+  } catch {
+    const saved = pendingPaymentKeys.get(scope);
+    key = saved?.fingerprint === fingerprint ? saved.key : undefined;
+  }
+  if (!key) {
+    const saved = pendingPaymentKeys.get(scope);
+    key = saved?.fingerprint === fingerprint ? saved.key : undefined;
+  }
+  if (!key) {
+    key = globalThis.crypto.randomUUID();
+    pendingPaymentKeys.set(scope, { fingerprint, key });
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify({ fingerprint, key }));
+    } catch {
+      // Keep the retry key in memory when session storage is unavailable.
+    }
+  }
+
+  const response = await apiCall('post', endpoint, { ...payload, idempotency_key: key });
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
+    if (saved?.key === key) sessionStorage.removeItem(storageKey);
+  } catch {}
+  if (pendingPaymentKeys.get(scope)?.key === key) pendingPaymentKeys.delete(scope);
+  return response;
+};
+
 export const FeeInvoices = {
+  searchStudents: async (
+    search:
+      | string
+      | {
+          search?: string;
+          school_id?: string;
+          class_name?: string;
+          academic_year?: string;
+          branch_id?: string;
+          section?: string;
+          stream_id?: string;
+        }
+  ) => {
+    return apiCall('get', '/fee-invoices/students/search', {
+      params: typeof search === 'string' ? { search } : search
+    });
+  },
+
   getCombinedReceipt: async (receiptGroupId: string) => {
     return apiCall('get', `/fee-invoices/grouped-receipts/${receiptGroupId}`);
   },
@@ -46,7 +139,7 @@ export const FeeInvoices = {
   },
 
   recordPayment: async (id: string, paymentData: any) => {
-    return apiCall('post', `/fee-invoices/${id}/payment`, paymentData);
+    return postIdempotentPayment(`invoice:${id}`, `/fee-invoices/${id}/payment`, paymentData);
   },
 
   updateInvoice: async (id: string, invoiceData: any) => {
@@ -67,7 +160,9 @@ export const FeeInvoices = {
     from_date?: string;
     to_date?: string;
     payment_model?: string;
-    months?: number[];
+    payment_method?: string;
+    periods?: string;
+    months?: string | number[];
   }) => {
     // Add cache-busting parameter
     const cacheBustParams = { ...params, _t: Date.now() };
@@ -85,6 +180,10 @@ export const FeeInvoices = {
 
   getPaymentById: async (paymentId: string) => {
     return apiCall('get', `/fee-invoices/payment/${paymentId}`);
+  },
+
+  reversePayment: async (paymentId: string, reason: string) => {
+    return apiCall('post', `/fee-invoices/payment/${paymentId}/reverse`, { reason });
   },
 
   // Generate receipt data for a specific payment (on-demand - returns structured data)
@@ -134,7 +233,18 @@ export const FeeInvoices = {
 
   // Smart payment allocation (amount-based with receipt grouping)
   recordSmartPayment: async (paymentData: PaymentData) => {
-    return apiCall('post', '/fee-invoices/smart-payment', paymentData);
+    return postIdempotentPayment(
+      `student:${paymentData.student_id}`,
+      '/fee-invoices/smart-payment',
+      paymentData
+    );
+  },
+
+  recordFlexibleInstallmentPayment: async (id: string, paymentData: Record<string, any>) => {
+    return postIdempotentPayment(`flexible-invoice:${id}`, '/fee-invoices/flexible-installment', {
+      ...paymentData,
+      invoice_id: id
+    });
   },
 
   getStudentLedger: async (params: {
@@ -147,7 +257,7 @@ export const FeeInvoices = {
     return apiCall('get', '/fee-invoices/student-ledger', { params });
   },
 
-  getStudentDues: async (params: { student_id: string; academic_year?: string }) => {
+  getStudentDues: async (params: { student_id: string; school_id?: string; branch_id?: string; academic_year?: string }) => {
     return apiCall('get', '/fee-invoices/student-dues', { params });
   },
 
@@ -169,6 +279,10 @@ export const FeeInvoices = {
 
   adjustInvoice: async (id: string, adjustmentData: any) => {
     return apiCall('post', `/fee-invoices/${id}/adjust`, adjustmentData);
+  },
+
+  getAdjustments: async (id: string) => {
+    return apiCall('get', `/fee-invoices/${id}/adjustments`);
   },
 
   applyLateFees: async (id: string) => {
@@ -205,6 +319,8 @@ export const FeeInvoices = {
     section_id?: string;
     stream_id?: string;
     search?: string;
+    payment_method?: string;
+    periods?: string;
     page?: number;
     limit?: number;
   }) => {

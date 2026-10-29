@@ -22,6 +22,7 @@
               <option value="MM/DD/YYYY">MM/DD/YYYY (US Format)</option>
               <option value="DD/MM/YYYY">DD/MM/YYYY (UK Format)</option>
               <option value="YYYY-MM-DD">YYYY-MM-DD (ISO Format)</option>
+              <option value="DD-MM-YYYY">DD-MM-YYYY</option>
             </select>
             <p class="text-sm text-gray-500 mt-1">
               How dates will be displayed throughout the system
@@ -36,6 +37,7 @@
               <option value="10">10 items</option>
               <option value="25">25 items</option>
               <option value="50">50 items</option>
+              <option value="100">100 items</option>
             </select>
             <p class="text-sm text-gray-500 mt-1">Number of items to show in lists and tables</p>
           </div>

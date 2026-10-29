@@ -11,6 +11,8 @@
       <div>
         <button
           @click="openCreateModal"
+          :disabled="requiresBranchSelection"
+          :class="{ 'cursor-not-allowed opacity-50': requiresBranchSelection }"
           class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,6 +27,14 @@
         </button>
       </div>
     </div>
+
+    <p
+      v-if="requiresBranchSelection"
+      role="status"
+      class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-200"
+    >
+      All Branches is read-only for stream creation. Select a branch in the global selector to add a stream.
+    </p>
 
     <!-- Streams Table -->
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
@@ -283,7 +293,7 @@ import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 // Composables
 const authStore = useAuthStore();
 const deleteDialog = reactive({ open: false, id: '', name: '' });
-const { selectedBranchId: globalBranchId } = useGlobalBranch();
+const { selectedBranchId: globalBranchId, effectiveBranchId, currentSchool } = useGlobalBranch();
 const { showToast } = useToast();
 const { user } = useAuth();
 const { schools, fetchSchools } = useSchools();
@@ -298,7 +308,6 @@ const submitting = ref(false);
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingStream = ref<any>(null);
-const filterBranchId = ref('');
 
 // Pagination
 const pagination = reactive({
@@ -321,6 +330,9 @@ const form = reactive({
 
 // Computed properties
 const userRole = computed(() => user.value?.role);
+const requiresBranchSelection = computed(() =>
+  ['admin', 'super_admin'].includes(userRole.value) && !effectiveBranchId.value
+);
 const modalTitle = computed(() => (isEditing.value ? 'Edit Stream' : 'Create New Stream'));
 
 const classDropdownOptions = computed(() =>
@@ -402,9 +414,9 @@ const loadStreams = async () => {
       page: pagination.page,
       limit: pagination.limit
     };
-    const activeBranchId = globalBranchId.value || filterBranchId.value;
+    const activeBranchId = effectiveBranchId.value;
     if (activeBranchId) params.branch_id = activeBranchId;
-    if (authStore.currentSchool?.id) params.school_id = authStore.currentSchool.id;
+    if (currentSchool.value?.id) params.school_id = currentSchool.value.id;
 
     console.log('Streams API params:', params);
     const response = await Streams.getAll(params);
@@ -440,17 +452,23 @@ const loadStreams = async () => {
   }
 };
 
-const openCreateModal = () => {
+const openCreateModal = async () => {
+  if (requiresBranchSelection.value) return;
   isEditing.value = false;
   editingStream.value = null;
   resetForm();
 
-  if (globalBranchId.value) {
-    form.branch_id = globalBranchId.value;
+  if (effectiveBranchId.value) {
+    form.branch_id = effectiveBranchId.value;
   }
-  if (authStore.currentSchool?.id) {
-    form.school_id = authStore.currentSchool.id;
+  if (currentSchool.value?.id) {
+    form.school_id = currentSchool.value.id;
   }
+
+  await fetchClasses({
+    schoolId: form.school_id || user.value?.school_id,
+    branchId: form.branch_id
+  });
 
   showModal.value = true;
 };
@@ -509,6 +527,7 @@ const onBranchChange = async () => {
 };
 
 const handleSubmit = async () => {
+  if (!isEditing.value && requiresBranchSelection.value) return;
   submitting.value = true;
   try {
     console.log('🔍 Submitting stream form:', form);
@@ -731,7 +750,8 @@ onMounted(async () => {
   }
 });
 
-watch(globalBranchId, async () => {
+watch([globalBranchId, effectiveBranchId, currentSchool], async () => {
+  if (showModal.value) closeModal();
   pagination.page = 1;
   await loadStreams();
 });

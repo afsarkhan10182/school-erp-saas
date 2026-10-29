@@ -43,6 +43,10 @@ export const Attendance = {
     return apiCall('post', '/attendance/records', data);
   },
 
+  notifyAbsentees: async (sessionId: string) => {
+    return apiCall('post', '/attendance/notify-absentees', { session_id: sessionId });
+  },
+
   getSession: async (id: string) => {
     return apiCall('get', `/attendance/sessions/${id}`);
   },

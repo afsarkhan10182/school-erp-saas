@@ -21,13 +21,17 @@ const branchIdOf = req =>
   req.branchId || req.body?.branch_id || req.query?.branch_id || req.user?.branch_id || null;
 
 const resolveSchoolBranchScope = async (req, options = {}) => {
-  const { branchRequired = false, allowSchoolWide = !branchRequired } = options;
+  const {
+    branchRequired = false,
+    allowSchoolWide = !branchRequired,
+    lockAssignedBranch = false
+  } = options;
   const schoolId = schoolIdOf(req);
   if (!schoolId) throw new ApiError(400, 'school_id is required');
 
   const userBranchId = req.user?.branch_id;
   const requestedBranchId = req.body?.branch_id || req.query?.branch_id || req.params?.branch_id || req.branchId;
-  const branchId = req.user?.role === 'branch_admin'
+  const branchId = req.user?.role === 'branch_admin' || (lockAssignedBranch && userBranchId)
     ? userBranchId
     : requestedBranchId || userBranchId || null;
 

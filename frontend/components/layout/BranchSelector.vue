@@ -4,6 +4,7 @@
     <!-- Trigger Button -->
     <button
       @click="toggleOpen"
+      :aria-label="`Switch branch: ${currentBranchLabel}`"
       class="flex items-center space-x-2.5 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
       :aria-expanded="isOpen"
       title="Switch Branch"
@@ -16,7 +17,7 @@
       </span>
 
       <!-- Branch name -->
-      <span class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[130px]">
+      <span class="max-[389px]:hidden text-sm font-medium text-gray-900 dark:text-white truncate max-w-[130px]">
         {{ currentBranchLabel }}
       </span>
 

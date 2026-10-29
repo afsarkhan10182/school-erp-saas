@@ -1,4 +1,4 @@
-const { Section, Class, School, Branch, User, Stream } = require('~/models');
+const { Section, Class, School, Branch, User, Stream, ClassTeacher } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
@@ -29,6 +29,7 @@ class SectionController {
         search = '',
         is_active = '',
         class_id = '',
+        school_id = '',
         branch_id = '',
         sort_by = 'sort_order',
         sort_order = 'ASC'
@@ -41,11 +42,11 @@ class SectionController {
 
       // Super admin can see all sections
       if (req.user.role === 'super_admin') {
-        logger.debug('getAllSections: Super admin - no additional constraints');
-        // No additional constraints
-      } else if (req.user.role === 'admin') {
+        if (school_id) whereClause.school_id = school_id;
+        logger.debug('getAllSections: Super admin school filter:', school_id || 'all schools');
+      } else if (req.user.role === 'admin' || req.user.role === 'accountant') {
         whereClause.school_id = req.user.school_id;
-        logger.debug('getAllSections: School admin - filtering by school_id:', req.user.school_id);
+        logger.debug('getAllSections: School-scoped user - filtering by school_id:', req.user.school_id);
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
         whereClause.branch_id = req.user.branch_id;
@@ -683,12 +684,33 @@ class SectionController {
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
         }
+      } else if (req.user.role === 'accountant') {
+        whereClause.school_id = req.user.school_id;
+        const branchId = req.user.branch_id || req.query.branch_id;
+        if (branchId) whereClause.branch_id = branchId;
+        if (req.query.class_id) whereClause.class_id = req.query.class_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
         whereClause.branch_id = req.user.branch_id;
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
         }
+      } else if (req.user.role === 'teacher') {
+        const assignments = await ClassTeacher.findAll({
+          where: {
+            teacher_id: req.user.id,
+            school_id: req.user.school_id,
+            branch_id: req.user.branch_id,
+            is_active: true,
+            ...(req.query.class_id && { class_id: req.query.class_id })
+          },
+          attributes: ['section_id'],
+          raw: true
+        });
+        whereClause.school_id = req.user.school_id;
+        whereClause.branch_id = req.user.branch_id;
+        whereClause.id = assignments.map(assignment => assignment.section_id);
+        if (req.query.class_id) whereClause.class_id = req.query.class_id;
       }
 
       const sections = await Section.findAll({

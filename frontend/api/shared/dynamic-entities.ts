@@ -1,4 +1,4 @@
-import { apiCall } from '~/utils/api';
+import { apiCall, createApiInstance } from '~/utils/api';
 
 export const DynamicEntities = {
   list: (entity: string, params?: any) => apiCall('get', `/entities/${entity}`, { params }),
@@ -14,6 +14,7 @@ export const DynamicEntities = {
     student_ids?: string[];
     updates?: any;
     students?: Array<{ id: string; updates: any }>;
+    branch_id?: string;
   }) => apiCall('post', '/entities/students/bulk-edit', data),
   transferStudents: (data: { student_ids: string[]; to_branch_id: string }) =>
     apiCall('post', '/entities/students/transfer', data),
@@ -35,5 +36,42 @@ export const PublicAdmission = {
 };
 
 export const Portal = {
-  dashboard: () => apiCall('get', '/portal/dashboard')
+  dashboard: (params?: { student_id?: string }) => apiCall('get', '/portal/dashboard', { params }),
+  feeInvoices: (params: { student_id: string; page?: number; limit?: number }) =>
+    apiCall('get', '/portal/fees', { params }),
+  libraryBooks: (params: { student_id?: string; search?: string; category?: string; page?: number; limit?: number }) =>
+    apiCall('get', '/portal/library/books', { params }),
+  libraryRequests: (params: { student_id?: string }) => apiCall('get', '/portal/library/requests', { params }),
+  requestLibraryBook: (data: { student_id: string; book_id: string }) => apiCall('post', '/portal/library/requests', data),
+  reportCardSetups: (studentId: string) =>
+    apiCall('get', `/portal/students/${studentId}/report-card/setups`),
+  reportCard: (studentId: string, setupId?: string) =>
+    createApiInstance().get(`/portal/students/${studentId}/report-card`, {
+      params: setupId ? { setup_id: setupId } : undefined,
+      responseType: 'blob'
+    }),
+  schoolVisits: (studentId: string) =>
+    apiCall('get', '/portal/visits', { params: { student_id: studentId } }),
+  requestSchoolVisit: (data: {
+    student_id: string;
+    date: string;
+    time: string;
+    person_to_meet?: string;
+    purpose: string;
+  }) => apiCall('post', '/portal/visits', data),
+  ptmMeetings: (studentId: string) =>
+    apiCall('get', '/ptm/parent', { params: { student_id: studentId } }),
+  submitPtmFeedback: (
+    meetingId: string,
+    data: { student_id: string; rating: number; feedback: string }
+  ) => apiCall('post', `/ptm/${meetingId}/feedback`, data)
+};
+
+export const StudyMaterials = {
+  list: (params?: { school_id?: string; branch_id?: string; class_id?: string; search?: string; page?: number; limit?: number }) =>
+    apiCall('get', '/study-materials', { params }),
+  create: (data: FormData) => apiCall('post', '/study-materials', data),
+  remove: (id: string) => apiCall('delete', `/study-materials/${id}`),
+  download: (id: string) =>
+    createApiInstance().get(`/study-materials/${id}/file`, { responseType: 'blob' })
 };

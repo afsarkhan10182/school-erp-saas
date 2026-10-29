@@ -12,6 +12,8 @@ export interface EntityField {
   required?: boolean;
   options?: Array<{ label: string; value: string }>;
   lookup?: 'classes' | 'students' | 'users' | 'staff' | `entity:${string}`;
+  visibleWhen?: { key: string; value: string };
+  requiredWhen?: { key: string; value: string };
 }
 
 export interface EntityDefinition {
@@ -708,14 +710,19 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     description: 'Leads and follow-up',
     module: 'reception',
     fields: [
-      { key: 'title', label: 'Name', type: 'text', required: true },
+      { key: 'title', label: 'Student name', type: 'text', required: true },
+      { key: 'parent_name', label: 'Parent name', type: 'text' },
       { key: 'reference_no', label: 'Phone', type: 'text' },
       { key: 'class_id', label: 'Interested class', type: 'select', lookup: 'classes' },
       { key: 'notes', label: 'Follow up', type: 'textarea' }
     ],
     columns: [
-      { key: 'title', label: 'Name' },
+      { key: 'title', label: 'Student name' },
+      { key: 'parent_name', label: 'Parent name' },
       { key: 'reference_no', label: 'Phone' },
+      { key: 'created_at', label: 'Enquiry date' },
+      { key: 'class', label: 'Interested class' },
+      { key: 'notes', label: 'Follow up' },
       { key: 'status', label: 'Status' }
     ]
   },
@@ -754,7 +761,8 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     ],
     columns: [
       { key: 'title', label: 'Caller' },
-      { key: 'date_value', label: 'Date' }
+      { key: 'date_value', label: 'Date' },
+      { key: 'notes', label: 'Purpose' }
     ]
   },
   complaint: {
@@ -791,22 +799,50 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     columns: [
       { key: 'title', label: 'Name' },
       { key: 'reference_no', label: 'Phone' },
-      { key: 'status', label: 'Status' }
+      { key: 'status', label: 'Status' },
+      { key: 'createdAt', label: 'Recorded' },
+      { key: 'exit_time', label: 'Exit time' }
     ],
     actions: [{ id: 'checkout', label: 'Mark exit' }]
   },
   account: {
     title: 'Accounts',
-    description: 'Office accounting cash and bank accounts',
+    description: 'Cash and bank accounts used by deposits and expense vouchers',
     module: 'accounting',
     fields: [
       { key: 'title', label: 'Account name', type: 'text', required: true },
-      { key: 'reference_no', label: 'Account number', type: 'text' },
+      {
+        key: 'account_type',
+        label: 'Account type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Cash', value: 'cash' },
+          { label: 'Bank', value: 'bank' }
+        ]
+      },
+      {
+        key: 'bank_name', label: 'Bank name', type: 'text',
+        visibleWhen: { key: 'account_type', value: 'bank' },
+        requiredWhen: { key: 'account_type', value: 'bank' }
+      },
+      {
+        key: 'bank_branch', label: 'Branch / IFSC', type: 'text',
+        visibleWhen: { key: 'account_type', value: 'bank' }
+      },
+      {
+        key: 'reference_no', label: 'Account number', type: 'text',
+        visibleWhen: { key: 'account_type', value: 'bank' },
+        requiredWhen: { key: 'account_type', value: 'bank' }
+      },
       { key: 'opening_balance', label: 'Opening balance', type: 'number' },
       { key: 'notes', label: 'Description', type: 'textarea' }
     ],
     columns: [
       { key: 'title', label: 'Account name' },
+      { key: 'account_type', label: 'Type' },
+      { key: 'bank_name', label: 'Bank' },
+      { key: 'bank_branch', label: 'Branch / IFSC' },
       { key: 'reference_no', label: 'Account number' },
       { key: 'opening_balance', label: 'Opening balance' }
     ]

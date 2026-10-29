@@ -334,7 +334,10 @@ const saveAcademicSettings = async data => {
 const saveFeeSettings = async data => {
   try {
     loadingStates.fees = true;
-    // API call to save fee settings
+    const { Settings } = await import('~/api/administration/settings');
+    await Settings.updateFeeSettings(data);
+    const { useFeeSettings } = await import('~/utils/settings');
+    useFeeSettings().clearCache();
     showToast('Fee settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving fee settings:', error);
@@ -395,7 +398,7 @@ const saveSystemSettings = async data => {
 
     // Make API call to save system settings
     const { Settings } = await import('~/api/administration/settings');
-    await Settings.updateSystemSettings(data);
+    await Settings.updateSystemSettings({ systemSettings: data });
 
     // Clear system settings cache after successful save
     const { useSchoolSettings } = await import('~/utils/settings');

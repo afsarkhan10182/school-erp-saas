@@ -45,12 +45,23 @@ class SubjectTeacherController {
         whereClause.teacher_id = req.user.id;
       }
 
-      // Add query filters (these can override role-based restrictions for super_admin and admin)
+      // Apply requested filters before restoring tenant and teacher boundaries.
       if (subject_id) whereClause.subject_id = subject_id;
       if (teacher_id) whereClause.teacher_id = teacher_id;
       if (class_id) whereClause.class_id = class_id;
       if (school_id) whereClause.school_id = school_id;
       if (branch_id) whereClause.branch_id = branch_id;
+
+      if (req.user.role !== 'super_admin') {
+        whereClause.school_id = req.user.school_id;
+      }
+      if (req.user.role === 'branch_admin') {
+        whereClause.branch_id = req.user.branch_id;
+      }
+      if (req.user.role === 'teacher') {
+        whereClause.teacher_id = req.user.id;
+        if (req.user.branch_id) whereClause.branch_id = req.user.branch_id;
+      }
 
       const includeArray = [
         {

@@ -11,7 +11,7 @@ import { Timetables } from '~/api/academic/timetables';
 export function useTimetables() {
   const { showToast, showApiError } = useToast();
   const authStore = useAuthStore();
-  const { selectedBranchId: globalBranchId } = useGlobalBranch();
+  const { effectiveBranchId: globalEffectiveBranchId } = useGlobalBranch();
   const {
     academicYears,
     currentAcademicYear,
@@ -38,7 +38,7 @@ export function useTimetables() {
 
   // Branch selection - driven by global branch
   const selectedSchoolId = ref('');
-  const selectedBranchId = ref(globalBranchId.value || '');
+  const selectedBranchId = ref(globalEffectiveBranchId.value || '');
   const selectedBranch = ref<{ id: string; name: string } | null>(null);
 
   // Filters (removed page and limit from filters to avoid duplication)
@@ -187,18 +187,24 @@ export function useTimetables() {
   };
 
   const onBranchChange = async () => {
+    filters.value = { ...filters.value, class_id: '', section_id: '' };
+    pagination.value.page = 1;
+
     if (selectedBranchId.value) {
       const branch = branches.value.find(b => b.id === selectedBranchId.value);
       selectedBranch.value = branch || null;
-
-      // Reset pagination
-      pagination.value.page = 1;
 
       // Load academic data for the branch
       await loadAcademicDataForBranch();
 
       // Load timetables for the branch
       await loadTimetables();
+    } else {
+      selectedBranch.value = null;
+      classes.value = [];
+      sections.value = [];
+      timetables.value = [];
+      pagination.value.total = 0;
     }
   };
 
@@ -302,14 +308,14 @@ export function useTimetables() {
       }
 
       // Sync branch from global store
-      const activeBranch = globalBranchId.value || user.value?.branch_id || '';
+      const activeBranch = globalEffectiveBranchId.value;
       if (activeBranch) {
         selectedBranchId.value = activeBranch;
         await onBranchChange();
       }
 
       // Watch global branch changes and reload
-      watch(globalBranchId, async newVal => {
+      watch(globalEffectiveBranchId, async newVal => {
         selectedBranchId.value = newVal || '';
         await onBranchChange();
       });

@@ -24,6 +24,8 @@
       <div>
         <button
           @click="openCreateModal"
+          :disabled="requiresBranchSelection"
+          :class="{ 'cursor-not-allowed opacity-50': requiresBranchSelection }"
           class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
         >
           <Plus class="w-4 h-4" />
@@ -31,6 +33,14 @@
         </button>
       </div>
     </div>
+
+    <p
+      v-if="requiresBranchSelection"
+      role="status"
+      class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-200"
+    >
+      All Branches is read-only for section creation. Select a branch in the global selector to add a section.
+    </p>
 
     <!-- Sections List -->
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
@@ -277,7 +287,7 @@ import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 const authStore = useAuthStore();
 const deleteDialog = reactive({ open: false, id: '' });
-const { selectedBranchId: globalBranchId } = useGlobalBranch();
+const { selectedBranchId: globalBranchId, effectiveBranchId, currentSchool } = useGlobalBranch();
 const { showError, showSuccess } = useToast();
 
 const sections = ref([]);
@@ -290,6 +300,9 @@ const editingId = ref(null);
 // Auth and user context
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const userRole = computed(() => user.value?.role);
+const requiresBranchSelection = computed(() =>
+  ['admin', 'super_admin'].includes(userRole.value) && !effectiveBranchId.value
+);
 
 // Academic settings
 const { isStreamsEnabled } = useAcademicSettings();
@@ -510,7 +523,7 @@ const fetchSections = async () => {
       sort_order: 'ASC'
     };
 
-    const activeBranchId = globalBranchId.value || selectedBranchId.value;
+    const activeBranchId = globalBranchId.value;
 
     // Add role-based filters
     if (userRole.value === 'super_admin') {
@@ -535,14 +548,14 @@ const fetchSections = async () => {
 };
 
 const openCreateModal = async () => {
+  if (requiresBranchSelection.value) return;
   resetForm();
   isEditing.value = false;
   editingId.value = null;
 
   // Set context from global branch / school
   selectedSchoolId.value = authStore.currentSchool?.id || user.value?.school_id || '';
-  selectedBranchId.value =
-    globalBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
+  selectedBranchId.value = effectiveBranchId.value;
 
   // Load classes for the active branch
   await fetchClasses({
@@ -601,6 +614,7 @@ const closeModal = () => {
 };
 
 const saveSection = async () => {
+  if (requiresBranchSelection.value) return;
   isSubmitting.value = true;
   try {
     const payload = {
@@ -688,7 +702,9 @@ onMounted(async () => {
   fetchSections();
 });
 
-watch(globalBranchId, async () => {
+watch([globalBranchId, currentSchool, effectiveBranchId], async ([branchId]) => {
+  if (showModal.value) closeModal();
+  selectedBranchId.value = effectiveBranchId.value || branchId || '';
   await fetchSections();
 });
 </script>

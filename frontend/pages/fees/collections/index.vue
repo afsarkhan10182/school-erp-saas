@@ -72,23 +72,49 @@
         />
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="showReceiptModal"
+        class="fixed inset-0 z-[100000] overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Payment receipt"
+      >
+        <div class="mx-auto mt-6 w-full max-w-4xl rounded-md bg-white p-5 shadow-xl dark:bg-gray-800">
+          <div v-if="isLoadingReceipt" class="py-12 text-center text-sm text-gray-600 dark:text-gray-300">
+            Loading receipt…
+          </div>
+          <ReceiptViewer
+            v-else-if="selectedReceipt"
+            :receipt-data="selectedReceipt"
+            @close="closeReceipt"
+          />
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue';
+import { ref, reactive, watch, onMounted, defineAsyncComponent } from 'vue';
 import { useRouter } from 'vue-router';
 import { Coins, RefreshCw, Search } from 'lucide-vue-next';
 import { fetchCollectionsAPI } from '~/api';
+import { FeeInvoices } from '~/api/students/fee-invoices';
 import CollectionTable from '~/components/financial/CollectionTable.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 import { useToast } from '~/composables/useToast';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 const router = useRouter();
-const { showError, showInfo } = useToast();
-const { selectedBranchId } = useGlobalBranch();
+const { showError } = useToast();
+const { selectedBranchId, branchScopeParams } = useGlobalBranch();
 const collections = ref([]);
+const ReceiptViewer = defineAsyncComponent(() => import('~/components/financial/ReceiptViewer.vue'));
+const showReceiptModal = ref(false);
+const isLoadingReceipt = ref(false);
+const selectedReceipt = ref(null);
 const pagination = reactive({ page: 1, limit: 10, total: 0 });
 const filters = reactive({ search: '', branch_id: selectedBranchId.value || '' });
 
@@ -100,10 +126,15 @@ watch(selectedBranchId, newBranchId => {
 
 const fetchCollections = async () => {
   try {
-    const response = await fetchCollectionsAPI(filters, pagination);
+    const response = await fetchCollectionsAPI({ ...branchScopeParams.value, ...filters }, pagination);
     collections.value = response.data;
     pagination.total = response.pagination.total;
   } catch (error) {
+    if (
+      error?.message === 'Authentication required' ||
+      (import.meta.client && window.location.pathname === '/auth/login')
+    ) return;
+
     console.error('Error fetching collections:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
@@ -127,9 +158,30 @@ const handleViewCollection = collection => {
   }
 };
 
-const handlePrintCollection = collection => {
-  // Handle print functionality
-  showInfo(`Printing receipt for collection ${collection.receipt_number}`);
+const handlePrintCollection = async collection => {
+  if (!collection?.id) {
+    showError('Payment information is unavailable for this receipt.');
+    return;
+  }
+
+  showReceiptModal.value = true;
+  isLoadingReceipt.value = true;
+  selectedReceipt.value = null;
+  try {
+    const response = await FeeInvoices.getPaymentReceiptData(collection.id);
+    if (!response.data) throw new Error('Receipt data is unavailable.');
+    selectedReceipt.value = response.data;
+  } catch (error) {
+    showReceiptModal.value = false;
+    showError(error.response?.data?.message || 'Unable to load this payment receipt.');
+  } finally {
+    isLoadingReceipt.value = false;
+  }
+};
+
+const closeReceipt = () => {
+  showReceiptModal.value = false;
+  selectedReceipt.value = null;
 };
 
 const onPageSizeChange = newLimit => {

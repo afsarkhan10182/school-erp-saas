@@ -110,11 +110,11 @@ export const useExamResults = () => {
   // Computed properties
   const passedResults = computed(() => examResults.value.filter(result => result.is_passed));
 
-  const failedResults = computed(() => examResults.value.filter(result => !result.is_passed));
+  const failedResults = computed(() => examResults.value.filter(result => result.is_passed === false));
 
   const averagePercentage = computed(() => {
     if (examResults.value.length === 0) return 0;
-    const total = examResults.value.reduce((sum, result) => sum + (result.percentage || 0), 0);
+    const total = examResults.value.reduce((sum, result) => sum + Number(result.percentage || 0), 0);
     return total / examResults.value.length;
   });
 

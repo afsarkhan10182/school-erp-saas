@@ -3,6 +3,8 @@ const DashboardController = require('~/controllers/shared/dashboard.controller')
 const { verifyToken, authorize } = require('~/middleware/core/auth');
 
 const router = express.Router();
+const financeDashboardRoles = ['super_admin', 'admin', 'branch_admin', 'accountant'];
+const staffDashboardRoles = [...financeDashboardRoles, 'teacher', 'receptionist', 'librarian'];
 
 // All dashboard routes require authentication
 router.use(verifyToken);
@@ -22,7 +24,11 @@ router.use(verifyToken);
  *       401:
  *         description: Unauthorized
  */
-router.get('/stats', DashboardController.getStats);
+router.get(
+  '/stats',
+  authorize(['super_admin', 'admin', 'branch_admin', 'teacher', 'accountant', 'receptionist', 'librarian']),
+  DashboardController.getStats
+);
 
 /**
  * @swagger
@@ -61,6 +67,18 @@ router.get('/overview-report', authorize(['super_admin']), DashboardController.g
  *         description: Forbidden - Admin access required
  */
 router.get('/school-report', authorize(['admin']), DashboardController.getSchoolReport);
+
+router.get(
+  '/notices',
+  authorize(['super_admin', 'admin', 'branch_admin']),
+  DashboardController.getNotices
+);
+router.get(
+  '/attendance-today',
+  authorize(['super_admin', 'admin', 'branch_admin']),
+  DashboardController.getTodayAttendance
+);
+router.get('/overdue-fees', authorize(financeDashboardRoles), DashboardController.getOverdueFees);
 
 /**
  * @swagger
@@ -101,7 +119,7 @@ router.get('/recent-activities', DashboardController.getRecentActivities);
  *       401:
  *         description: Unauthorized
  */
-router.get('/students-chart', DashboardController.getStudentsChartData);
+router.get('/students-chart', authorize(staffDashboardRoles), DashboardController.getStudentsChartData);
 
 /**
  * @swagger
@@ -118,7 +136,7 @@ router.get('/students-chart', DashboardController.getStudentsChartData);
  *       401:
  *         description: Unauthorized
  */
-router.get('/fees-chart', DashboardController.getFeesChartData);
+router.get('/fees-chart', authorize(financeDashboardRoles), DashboardController.getFeesChartData);
 
 /**
  * @swagger
@@ -135,7 +153,7 @@ router.get('/fees-chart', DashboardController.getFeesChartData);
  *       401:
  *         description: Unauthorized
  */
-router.get('/student-distribution', DashboardController.getStudentDistributionData);
+router.get('/student-distribution', authorize(staffDashboardRoles), DashboardController.getStudentDistributionData);
 
 /**
  * @swagger
@@ -152,7 +170,7 @@ router.get('/student-distribution', DashboardController.getStudentDistributionDa
  *       401:
  *         description: Unauthorized
  */
-router.get('/fee-trend', DashboardController.getFeeTrendData);
+router.get('/fee-trend', authorize(financeDashboardRoles), DashboardController.getFeeTrendData);
 
 /**
  * @swagger
@@ -178,10 +196,14 @@ router.get('/fee-trend', DashboardController.getFeeTrendData);
  *       403:
  *         description: Forbidden - Access denied
  */
-router.get('/fee-collection-summary', DashboardController.getFeeCollectionSummary);
-router.get('/academic-year-months', DashboardController.getAcademicYearMonths);
-router.get('/income-vs-expense', DashboardController.getIncomeVsExpense);
-router.get('/weekend-attendance', DashboardController.getWeekendAttendance);
-router.get('/annual-fees-summary', DashboardController.getAnnualFeesSummary);
+router.get(
+  '/fee-collection-summary',
+  authorize(financeDashboardRoles),
+  DashboardController.getFeeCollectionSummary
+);
+router.get('/academic-year-months', authorize(financeDashboardRoles), DashboardController.getAcademicYearMonths);
+router.get('/income-vs-expense', authorize(financeDashboardRoles), DashboardController.getIncomeVsExpense);
+router.get('/weekend-attendance', authorize(staffDashboardRoles), DashboardController.getWeekendAttendance);
+router.get('/annual-fees-summary', authorize(financeDashboardRoles), DashboardController.getAnnualFeesSummary);
 
 module.exports = router;

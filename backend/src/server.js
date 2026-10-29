@@ -2,6 +2,8 @@ require('dotenv').config();
 require('module-alias/register');
 const { logger } = require('./utils/shared/logger');
 const { App } = require('./app');
+const { AuditEvent } = require('./models');
+const { startAuditRetentionCleanup } = require('./services/shared/audit-trail.service');
 
 // Handle uncaught exceptions
 process.on('uncaughtException', error => {
@@ -23,7 +25,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Start the application
 const app = new App();
-app.start().catch(err => {
+app.start().then(() => startAuditRetentionCleanup(AuditEvent)).catch(err => {
   logger.error('Failed to start app:', err);
   process.exit(1);
 });

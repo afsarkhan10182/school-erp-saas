@@ -212,7 +212,7 @@ import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 const { user } = useAuth();
 const { selectedBranchId, branchScopeParams: scopeParams } = useGlobalBranch();
-const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
+const { classes, classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 const { showToast } = useToast();
 const classId = ref('');
 const sectionId = ref('');
@@ -285,18 +285,20 @@ const onBranchChange = async () => {
   resetRoster();
   await fetchClasses({
     schoolId: user.value?.school_id,
-    branchId: selectedBranchId.value || user.value?.branch_id
+    ...(selectedBranchId.value ? { branchId: selectedBranchId.value } : {})
   });
 };
 const onClassChange = async (value: string) => {
   classId.value = value;
   resetRoster();
-  if (value)
+  if (value) {
+    const selectedClass = classes.value.find(item => item.id === value);
     await fetchSections({
       schoolId: user.value?.school_id,
-      branchId: selectedBranchId.value || user.value?.branch_id,
+      branchId: selectedBranchId.value || selectedClass?.branch?.id || user.value?.branch_id,
       classId: value
     });
+  }
 };
 const load = async () => {
   loading.value = true;
@@ -334,8 +336,8 @@ const applyNumbering = () => {
     markDirty(student.id);
   });
 };
-const saveAll = async () => {
-  const changed = students.value
+const getChangedStudents = () =>
+  students.value
     .filter(student => dirtyIds.value.has(student.id))
     .map(student => ({
       id: student.id,
@@ -346,15 +348,23 @@ const saveAll = async () => {
       )
     }))
     .filter(student => Object.keys(student.updates).length);
+
+const saveAll = async () => {
+  const changed = getChangedStudents();
   if (!changed.length) return;
   pendingSaveCount.value = changed.length;
 };
 
 const confirmSaveAll = async () => {
+  const changed = getChangedStudents();
   pendingSaveCount.value = 0;
+  if (!changed.length) return;
   saving.value = true;
   try {
-    await DynamicEntities.bulkEditStudents({ students: changed });
+    await DynamicEntities.bulkEditStudents({
+      students: changed,
+      ...(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {})
+    });
     showToast(`Updated ${changed.length} students`, 'success');
     await load();
   } catch (error: any) {
@@ -365,7 +375,10 @@ const confirmSaveAll = async () => {
 };
 
 const [, categoryResponse] = await Promise.all([
-  fetchClasses({ branchId: selectedBranchId.value || user.value?.branch_id }),
+  fetchClasses({
+    schoolId: user.value?.school_id,
+    ...(selectedBranchId.value ? { branchId: selectedBranchId.value } : {})
+  }),
   StudentCategories.getAll(scopeParams.value)
 ]);
 categories.value = extractList(categoryResponse, ['categories']);

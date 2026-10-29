@@ -16,11 +16,12 @@
               Student Details
             </h1>
             <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-              View and manage student information
+              {{ canManageStudent ? 'View and manage student information' : 'View student information' }}
             </p>
           </div>
           <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
+              v-if="canManageStudent"
               @click="editStudent"
               class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors duration-200"
             >
@@ -35,21 +36,21 @@
               Edit Student
             </button>
             <button
-              v-if="student?.user?.id"
+              v-if="canManageStudent && student?.user?.id"
               @click="toggleLogin"
               class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600"
             >
               {{ student.user.status === 'active' ? 'Disable login' : 'Enable login' }}
             </button>
             <button
-              v-else
+              v-else-if="canManageStudent"
               @click="createLogin"
               class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600"
             >
               Create login
             </button>
             <NuxtLink
-              v-if="isModuleEnabled('fees')"
+              v-if="canViewFeeLedger && isModuleEnabled('fees')"
               :to="`/students/${student?.id}/fee-ledger`"
               class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-green-500 dark:hover:bg-green-600 transition-colors duration-200"
             >
@@ -474,7 +475,7 @@
                           }}
                         </p>
                       </div>
-                      <div>
+                      <div v-if="canManageStudent">
                         <label class="text-gray-500 dark:text-gray-400">Occupation</label>
                         <p class="text-gray-900 dark:text-white font-medium">
                           {{
@@ -482,7 +483,7 @@
                           }}
                         </p>
                       </div>
-                      <div>
+                      <div v-if="canManageStudent">
                         <label class="text-gray-500 dark:text-gray-400">Qualification</label>
                         <p class="text-gray-900 dark:text-white font-medium">
                           {{
@@ -492,7 +493,7 @@
                           }}
                         </p>
                       </div>
-                      <div v-if="parent.father_income || parent.mother_income">
+                      <div v-if="canManageStudent && (parent.father_income || parent.mother_income)">
                         <label class="text-gray-500 dark:text-gray-400">Income</label>
                         <p class="text-gray-900 dark:text-white font-medium">
                           {{ parent.father_income || parent.mother_income }}
@@ -877,6 +878,13 @@ import UserAvatar from '~/components/shared/UserAvatar.vue';
 
 const route = useRoute();
 const studentId = route.params.id;
+const authStore = useAuthStore();
+const canManageStudent = computed(() =>
+  ['super_admin', 'admin', 'branch_admin'].includes(authStore.currentUser?.role)
+);
+const canViewFeeLedger = computed(() =>
+  ['super_admin', 'admin', 'branch_admin', 'accountant'].includes(authStore.currentUser?.role)
+);
 
 // Module access
 const { isModuleEnabled, loadUserModules } = useModuleAccess();
@@ -894,7 +902,6 @@ const fetchStudent = async () => {
   isLoading.value = true;
   try {
     // Check if user is authenticated
-    const authStore = useAuthStore();
     if (!authStore.isAuthenticated) {
       console.error('User not authenticated');
       throw new Error('User not authenticated. Please log in.');

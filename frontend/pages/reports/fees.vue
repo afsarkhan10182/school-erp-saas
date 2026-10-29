@@ -405,6 +405,8 @@
                   <option value="cheque">Cheque</option>
                   <option value="online">Online</option>
                   <option value="bank_transfer">Bank Transfer</option>
+                  <option value="card">Card</option>
+                  <option value="upi">UPI</option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg
@@ -1016,7 +1018,7 @@ const { showToast } = useToast();
 // Export services
 const { generateReport, isGenerating, generationProgress } = useExportService();
 
-const { printReport: printReportCommon } = usePrintReport();
+const { printReport: printReportCommon, openPrintWindow } = usePrintReport();
 
 // State
 const invoices = ref([]);
@@ -1481,6 +1483,12 @@ const clearAllMonths = () => {
   filters.selectedMonths = [];
 };
 
+const getSelectedMonthPeriods = () =>
+  filters.selectedMonths
+    .map(month => availableMonths.value.find(option => option.value === month))
+    .filter(option => Number.isInteger(Number(option?.year)))
+    .map(option => ({ month: option.value, year: Number(option.year) }));
+
 // Fetch academic year months
 const fetchAcademicYearMonths = async () => {
   try {
@@ -1551,12 +1559,14 @@ const fetchMonthlyPaymentStatus = async () => {
     const params = {
       months: monthParams.months,
       year: monthParams.year,
+      periods: JSON.stringify(getSelectedMonthPeriods()),
       school_id: filters.school_id || undefined,
       branch_id: filters.branch_id || undefined,
       class_id: filters.class_id || undefined,
       section_id: filters.section_id || undefined,
       stream_id: filters.stream_id || undefined,
       search: filters.student_search || undefined,
+      payment_method: filters.payment_method || undefined,
       page: currentPage.value,
       limit: pageSize.value
     };
@@ -1644,7 +1654,12 @@ const fetchReportSummary = async () => {
       status: filters.status || undefined,
       school_id: filters.school_id || undefined, // Add school_id for super admin
       branch_id: filters.branch_id || undefined,
-      payment_model: filters.payment_model || undefined
+      payment_model: filters.payment_model || undefined,
+      payment_method: filters.payment_method || undefined,
+      periods:
+        filters.payment_model === 'monthly' && filters.selectedMonths.length
+          ? JSON.stringify(getSelectedMonthPeriods())
+          : undefined
     };
 
     // Only add date parameters if they are set and not empty, and not in monthly mode
@@ -1789,7 +1804,12 @@ const fetchReport = async () => {
       status: filters.status || undefined,
       school_id: filters.school_id || undefined, // Add school_id for super admin
       branch_id: filters.branch_id || undefined,
-      payment_model: filters.payment_model || undefined
+      payment_model: filters.payment_model || undefined,
+      payment_method: filters.payment_method || undefined,
+      periods:
+        filters.payment_model === 'monthly' && filters.selectedMonths.length
+          ? JSON.stringify(getSelectedMonthPeriods())
+          : undefined
     };
 
     // Only add date parameters if they are set and not empty, and not in monthly mode
@@ -1986,6 +2006,12 @@ const fetchSchools = async () => {
 };
 
 const fetchBranches = async () => {
+  // Fee reports use the global branch context; Accountants have no branch-list control here.
+  if (user.value?.role === 'accountant') {
+    branches.value = [];
+    return;
+  }
+
   try {
     const response = await Branches.getForDropdown();
     console.log('🌿 Branches API response:', response);
@@ -2266,56 +2292,53 @@ const downloadReport = async format => {
     // Show loading state
     isLoading.value = true;
 
-    try {
-      // Use common function to fetch all data
-      const { invoices: allInvoices } = await fetchAllDataForExport(
-        `${format.toUpperCase()} download`
-      );
+    const monthlyPeriod =
+      filters.payment_model === 'monthly' && filters.selectedMonths.length
+        ? formatMonthsForAPI(
+            filters.selectedMonths,
+            academicYearInfo.value.startingMonth,
+            academicYearInfo.value.academicYear
+          )
+        : {};
+    const exportFilters = {
+      from_date: filters.fromDate,
+      to_date: filters.toDate,
+      school_id: filters.school_id,
+      branch_id: filters.branch_id,
+      class_id: filters.class_id,
+      stream_id: filters.stream_id,
+      section_id: filters.section_id,
+      status: filters.status,
+      payment_method: filters.payment_method,
+      search: filters.student_search,
+      payment_model: filters.payment_model,
+      academic_year: filters.academic_year,
+      periods:
+        filters.payment_model === 'monthly' && filters.selectedMonths.length
+          ? JSON.stringify(getSelectedMonthPeriods())
+          : undefined,
+      months: monthlyPeriod.months,
+      year: monthlyPeriod.year
+    };
 
-      // Format the data for export
-      const formattedData = allInvoices.map(invoice => formatInvoiceDataForExport(invoice));
+    // Remove undefined values
+    Object.keys(exportFilters).forEach(key => {
+      if (exportFilters[key] === undefined || exportFilters[key] === '') {
+        delete exportFilters[key];
+      }
+    });
 
-      const exportFilters = {
-        from_date: filters.fromDate,
-        to_date: filters.toDate,
-        school_id: filters.school_id,
-        branch_id: filters.branch_id,
-        class_id: filters.class_id,
-        stream_id: filters.stream_id,
-        section_id: filters.section_id,
-        status: filters.status,
-        payment_method: filters.payment_method,
-        search: filters.student_search,
-        payment_model: filters.payment_model,
-        months: filters.selectedMonths,
-        year: filters.year || new Date().getFullYear()
-      };
+    const selectedColumns = displayedColumns.value.map(col => ({
+      key: col.key,
+      header: col.label
+    }));
 
-      // Remove undefined values
-      Object.keys(exportFilters).forEach(key => {
-        if (exportFilters[key] === undefined || exportFilters[key] === '') {
-          delete exportFilters[key];
-        }
-      });
-
-      const selectedColumns = displayedColumns.value.map(col => ({
-        key: col.key,
-        header: col.label
-      }));
-
-      // Use the fetched data instead of relying on the export service to fetch data
-      await generateReport({
-        report_type: 'fees',
-        format,
-        filters: exportFilters,
-        columns: selectedColumns,
-        data: formattedData // Pass the fetched data directly
-      });
-    } catch (fetchError) {
-      console.error(`❌ Error fetching data for ${format.toUpperCase()} download:`, fetchError);
-      showToast(`Error fetching data for ${format.toUpperCase()} download`, 'error');
-      return;
-    }
+    await generateReport({
+      report_type: 'fees',
+      format,
+      filters: exportFilters,
+      columns: selectedColumns
+    });
   } catch (error) {
     console.error(`❌ Error downloading ${format.toUpperCase()} report:`, error);
     showToast(`Error downloading ${format.toUpperCase()} report`, 'error');
@@ -2380,6 +2403,7 @@ const fetchAllDataForExport = async (operation = 'export') => {
         const monthlyParams = {
           months: monthParams.months,
           year: monthParams.year,
+          periods: JSON.stringify(getSelectedMonthPeriods()),
           school_id: filters.school_id || undefined,
           branch_id: filters.branch_id || undefined,
           class_id: filters.class_id || undefined,
@@ -2491,8 +2515,15 @@ const downloadExcelReport = () => downloadReport('excel');
 const downloadCSVReport = () => downloadReport('csv');
 
 const printFeesReport = async () => {
+  let printWindow = null;
   try {
     if (!validateColumnVisibility('print')) {
+      return;
+    }
+
+    printWindow = openPrintWindow();
+    if (!printWindow) {
+      showToast('Please allow popups to print the report', 'error');
       return;
     }
 
@@ -2536,14 +2567,17 @@ const printFeesReport = async () => {
         showSummary: true,
         showFilters: true,
         showFooter: true,
-        autoPrint: true
+        autoPrint: true,
+        printWindow
       });
     } catch (fetchError) {
+      printWindow.close();
       console.error('❌ Error fetching data for printing:', fetchError);
       showToast('Error fetching data for printing', 'error');
       return;
     }
   } catch (error) {
+    printWindow?.close();
     console.error('❌ Error printing report:', error);
     showToast('Error printing report', 'error');
   } finally {

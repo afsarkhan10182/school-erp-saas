@@ -16,12 +16,12 @@ const router = express.Router();
 router.use(verifyToken);
 
 // GET /api/classes - Get all classes with filtering and pagination
-router.get('/', authorize(['super_admin', 'admin', 'branch_admin']), getAllClasses);
+router.get('/', authorize(['super_admin', 'admin', 'branch_admin', 'accountant']), getAllClasses);
 
 // GET /api/classes/dropdown - Get all classes for dropdown
 router.get(
   '/dropdown',
-  authorize(['super_admin', 'admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin', 'teacher', 'receptionist', 'accountant']),
   getClassesForDropdown
 );
 

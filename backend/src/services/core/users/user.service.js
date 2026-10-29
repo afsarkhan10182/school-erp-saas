@@ -318,6 +318,18 @@ class UserService {
     { page = 1, limit = 10, search, role, status },
     currentUser
   ) {
+    if (currentUser.role === 'branch_admin' && currentUser.branch_id !== branchId) {
+      throw new ApiError(403, 'Access denied');
+    }
+
+    if (currentUser.role === 'admin') {
+      const branch = await Branch.findOne({
+        where: { id: branchId, school_id: currentUser.school_id },
+        attributes: ['id']
+      });
+      if (!branch) throw new ApiError(403, 'Access denied');
+    }
+
     const cacheKey = `users:branch:${branchId}:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}`;
 
     return BaseService.getFromCache(

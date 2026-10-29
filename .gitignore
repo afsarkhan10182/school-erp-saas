@@ -27,6 +27,11 @@ playwright/.cache/
 
 # Documentation & Audit Artifacts
 docs/
+!docs/
+!docs/erp-reference-gap-analysis.md
+!docs/erp-implementation-summary.md
+!docs/erp-browser-verification.md
 
 # Root-level local dependencies
 node_modules/
+tmp/

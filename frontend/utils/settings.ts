@@ -4,6 +4,12 @@
  */
 
 import { ref, computed } from 'vue';
+import {
+  getConfiguredFeePaymentMethods,
+  getEnabledFeePaymentMethods,
+  getFeeSettingsCacheKey
+} from './feePaymentMethods.js';
+import { useAuthStore } from '~/stores/auth';
 
 // Cache for settings to avoid repeated API calls
 const settingsCache = ref<Map<string, any>>(new Map());
@@ -292,24 +298,30 @@ export const useSchoolSettings = () => {
  * Provides access to fee-related settings
  */
 export const useFeeSettings = () => {
-  const isLoading = computed(() => loadingStates.value.get('fees') || false);
+  const feeSettingsCacheKey = () => {
+    const { currentSchool, currentUser, isSuperAdmin } = useAuthStore();
+    const schoolId = isSuperAdmin ? currentSchool?.id : currentUser?.school_id;
+    return getFeeSettingsCacheKey(schoolId);
+  };
+  const isLoading = computed(() => loadingStates.value.get(feeSettingsCacheKey()) || false);
 
   /**
    * Get fee settings
    */
   const getFeeSettings = async () => {
+    const cacheKey = feeSettingsCacheKey();
     try {
-      const cached = settingsCache.value.get('fees');
+      const cached = settingsCache.value.get(cacheKey);
       if (cached) {
         return cached;
       }
 
-      loadingStates.value.set('fees', true);
+      loadingStates.value.set(cacheKey, true);
       const { Settings } = await import('~/api/administration/settings');
       const response = await Settings.getFeeSettings();
 
       if (response.success && response.data) {
-        settingsCache.value.set('fees', response.data);
+        settingsCache.value.set(cacheKey, response.data);
         return response.data;
       }
 
@@ -318,7 +330,7 @@ export const useFeeSettings = () => {
       console.error('Failed to load fee settings:', error);
       return {};
     } finally {
-      loadingStates.value.set('fees', false);
+      loadingStates.value.set(cacheKey, false);
     }
   };
 
@@ -327,7 +339,7 @@ export const useFeeSettings = () => {
    */
   const getPaymentMethods = async () => {
     const feeSettings = await getFeeSettings();
-    return feeSettings.paymentMethods || {};
+    return getConfiguredFeePaymentMethods(feeSettings);
   };
 
   /**
@@ -335,14 +347,14 @@ export const useFeeSettings = () => {
    */
   const isPaymentMethodEnabled = async (method: string): Promise<boolean> => {
     const paymentMethods = await getPaymentMethods();
-    return paymentMethods[method] || false;
+    return getEnabledFeePaymentMethods(paymentMethods).some(option => option.value === method);
   };
 
   /**
    * Clear fee settings cache
    */
   const clearCache = () => {
-    settingsCache.value.delete('fees');
+    settingsCache.value.delete(feeSettingsCacheKey());
   };
 
   return {

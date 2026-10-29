@@ -3,13 +3,12 @@
     <div class="max-w-6xl mx-auto px-4 py-8">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Reports suite</h1>
       <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Live aggregations across students, fees, attendance, library, hostel, transport, HR,
-        inventory and accounting.
+        View reports available to your role for the selected school and branch.
       </p>
 
-      <div class="flex flex-wrap gap-3 mb-6">
-        <EnhancedDropdown v-model="classId" :options="classOptions" placeholder="All classes" id="reports-class-filter" @change="onClassChange" />
-        <EnhancedDropdown v-model="sectionId" :options="sectionOptions" placeholder="All sections" id="reports-section-filter" :disabled="!classId" @change="load(activeType)" />
+      <div v-if="activeModule !== 'exams'" class="flex flex-wrap gap-3 mb-6">
+        <EnhancedDropdown v-if="activeModule !== 'accounting'" v-model="classId" :options="classOptions" placeholder="All classes" id="reports-class-filter" @change="onClassChange" />
+        <EnhancedDropdown v-if="activeModule !== 'accounting'" v-model="sectionId" :options="sectionOptions" placeholder="All sections" id="reports-section-filter" :disabled="!classId" @change="load(activeType)" />
         <input
           v-model="fromDate"
           type="date"
@@ -64,9 +63,23 @@
       </div>
 
       <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
+      <div v-if="reportLinks.length" class="mb-6 grid gap-3 sm:grid-cols-2" aria-label="Exam report workflows">
+        <NuxtLink
+          v-for="link in reportLinks"
+          :key="link.to"
+          :to="link.to"
+          class="rounded-lg border bg-white p-4 text-sm font-medium text-indigo-700 hover:bg-indigo-50 dark:border-gray-700 dark:bg-gray-800 dark:text-indigo-300 dark:hover:bg-gray-700"
+        >
+          {{ link.label }} <span aria-hidden="true">→</span>
+        </NuxtLink>
+      </div>
+      <div v-if="unsupportedAccountingReport" role="status" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+        <p><span class="font-semibold">{{ unsupportedAccountingReport }} doesn’t have a matching report view yet.</span> This suite currently summarizes dynamic vouchers only; Income/Expense registers are separate. Account statements, balance sheets, and cross-ledger totals need a posted ledger model, so this page won’t infer balances.</p>
+        <p class="mt-2">Existing transaction registers: <NuxtLink to="/accounting/income" class="underline">Income</NuxtLink> · <NuxtLink to="/accounting/expense" class="underline">Expense</NuxtLink>.</p>
+      </div>
       <p v-if="loading" class="text-sm text-gray-500 mb-4">Loading…</p>
 
-      <div class="bg-white dark:bg-gray-800 shadow rounded-md overflow-x-auto">
+      <div v-if="!unsupportedAccountingReport && !reportLinks.length" class="bg-white dark:bg-gray-800 shadow rounded-md overflow-x-auto">
         <table class="min-w-full divide-y">
           <thead>
             <tr>
@@ -98,9 +111,9 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ReportsSuite } from '~/api/academic/cards-exams-reports';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
-import { useAuthStore } from '~/stores/auth';
 import { useAcademics } from '~/composables/useAcademics';
 import { apiErrorMessage } from '~/utils/list-response';
+import { resolveAccountingReportTab } from '~/utils/accountingReportRoute';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const route = useRoute();
@@ -109,10 +122,7 @@ const {
   currentSchool,
   branchScopeParams
 } = useGlobalBranch();
-const authStore = useAuthStore();
-const selectedBranchId = computed(
-  () => globalSelectedBranchId.value || authStore.user?.branch_id || ''
-);
+const selectedBranchId = computed(() => globalSelectedBranchId.value);
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 const modules = ref<any[]>([]);
 const activeModule = ref('students');
@@ -120,8 +130,10 @@ const activeType = ref('summary');
 const types = ref<string[]>([]);
 const columns = ref<string[]>([]);
 const rows = ref<any[]>([]);
+const reportLinks = ref<{ label: string; to: string }[]>([]);
 const loading = ref(false);
 const error = ref('');
+const unsupportedAccountingReport = ref('');
 const classId = ref('');
 const sectionId = ref('');
 const fromDate = ref('');
@@ -143,6 +155,12 @@ const formatCell = (v: any) => {
 const selectModule = async (m: any) => {
   activeModule.value = m.key;
   types.value = m.types || ['summary'];
+  if (m.key === 'accounting') {
+    classId.value = '';
+    sectionId.value = '';
+  } else {
+    await fetchClasses({ branchId: selectedBranchId.value });
+  }
   await load(types.value[0] || 'summary');
 };
 
@@ -154,6 +172,8 @@ const onClassChange = async () => {
 };
 
 const load = async (type: string) => {
+  unsupportedAccountingReport.value = '';
+  reportLinks.value = [];
   activeType.value = type;
   loading.value = true;
   error.value = '';
@@ -167,19 +187,22 @@ const load = async (type: string) => {
     });
     columns.value = res.data?.columns || [];
     rows.value = res.data?.rows || [];
+    reportLinks.value = res.data?.links || [];
     if (res.data?.types?.length) types.value = res.data.types;
   } catch (e) {
     error.value = apiErrorMessage(e);
     rows.value = [];
+    reportLinks.value = [];
   } finally {
     loading.value = false;
   }
 };
 
 const onScopeChange = async () => {
+  if (unsupportedAccountingReport.value) return;
   classId.value = '';
   sectionId.value = '';
-  await fetchClasses({ branchId: selectedBranchId.value });
+  if (activeModule.value !== 'accounting') await fetchClasses({ branchId: selectedBranchId.value });
   await load(activeType.value);
 };
 
@@ -191,14 +214,37 @@ watch(currentSchool, () => {
   onScopeChange();
 });
 
+const applyRoute = async () => {
+  const moduleKey = String(route.query.module || '');
+  const initial = modules.value.find((m: any) => m.key === moduleKey) || modules.value[0];
+  if (!initial) return;
+  if (moduleKey === 'accounting' && route.query.tab) {
+    const requested = resolveAccountingReportTab(route.query.tab);
+    if (!requested.supported) {
+      activeModule.value = 'accounting';
+      types.value = initial.types || ['summary', 'list'];
+      activeType.value = '';
+      columns.value = [];
+      rows.value = [];
+      unsupportedAccountingReport.value = requested.label;
+      return;
+    }
+    await selectModule(initial);
+    if (requested.type !== 'summary') await load(requested.type);
+    return;
+  }
+  await selectModule(initial);
+};
+
+watch(() => [route.query.module, route.query.tab], () => {
+  if (modules.value.length) void applyRoute();
+});
+
 onMounted(async () => {
   try {
-    await fetchClasses({ branchId: selectedBranchId.value });
     const res: any = await ReportsSuite.catalog();
     modules.value = res.data?.modules || [];
-    const q = String(route.query.module || '');
-    const initial = modules.value.find((m: any) => m.key === q) || modules.value[0];
-    if (initial) await selectModule(initial);
+    await applyRoute();
   } catch (e) {
     error.value = apiErrorMessage(e);
   }

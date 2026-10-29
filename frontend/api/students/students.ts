@@ -8,9 +8,11 @@ export interface Student {
   roll_number?: string;
   class_id: string;
   section_id?: string;
+  stream_id?: string;
   school_id: string;
   branch_id: string;
   status?: string;
+  gender?: string;
   gender?: string;
   admission_date?: string;
   email?: string;
@@ -34,11 +36,15 @@ export interface StudentFilters {
   class_id?: string;
   section_id?: string;
   status?: string;
+  category_id?: string;
   school_id?: string;
   branch_id?: string;
   from_date?: string;
   to_date?: string;
   academic_year?: string;
+  has_siblings?: 'yes' | 'no';
+  enrollment?: 'currently_studying' | 'full_register' | 'unassigned';
+  stream_id?: string;
 }
 
 export interface StudentStats {
@@ -69,6 +75,15 @@ export const Student = {
     return apiCall('get', '/students/report', { params: filters });
   },
 
+  getRiskRegister: async (filters: StudentFilters & { attendance_below?: number; overdue_days?: number; min_signals?: number; library_out?: boolean; library_overdue?: boolean; has_transport?: boolean; has_hostel?: boolean } = {}) => {
+    return apiCall('get', '/students/risk-register', { params: filters });
+  },
+
+  exportReport: async (filters: StudentFilters = {}) => {
+    const api = createApiInstance();
+    return api.get('/students/export', { params: filters, responseType: 'blob' });
+  },
+
   // Get student statistics
   getStats: async (filters: StudentFilters = {}) => {
     return apiCall('get', '/students/stats', { params: filters });
@@ -90,6 +105,32 @@ export const Student = {
       }
     });
     return response.data;
+  },
+
+  previewBulkImport: async (formData: FormData) => {
+    const api = createApiInstance();
+    const response = await api.post('/students/bulk-import?preview=true', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  discoverBulkImportHeaders: async (formData: FormData) => {
+    const api = createApiInstance();
+    const response = await api.post('/students/bulk-import?discover=true', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  getImportHistory: async (params: { school_id?: string; branch_id?: string } = {}) => {
+    return apiCall('get', '/students/import-history', { params });
+  },
+
+  undoImportHistory: async (id: string, params: { school_id?: string; branch_id?: string } = {}) => {
+    return apiCall('post', `/students/import-history/${id}/undo`, { ...params });
   },
 
   // Get invoice breakdown for student

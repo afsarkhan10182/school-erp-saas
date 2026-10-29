@@ -250,13 +250,11 @@
                           'super_admin'
                         ].includes(user.role),
                         'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200':
-                          user.role === 'teacher',
+                          ['teacher', 'receptionist'].includes(user.role),
                         'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200':
                           user.role === 'accountant',
                         'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200':
                           user.role === 'librarian',
-                        'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200':
-                          user.role === 'receptionist',
                         'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200': ![
                           'admin',
                           'super_admin',

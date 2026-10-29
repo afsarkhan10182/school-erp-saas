@@ -64,7 +64,7 @@
 
       <div v-else class="min-h-screen flex items-center justify-center p-4 relative z-10">
         <!-- Login Container -->
-        <div class="w-full max-w-md">
+        <div class="w-full max-w-xl">
           <!-- Glassmorphic card -->
           <div
             class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-8"
@@ -158,24 +158,98 @@
 
             </form>
 
-            <div class="mt-6 border-t border-white/20 pt-4" aria-label="Choose login type">
-              <h2 class="mb-3 text-center text-sm font-semibold text-white">Explore the demo</h2>
-              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <button
-                  v-for="role in loginRoles"
-                  :key="role.key"
-                  type="button"
-                  class="group flex min-h-[96px] flex-col items-center justify-center rounded-xl border px-2 py-3 text-center transition-all"
-                  :class="loginAudience === role.key || (!loginAudience && role.key === 'admin')
-                    ? 'border-pink-300 bg-white/10 text-white shadow-lg shadow-pink-500/10'
-                    : 'border-white/15 bg-white/5 text-white/75 hover:border-white/35 hover:bg-white/10'"
-                  @click="handleDemoLogin(role.key)"
-                >
-                  <span class="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-pink-200/15">
-                    <component :is="role.icon" class="h-4 w-4 opacity-90" />
-                  </span>
-                  <span class="block text-xs font-medium leading-tight">{{ role.label }}</span>
-                </button>
+            <!-- Structured Demo Roles -->
+            <div class="mt-8 border-t border-white/20 pt-6" aria-label="Demo Role Selection">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xs font-semibold tracking-wider uppercase text-pink-300">
+                  Explore Interactive Demo
+                </h2>
+                <span class="text-[11px] text-white/60">1-click instant login</span>
+              </div>
+
+              <!-- Tier 2: School Leadership -->
+              <div class="mb-4">
+                <p class="text-[11px] font-medium text-white/60 uppercase tracking-wider mb-2">School Administration</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    v-for="role in schoolLeadershipRoles"
+                    :key="role.key"
+                    type="button"
+                    class="text-left p-2.5 rounded-xl border transition-all flex items-start space-x-2.5 group"
+                    :class="isRoleSelected(role.key)
+                      ? 'border-indigo-400 bg-indigo-500/25 text-white shadow-md ring-1 ring-indigo-400/50'
+                      : 'border-white/15 bg-white/5 text-white/80 hover:border-white/35 hover:bg-white/10'"
+                    @click="handleDemoLogin(role.key)"
+                    :disabled="loading"
+                  >
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-400/20 text-indigo-300 mt-0.5">
+                      <div v-if="loggingInRole === role.key" class="w-3.5 h-3.5 border-2 border-indigo-300/30 border-t-indigo-300 rounded-full animate-spin"></div>
+                      <component :is="role.icon" v-else class="h-4 w-4" />
+                    </span>
+                    <div class="min-w-0">
+                      <span class="block text-xs font-semibold text-white flex items-center gap-1.5">
+                        {{ role.label }}
+                        <span v-if="loggingInRole === role.key" class="text-[10px] text-indigo-300">Signing in...</span>
+                      </span>
+                      <span class="block text-[11px] text-white/65 leading-tight mt-0.5">{{ role.description }}</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tier 3: Campus Staff & Operations -->
+              <div class="mb-4">
+                <p class="text-[11px] font-medium text-white/60 uppercase tracking-wider mb-2">Campus Operations Staff</p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button
+                    v-for="role in operationalRoles"
+                    :key="role.key"
+                    type="button"
+                    class="text-center p-2 rounded-xl border transition-all flex flex-col items-center justify-center group"
+                    :class="isRoleSelected(role.key)
+                      ? 'border-pink-400 bg-pink-500/25 text-white shadow-md ring-1 ring-pink-400/50'
+                      : 'border-white/15 bg-white/5 text-white/80 hover:border-white/35 hover:bg-white/10'"
+                    @click="handleDemoLogin(role.key)"
+                    :disabled="loading"
+                  >
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-400/20 text-pink-300 mb-1">
+                      <div v-if="loggingInRole === role.key" class="w-3 h-3 border-2 border-pink-300/30 border-t-pink-300 rounded-full animate-spin"></div>
+                      <component :is="role.icon" v-else class="h-3.5 w-3.5" />
+                    </span>
+                    <span class="block text-xs font-semibold text-white">{{ role.label }}</span>
+                    <span class="block text-[10px] text-white/60 leading-tight mt-0.5 line-clamp-1">{{ role.description }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tier 4: Family & Student Portal -->
+              <div>
+                <p class="text-[11px] font-medium text-white/60 uppercase tracking-wider mb-2">Family & Student Portal</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    v-for="role in familyRoles"
+                    :key="role.key"
+                    type="button"
+                    class="text-left p-2.5 rounded-xl border transition-all flex items-start space-x-2.5 group"
+                    :class="isRoleSelected(role.key)
+                      ? 'border-emerald-400 bg-emerald-500/25 text-white shadow-md ring-1 ring-emerald-400/50'
+                      : 'border-white/15 bg-white/5 text-white/80 hover:border-white/35 hover:bg-white/10'"
+                    @click="handleDemoLogin(role.key)"
+                    :disabled="loading"
+                  >
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-400/20 text-emerald-300 mt-0.5">
+                      <div v-if="loggingInRole === role.key" class="w-3.5 h-3.5 border-2 border-emerald-300/30 border-t-emerald-300 rounded-full animate-spin"></div>
+                      <component :is="role.icon" v-else class="h-4 w-4" />
+                    </span>
+                    <div class="min-w-0">
+                      <span class="block text-xs font-semibold text-white flex items-center gap-1.5">
+                        {{ role.label }}
+                        <span v-if="loggingInRole === role.key" class="text-[10px] text-emerald-300">Signing in...</span>
+                      </span>
+                      <span class="block text-[11px] text-white/65 leading-tight mt-0.5">{{ role.description }}</span>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -266,7 +340,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { Mail, Lock, Sun, Moon, X, ShieldCheck, GitBranch, GraduationCap, Users, UserRound, Calculator, BookOpen } from 'lucide-vue-next';
+import { Mail, Lock, Sun, Moon, X, Crown, ShieldCheck, GitBranch, GraduationCap, Users, UserRound, Calculator, BookOpen } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { Auth } from '~/api';
 import { homePathForRole } from '~/utils/home-path';
@@ -324,18 +398,66 @@ const loginSubtitle = computed(() =>
 );
 
 const loginRoles = [
-  { key: 'admin', label: 'School admin', description: 'Manage your school', icon: ShieldCheck },
-  { key: 'branch_admin', label: 'Branch admin', description: 'Manage a branch', icon: GitBranch },
-  { key: 'student', label: 'Student', description: 'Open student portal', icon: GraduationCap },
-  { key: 'parent', label: 'Parent', description: 'View linked children', icon: Users },
-  { key: 'teacher', label: 'Teacher', description: 'Classes and attendance', icon: UserRound },
-  { key: 'receptionist', label: 'Receptionist', description: 'Front office access', icon: UserRound },
-  { key: 'accountant', label: 'Accountant', description: 'Fees and finance', icon: Calculator },
-  { key: 'librarian', label: 'Librarian', description: 'Library operations', icon: BookOpen }
+  { key: 'super_admin', label: 'Platform owner', description: 'Manage schools, subscription plans, billing & platform-wide analytics', icon: Crown },
+  { key: 'admin', label: 'School admin', description: 'Full school management: students, staff, fees, exams & reports', icon: ShieldCheck },
+  { key: 'branch_admin', label: 'Branch admin', description: 'Single-branch operations: admissions, classes & campus staff', icon: GitBranch },
+  { key: 'teacher', label: 'Teacher', description: 'Class schedule, homework, attendance & exam results', icon: UserRound },
+  { key: 'accountant', label: 'Accountant', description: 'Fee collection, invoices & financial reports', icon: Calculator },
+  { key: 'receptionist', label: 'Receptionist', description: 'Admission enquiries, visitor log & call tracking', icon: UserRound },
+  { key: 'librarian', label: 'Librarian', description: 'Book catalog, issue/return & library reports', icon: BookOpen },
+  { key: 'parent', label: 'Parent', description: 'Child progress: attendance, fees, homework & report cards', icon: Users },
+  { key: 'student', label: 'Student', description: 'My classes, homework, exam results & online exams', icon: GraduationCap }
 ];
 
+const schoolLeadershipRoles = [
+  { key: 'admin', label: 'School Admin', description: 'Full school management: students, staff, fees, exams & reports across all branches', icon: ShieldCheck },
+  { key: 'branch_admin', label: 'Branch Admin', description: 'Single-branch operations: admissions, classes, sections & campus staff', icon: GitBranch }
+];
+
+const operationalRoles = [
+  { key: 'teacher', label: 'Teacher', description: 'Schedule & homework', icon: UserRound },
+  { key: 'teacher_second', label: 'Teacher · Second Branch', description: 'Class 2 schedule & homework', icon: UserRound },
+  { key: 'accountant', label: 'Accountant', description: 'Fees & invoices', icon: Calculator },
+  { key: 'receptionist', label: 'Receptionist', description: 'Enquiries & visitors', icon: UserRound },
+  { key: 'librarian', label: 'Librarian', description: 'Catalog & issuing', icon: BookOpen }
+];
+
+const familyRoles = [
+  { key: 'parent', label: 'Parent Portal', description: 'Child progress: attendance, fees, homework, timetable & report cards', icon: Users },
+  { key: 'student', label: 'Student Portal', description: 'My classes, homework, exam results, timetable & online exams', icon: GraduationCap }
+];
+
+const selectedDemoRole = ref(
+  route.query.audience === 'parent' || route.query.audience === 'student'
+    ? route.query.audience
+    : 'admin'
+);
+const loggingInRole = ref(null);
+
+const isRoleSelected = key => {
+  return selectedDemoRole.value === key;
+};
+
 const selectLoginRole = role => {
-  const accountRole = role === 'branch_admin' ? 'branch' : role;
+  selectedDemoRole.value = role;
+  if (import.meta.client) {
+    sessionStorage.removeItem('post-logout-redirect');
+    sessionStorage.removeItem('user-modules');
+  }
+  const authStore = useAuthStore();
+  authStore.setCurrentSchool(null);
+  authStore.setCurrentBranch(null);
+
+  const accountRole =
+    role === 'branch_admin'
+      ? 'branch'
+      : role === 'super_admin'
+        ? 'superadmin'
+        : role === 'teacher_second'
+          ? 'teacher.second'
+        : role === 'receptionist'
+          ? 'reception'
+          : role;
   form.email = `demo.${accountRole}@schoolerp.local`;
   form.password = 'Demo@12345';
   form.rememberMe = false;
@@ -347,8 +469,13 @@ const selectLoginRole = role => {
 };
 
 const handleDemoLogin = async role => {
+  loggingInRole.value = role;
   selectLoginRole(role);
-  await handleLogin();
+  try {
+    await handleLogin();
+  } finally {
+    loggingInRole.value = null;
+  }
 };
 
 // Note: "Remember Me" is now handled by cookie expiry on the backend
@@ -379,7 +506,6 @@ const handleForgotPassword = async () => {
       };
     }
   } catch (err) {
-    console.error('Forgot password error:', err);
     forgotPasswordMessage.value = {
       type: 'error',
       text: 'Network error. Please check your connection and try again.'
@@ -427,16 +553,22 @@ const checkExistingAuth = async () => {
 
     // If user is already logged in, redirect to intended destination or dashboard
     if (authStore.isLoggedIn && authStore.currentUser) {
-      // Priority: query redirect > post-logout redirect > dashboard
+      const role = authStore.currentUser?.role;
+      const isFamily = role === 'student' || role === 'parent';
+      const isSuper = role === 'super_admin';
       let destination = redirectTo.value;
       if (!destination && import.meta.client) {
         const savedRedirect = sessionStorage.getItem('post-logout-redirect');
         if (savedRedirect) {
-          destination = savedRedirect;
           sessionStorage.removeItem('post-logout-redirect');
+          if ((isFamily && !savedRedirect.startsWith('/portal')) || (!isSuper && savedRedirect.startsWith('/saas')) || (isSuper && !savedRedirect.startsWith('/saas'))) {
+            // Incompatible with role, ignore
+          } else {
+            destination = savedRedirect;
+          }
         }
       }
-      destination = destination || homePathForRole(authStore.currentUser?.role);
+      destination = destination || homePathForRole(role);
       await navigateTo(destination, { replace: true });
       return;
     }
@@ -446,16 +578,22 @@ const checkExistingAuth = async () => {
       try {
         const isValid = await authStore.checkAuth();
         if (isValid) {
-          // Priority: query redirect > post-logout redirect > role home
+          const role = authStore.currentUser?.role;
+          const isFamily = role === 'student' || role === 'parent';
+          const isSuper = role === 'super_admin';
           let destination = redirectTo.value;
           if (!destination && import.meta.client) {
             const savedRedirect = sessionStorage.getItem('post-logout-redirect');
             if (savedRedirect) {
-              destination = savedRedirect;
               sessionStorage.removeItem('post-logout-redirect');
+              if ((isFamily && !savedRedirect.startsWith('/portal')) || (!isSuper && savedRedirect.startsWith('/saas')) || (isSuper && !savedRedirect.startsWith('/saas'))) {
+                // Incompatible with role, ignore
+              } else {
+                destination = savedRedirect;
+              }
             }
           }
-          destination = destination || homePathForRole(authStore.currentUser?.role);
+          destination = destination || homePathForRole(role);
           await navigateTo(destination, { replace: true });
           return;
         }
@@ -477,7 +615,6 @@ onMounted(() => {
 });
 
 const handleLogin = async () => {
-  console.log('handleLogin called', form);
   error.value = '';
   loading.value = true;
 
@@ -490,7 +627,6 @@ const handleLogin = async () => {
       },
       redirectTo.value || undefined
     );
-    console.log('Login result:', result);
     if (result.success) {
       // Login successful - let the useAuth composable handle navigation
       // No need to navigate here as useAuth will do it
@@ -498,7 +634,6 @@ const handleLogin = async () => {
       error.value = result.error || 'Login failed';
     }
   } catch (err) {
-    console.error('Login error:', err);
     error.value = 'Network error. Please check if the backend is running.';
   } finally {
     loading.value = false;

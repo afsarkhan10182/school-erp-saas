@@ -194,7 +194,7 @@
   />
 
   <!-- Payment Modal -->
-  <div v-if="showPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+  <div v-if="showPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100000]">
     <div
       class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
     >
@@ -294,7 +294,7 @@
   </div>
 
   <!-- Receipt Modal -->
-  <div v-if="showReceiptModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+  <div v-if="showReceiptModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100000]">
     <div
       class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
     >
@@ -318,7 +318,7 @@
   </div>
 
   <!-- Multiple Payments Modal -->
-  <div v-if="showMultiplePaymentsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+  <div v-if="showMultiplePaymentsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100000]">
     <div
       class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800"
     >
@@ -454,7 +454,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, computed, defineAsyncComponent } from 'vue';
+import { ref, reactive, onMounted, watch, computed, defineAsyncComponent, nextTick } from 'vue';
 import {
   Plus,
   CreditCard,
@@ -471,6 +471,8 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import { useFeeSettings } from '~/utils/settings';
+import { getEnabledFeePaymentMethods } from '~/utils/feePaymentMethods';
 // Strategic imports: Direct for always-present, Async for on-demand
 import InvoiceFilters from '~/components/financial/InvoiceFilters.vue';
 import InvoiceTable from '~/components/financial/InvoiceTable.vue';
@@ -533,13 +535,8 @@ const invoiceTableRef = ref(null); // Ref for InvoiceTable component
 // Pagination
 const currentPage = ref(1);
 const pageSize = ref(10);
-const paymentMethodOptions = [
-  { value: 'cash', label: 'Cash' },
-  { value: 'card', label: 'Card' },
-  { value: 'upi', label: 'UPI' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'cheque', label: 'Cheque' }
-];
+const paymentMethodOptions = ref(getEnabledFeePaymentMethods());
+const { getPaymentMethods } = useFeeSettings();
 
 // View mode (only grouped)
 const viewMode = ref('grouped');
@@ -648,6 +645,13 @@ const paymentForm = reactive({
   notes: '',
   monthly_payment_id: null // New field for monthly payment ID
 });
+
+const loadPaymentMethodOptions = async () => {
+  paymentMethodOptions.value = getEnabledFeePaymentMethods(await getPaymentMethods());
+  if (!paymentMethodOptions.value.some(({ value }) => value === paymentForm.payment_method)) {
+    paymentForm.payment_method = paymentMethodOptions.value[0]?.value || '';
+  }
+};
 
 // Methods
 const fetchInvoices = async () => {
@@ -1376,8 +1380,10 @@ const viewPaymentReceipt = async paymentItem => {
   }
 };
 
-const viewCombinedReceipt = async combinedInvoice => {
+const viewCombinedReceipt = async (combinedInvoice, { print = false } = {}) => {
   isLoadingReceipt.value = true;
+  showReceiptModal.value = false;
+  selectedReceipt.value = null;
   try {
     // Check if we already have receipt data from the payment response
     if (combinedInvoice.combined_receipt) {
@@ -1444,6 +1450,10 @@ const viewCombinedReceipt = async combinedInvoice => {
     }
   } finally {
     isLoadingReceipt.value = false;
+    if (print && showReceiptModal.value && selectedReceipt.value) {
+      await nextTick();
+      window.print();
+    }
   }
 };
 
@@ -1720,6 +1730,9 @@ const fetchBranches = async () => {
       // Branch admin sees only their branch
       response = await Branches.getById(user.value?.branch_id);
       branches.value = response.data ? [response.data] : [];
+    } else if (user.value?.role === 'accountant') {
+      branches.value = [];
+      return;
     } else {
       // Default fallback
       response = await Branches.getForDropdown();
@@ -1811,6 +1824,7 @@ const loadSchoolData = async () => {
 
 onMounted(async () => {
   try {
+    await loadPaymentMethodOptions();
     // Load localStorage value on client-side
     if (import.meta.client) {
       const savedPageSize = localStorage.getItem('invoicesPageSize');

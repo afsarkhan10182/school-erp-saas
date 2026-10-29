@@ -34,14 +34,14 @@
       </div>
     </div>
 
-    <!-- Select Ground Section -->
+    <!-- Position filters -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3
             class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
           >
-            Select Ground
+            Select filters
           </h3>
         </div>
         <div class="p-6">
@@ -53,7 +53,7 @@
               </label>
               <EnhancedDropdown
                 v-model="selectedClassId"
-                :options="classOptions"
+                :options="positionClassOptions"
                 placeholder="Choose class"
                 :loading="classesLoading"
                 @change="onClassChange"
@@ -309,13 +309,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { Calculator, Users, Save } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useExamPositions } from '~/composables/useExamPositions';
+import type { CalculatePositionsData } from '~/api/academic/exam-positions';
 import { useAuth } from '~/composables/useAuth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
@@ -352,7 +353,7 @@ interface Student {
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
-const { selectedBranchId } = useGlobalBranch();
+const { selectedBranchId, currentSchool, isSuperAdmin } = useGlobalBranch();
 const {
   classes,
   sections,
@@ -380,45 +381,74 @@ const selectedExamId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
 const students = ref<Student[]>([]);
-const calculationMethod = ref('total_marks');
-const tieBreakingMethod = ref('average');
+const calculationMethod = ref<CalculatePositionsData['calculation_method']>('total_marks');
+const tieBreakingMethod = ref<CalculatePositionsData['tie_breaking_method']>('average');
 const includeAbsent = ref(false);
 
-watch(selectedBranchId, async newBranchId => {
-  selectedExamId.value = '';
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  students.value = [];
-  if (newBranchId) {
+const schoolId = computed(() =>
+  isSuperAdmin.value ? currentSchool.value?.id : user.value?.school_id
+);
+const selectedClass = computed(() => classes.value.find(cls => cls.id === selectedClassId.value));
+const selectedClassBranchId = computed(
+  () => selectedClass.value?.branch?.id || ''
+);
+
+watch(
+  [selectedBranchId, schoolId],
+  async ([newBranchId, newSchoolId]) => {
+    selectedExamId.value = '';
+    selectedClassId.value = '';
+    selectedSectionId.value = '';
+    students.value = [];
+    if (!newSchoolId) {
+      classes.value = [];
+      exams.value = [];
+      return;
+    }
     await Promise.all([
-      fetchClasses({ branchId: newBranchId }),
-      loadExams({ branch_id: newBranchId, school_id: user.value?.school_id })
+      fetchClasses({ schoolId: newSchoolId, branchId: newBranchId || undefined }),
+      loadExams({ school_id: newSchoolId, ...(newBranchId && { branch_id: newBranchId }) })
     ]);
-  } else {
-    await Promise.all([loadExams({ school_id: user.value?.school_id })]);
-  }
-});
+  },
+  { immediate: true }
+);
 
 // Computed properties
 
-const examOptions = computed(() =>
-  exams.value.map(exam => ({
-    value: exam.id,
-    label: exam.name,
-    description: exam.examType?.name
-  }))
+const positionClassOptions = computed(() =>
+  classOptions.value.map(option => {
+    if (selectedBranchId.value) return option;
+    const classItem = classes.value.find(item => item.id === option.value);
+    return { ...option, label: `${option.label} (${classItem?.branch?.name || 'Branch'})` };
+  })
 );
 
-const showSectionField = computed(() => {
-  const selectedClass = classes.value.find(c => c.id === selectedClassId.value);
-  return selectedClass?.has_sections || false;
-});
+const examOptions = computed(() =>
+  exams.value
+    .filter(
+      exam =>
+        !selectedClassBranchId.value ||
+        !exam.branch_id ||
+        exam.branch_id === selectedClassBranchId.value
+    )
+    .map(exam => ({
+      value: exam.id,
+      label: exam.name,
+      description: exam.examType?.name
+    }))
+);
+
+const showSectionField = computed(() =>
+  sectionOptions.value.some(section => section.class_id === selectedClassId.value)
+);
 
 const canLoadStudents = computed(() => {
   return !!(
-    selectedBranchId.value &&
+    schoolId.value &&
+    selectedClassBranchId.value &&
     selectedClassId.value &&
     selectedExamId.value &&
+    !sectionsLoading.value &&
     (!showSectionField.value || selectedSectionId.value)
   );
 });
@@ -437,29 +467,6 @@ const hasChanges = computed(() => {
 });
 
 // Methods
-const onBranchChange = async () => {
-  selectedExamId.value = '';
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  students.value = [];
-
-  // Load classes for the selected branch
-  if (selectedBranchId.value) {
-    await fetchClasses({
-      branchId: selectedBranchId.value
-    });
-
-    // Reload exams filtered by branch
-    await loadExams({
-      branch_id: selectedBranchId.value,
-      school_id: user.value?.school_id
-    });
-  } else {
-    // Clear classes if no branch selected
-    classes.value = [];
-  }
-};
-
 const onExamChange = () => {
   // Exam is independent of class, so don't clear class selection
   // Only clear students since exam changed
@@ -471,9 +478,13 @@ const onClassChange = async () => {
   students.value = [];
 
   if (selectedClassId.value) {
+    const selectedExam = exams.value.find(exam => exam.id === selectedExamId.value);
+    if (selectedExam?.branch_id && selectedExam.branch_id !== selectedClassBranchId.value) {
+      selectedExamId.value = '';
+    }
     await fetchSections({
-      schoolId: user.value?.school_id,
-      branchId: selectedBranchId.value || user.value?.branch_id,
+      schoolId: schoolId.value,
+      branchId: selectedClassBranchId.value,
       classId: selectedClassId.value
     });
   }
@@ -488,8 +499,8 @@ const loadStudents = async () => {
     const params = {
       exam_id: selectedExamId.value,
       class_id: selectedClassId.value,
-      school_id: user.value?.school_id,
-      branch_id: selectedBranchId.value || user.value?.branch_id
+      school_id: schoolId.value || '',
+      branch_id: selectedClassBranchId.value
     };
 
     if (selectedSectionId.value) {
@@ -516,6 +527,8 @@ const calculatePositions = async () => {
     const requestData: any = {
       exam_id: selectedExamId.value,
       class_id: selectedClassId.value,
+      school_id: schoolId.value || '',
+      branch_id: selectedClassBranchId.value,
       calculation_method: calculationMethod.value,
       tie_breaking_method: tieBreakingMethod.value,
       include_absent: includeAbsent.value
@@ -581,6 +594,8 @@ const savePositions = async () => {
     const requestData = {
       exam_id: selectedExamId.value,
       class_id: selectedClassId.value,
+      school_id: schoolId.value || '',
+      branch_id: selectedClassBranchId.value,
       positions: students.value.map(student => ({
         student_id: student.id,
         position: student.position,
@@ -636,24 +651,4 @@ const getGradeClass = (grade: string) => {
   return 'bg-red-100 text-red-800';
 };
 
-// Load initial data
-onMounted(async () => {
-
-  if (selectedBranchId.value) {
-    await Promise.all([
-      fetchClasses({
-        branchId: selectedBranchId.value
-      }),
-      loadExams({
-        branch_id: selectedBranchId.value,
-        school_id: user.value?.school_id
-      })
-    ]);
-  } else {
-    // Load all exams if no branch (for super admin)
-    await loadExams({
-      school_id: user.value?.school_id
-    });
-  }
-});
 </script>

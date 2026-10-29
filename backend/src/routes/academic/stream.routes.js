@@ -23,10 +23,14 @@ router.use((req, res, next) => {
   next();
 });
 
-router.use(authorize(['super_admin', 'admin', 'branch_admin']));
-
 // GET /api/streams - Get all streams with pagination and filters
-router.get('/', StreamController.getAllStreams);
+router.get(
+  '/',
+  authorize(['super_admin', 'admin', 'branch_admin', 'accountant']),
+  StreamController.getAllStreams
+);
+
+router.use(authorize(['super_admin', 'admin', 'branch_admin']));
 
 // GET /api/streams/dropdown - Get streams for dropdown/select
 router.get('/dropdown', StreamController.getStreamsForDropdown);

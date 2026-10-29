@@ -1,41 +1,43 @@
 <template>
-  <Transition name="modal">
-    <div
-      v-if="show"
-      class="modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      :aria-labelledby="labelledBy"
-      @click="handleOverlayClick"
-      @keydown.escape="$emit('close')"
-    >
-      <div class="modal-content" ref="modalRef" :class="[sizeClasses, 'slide-in']" @click.stop>
-        <!-- Close button -->
-        <button
-          @click="$emit('close')"
-          class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          aria-label="Close dialog"
-        >
-          <X class="w-5 h-5" />
-        </button>
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-if="show"
+        class="modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="labelledBy"
+        @click="handleOverlayClick"
+        @keydown.escape="$emit('close')"
+      >
+        <div class="modal-content" ref="modalRef" :class="[sizeClasses, 'slide-in']" @click.stop>
+          <!-- Close button -->
+          <button
+            @click="$emit('close')"
+            class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            aria-label="Close dialog"
+          >
+            <X class="w-5 h-5" />
+          </button>
 
-        <!-- Header -->
-        <div v-if="$slots.header" class="modal-header" :id="labelledBy">
-          <slot name="header"></slot>
-        </div>
+          <!-- Header -->
+          <div v-if="$slots.header" class="modal-header" :id="labelledBy">
+            <slot name="header"></slot>
+          </div>
 
-        <!-- Body -->
-        <div class="modal-body" ref="bodyRef">
-          <slot name="body"></slot>
-        </div>
+          <!-- Body -->
+          <div class="modal-body" ref="bodyRef">
+            <slot name="body"></slot>
+          </div>
 
-        <!-- Footer -->
-        <div v-if="$slots.footer" class="modal-footer">
-          <slot name="footer"></slot>
+          <!-- Footer -->
+          <div v-if="$slots.footer" class="modal-footer">
+            <slot name="footer"></slot>
+          </div>
         </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -148,7 +150,7 @@ const handleOverlayClick = () => {
 
 <style scoped>
 .modal-overlay {
-  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4;
+  @apply fixed inset-0 z-[100000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4;
 }
 
 .modal-content {

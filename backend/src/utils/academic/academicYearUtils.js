@@ -10,23 +10,48 @@ const { logger } = require('~/utils/shared/logger');
  * @returns {Promise<Object>} Current academic year object
  * @throws {Error} If no current academic year is found
  */
-const getCurrentAcademicYearForSchool = async () => {
+const getCurrentAcademicYearForSchool = async (schoolId) => {
   try {
-    const { AcademicYear } = require('~/models');
+    const { AcademicYear, School } = require('~/models');
+
+    if (schoolId) {
+      try {
+        const school = await School.findByPk(schoolId);
+        if (school && school.current_academic_year_id) {
+          const schoolYear = await AcademicYear.findByPk(school.current_academic_year_id);
+          if (schoolYear) {
+            logger.info(`Using school-specific academic year: ${schoolYear.name}`);
+            return schoolYear;
+          }
+        }
+      } catch (err) {
+        logger.warn('Could not fetch school-specific academic year:', err.message);
+      }
+    }
 
     // Get the academic year where is_current = true
     const currentYear = await AcademicYear.findOne({
       where: { is_current: true }
     });
 
-    if (!currentYear) {
-      throw new Error(
-        'No current academic year is set. Please contact the administrator to set the current academic year.'
-      );
+    if (currentYear) {
+      logger.info(`Using current academic year: ${currentYear.name}`);
+      return currentYear;
     }
 
-    logger.info(`Using current academic year: ${currentYear.name}`);
-    return currentYear;
+    // Fallback to latest academic year
+    const fallbackYear = await AcademicYear.findOne({
+      order: [['created_at', 'DESC']]
+    });
+
+    if (fallbackYear) {
+      logger.info(`Using fallback academic year: ${fallbackYear.name}`);
+      return fallbackYear;
+    }
+
+    throw new Error(
+      'No current academic year is set. Please contact the administrator to set the current academic year.'
+    );
   } catch (error) {
     logger.error('Error getting current academic year:', error);
     throw error; // Re-throw to let controllers handle it

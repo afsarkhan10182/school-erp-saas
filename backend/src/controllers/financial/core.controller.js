@@ -6,16 +6,20 @@ const {
   Parent,
   School,
   FeePayment,
+  FeeInvoiceAdjustment,
   Branch,
-  Class
+  Class,
+  User
 } = require('~/models');
 const ApiError = require('~/utils/shared/ApiError');
+const { calculateInvoiceDueDate, parseDateOnly } = require('~/utils/financial/invoice-due-date');
 const { logger } = require('~/utils/shared/logger');
 const {
   getAcademicYearMonths,
   validatePaymentSequence
 } = require('~/utils/academic/academicYearUtils');
 const { Op } = require('sequelize');
+const { resolveSchoolBranchScope } = require('~/utils/shared/requestScope');
 const { sequelize } = require('~/config/database');
 
 // Helper function to get student full name
@@ -186,9 +190,9 @@ const generateUniqueInvoiceNumber = async (classCode, invoiceData, receiptOnly =
   return realInvoice; // Return the complete invoice object
 };
 
-// Generate unique receipt number using counter table with academic year scoping (bulletproof solution)
+// Counter uniqueness is school/branch/class scoped in the existing schema, so receipt numbers stay monotonic across years.
 const generateUniqueReceiptNumber = async (classCode, context = {}) => {
-  const { school_id, branch_id, academic_year } = context;
+  const { school_id, branch_id, academic_year, transaction } = context;
 
   // Handle case where branch_id might be null/undefined
   const safeBranchId = branch_id || null;
@@ -197,7 +201,7 @@ const generateUniqueReceiptNumber = async (classCode, context = {}) => {
   const result = await sequelize.query(
     `INSERT INTO invoice_counters (school_id, branch_id, class_code, academic_year, receipt_count, created_at, updated_at)
      VALUES (:school_id, :branch_id, :class_code, :academic_year, 1, NOW(), NOW())
-     ON CONFLICT (school_id, branch_id, class_code, academic_year)
+     ON CONFLICT (school_id, branch_id, class_code)
      DO UPDATE SET receipt_count = invoice_counters.receipt_count + 1, updated_at = NOW()
      RETURNING receipt_count`,
     {
@@ -207,7 +211,8 @@ const generateUniqueReceiptNumber = async (classCode, context = {}) => {
         branch_id: safeBranchId,
         class_code: classCode,
         academic_year: academic_year
-      }
+      },
+      transaction
     }
   );
 
@@ -245,6 +250,7 @@ const generateInvoices = async (req, res, next) => {
       fee_structure_id, // Single fee structure ID (for backward compatibility)
       student_ids,
       student_id, // Single student ID (for backward compatibility)
+      student_selection,
       due_date,
       notes,
       months, // For monthly payments
@@ -271,10 +277,25 @@ const generateInvoices = async (req, res, next) => {
       finalStudentIds = [student_id];
     }
 
+    if (student_selection && !['all', 'specific'].includes(student_selection)) {
+      throw new ApiError(400, 'Student selection must be either "all" or "specific"');
+    }
+    if (student_selection === 'specific' && (!Array.isArray(finalStudentIds) || !finalStudentIds.length)) {
+      throw new ApiError(400, 'Select at least one student for specific invoice generation');
+    }
+
     // Validate payment model
     if (!['installment', 'monthly'].includes(payment_model)) {
       throw new ApiError(400, 'Payment model must be either "installment" or "monthly"');
     }
+    if (due_date && !parseDateOnly(due_date)) {
+      throw new ApiError(400, 'Due date must be a valid YYYY-MM-DD date');
+    }
+
+    const scopeRequest = req.user?.role === 'accountant' && req.user.branch_id
+      ? { ...req, body: { ...req.body, branch_id: req.user.branch_id } }
+      : req;
+    const scope = await resolveSchoolBranchScope(scopeRequest, { allowSchoolWide: true });
 
     // Validate monthly payment parameters
     if (payment_model === 'monthly') {
@@ -296,8 +317,11 @@ const generateInvoices = async (req, res, next) => {
     const feeStructures = await FeeStructure.findAll({
       where: {
         id: { [Op.in]: finalFeeStructureIds },
-        school_id: req.schoolId,
-        is_active: true
+        school_id: scope.school_id,
+        is_active: true,
+        ...(scope.branch_id && {
+          [Op.or]: [{ branch_id: scope.branch_id }, { branch_id: null }]
+        })
       },
       include: [
         {
@@ -317,7 +341,7 @@ const generateInvoices = async (req, res, next) => {
     }
 
     // OPTIMIZATION: Pre-fetch school data (moved outside loop)
-    const school = await School.findByPk(req.schoolId);
+    const school = await School.findByPk(scope.school_id);
     const startingMonth = school.starting_month || 6; // Default to June
 
     // OPTIMIZATION: Pre-fetch all class codes to eliminate N+1 queries
@@ -387,12 +411,14 @@ const generateInvoices = async (req, res, next) => {
     const errors = [];
 
     for (const feeStructure of feeStructures) {
+      const effectiveBranchId = feeStructure.branch_id || scope.branch_id;
       // Build student filter based on fee structure context
       const studentFilter = {
-        school_id: req.schoolId,
+        school_id: scope.school_id,
         academic_year: feeStructure.academic_year,
         status: 'active'
       };
+      if (effectiveBranchId) studentFilter.branch_id = effectiveBranchId;
 
       // Handle class name matching - support both single class_name and multiple applicable_classes
       if (
@@ -476,30 +502,28 @@ const generateInvoices = async (req, res, next) => {
       // Generate invoices for each student and this fee structure
       for (const student of students) {
         try {
-          // Comprehensive check for existing invoices
-          let hasExistingInvoices = false;
-          let existingInvoice;
-
-          // Check if this student already has ANY invoices for this fee structure and academic year (using pre-fetched data)
           const existingInvoicesForStudent = existingInvoicesMap.get(student.id) || [];
+          const conflictingInvoices = payment_model === 'monthly'
+            ? existingInvoicesForStudent.filter(invoice => invoice.payment_model !== 'monthly')
+            : existingInvoicesForStudent;
 
-          if (existingInvoicesForStudent.length > 0) {
+          if (conflictingInvoices.length > 0) {
             logger.info(
-              `Student ${getStudentFullName(student)} already has ${existingInvoicesForStudent.length} invoices for fee structure ${feeStructure.name} in academic year ${feeStructure.academic_year}`
+              `Student ${getStudentFullName(student)} already has ${conflictingInvoices.length} conflicting invoices for fee structure ${feeStructure.name} in academic year ${feeStructure.academic_year}`
             );
             errors.push({
               student: getStudentFullName(student),
               student_id: student.id,
               fee_structure: feeStructure.name,
               fee_structure_id: feeStructure.id,
-              error: `Student already has ${existingInvoicesForStudent.length} invoices for this fee structure in academic year ${feeStructure.academic_year}`,
+              error: `Student already has ${conflictingInvoices.length} invoices for this fee structure in academic year ${feeStructure.academic_year}`,
               validation_details: [
                 {
                   field: 'existing_invoices',
-                  message: `Found ${existingInvoicesForStudent.length} existing invoices`,
+                  message: `Found ${conflictingInvoices.length} existing invoices`,
                   value: {
-                    existing_invoice_count: existingInvoicesForStudent.length,
-                    existing_invoice_numbers: existingInvoicesForStudent.map(
+                    existing_invoice_count: conflictingInvoices.length,
+                    existing_invoice_numbers: conflictingInvoices.map(
                       inv => inv.invoice_number
                     )
                   }
@@ -508,8 +532,6 @@ const generateInvoices = async (req, res, next) => {
             });
             continue;
           }
-
-          // Note: We've already checked for existing invoices above, so we can proceed with generation
 
           // Validate required data before generating invoices
           if (!student.first_name) {
@@ -617,10 +639,40 @@ const generateInvoices = async (req, res, next) => {
 
             // If specific months are provided, filter to only those months
             // Otherwise, generate all 12 months
-            const monthsToGenerate =
+            const requestedAcademicMonths =
               months && months.length > 0
                 ? academicYearMonths.filter(m => months.includes(m.month))
                 : academicYearMonths;
+            const monthsToGenerate = requestedAcademicMonths.filter(academicMonth => {
+              const alreadyExists = existingInvoicesForStudent.some(
+                invoice =>
+                  invoice.payment_model === 'monthly' &&
+                  Number(invoice.month) === academicMonth.month &&
+                  Number(invoice.year) === academicMonth.year
+              );
+
+              return !alreadyExists;
+            });
+
+            if (monthsToGenerate.length < requestedAcademicMonths.length) {
+              const duplicateMonths = requestedAcademicMonths
+                .filter(month => !monthsToGenerate.includes(month))
+                .map(month => month.display);
+              errors.push({
+                student: getStudentFullName(student),
+                student_id: student.id,
+                fee_structure: feeStructure.name,
+                fee_structure_id: feeStructure.id,
+                error: `Student already has monthly invoices for: ${duplicateMonths.join(', ')}`,
+                validation_details: [
+                  {
+                    field: 'existing_months',
+                    message: 'Duplicate monthly periods were skipped',
+                    value: { months: duplicateMonths }
+                  }
+                ]
+              });
+            }
 
             // Generate monthly invoices for each academic month
             for (const academicMonth of monthsToGenerate) {
@@ -676,7 +728,7 @@ const generateInvoices = async (req, res, next) => {
                 notes:
                   notes || `Monthly payment for ${academicMonth.display} - ${feeStructure.name}`,
                 school_id: req.schoolId,
-                branch_id: feeStructure.branch_id || req.branchId,
+                branch_id: effectiveBranchId,
                 created_by: req.user.id
               });
               invoices.push(invoice); // Store the invoice object
@@ -684,20 +736,14 @@ const generateInvoices = async (req, res, next) => {
           } else {
             // Generate installment invoices based on installment type
             if (feeStructure.installment_type === 'one_time') {
-              // One-Time Full Fee: Generate ONE invoice for the entire amount
-              let calculatedDueDate = feeStructure.due_date;
-
-              // If no due date is set in the fee structure, set a default (3 months from now)
-              if (!calculatedDueDate) {
-                const defaultDate = new Date();
-                defaultDate.setMonth(defaultDate.getMonth() + 3);
-                calculatedDueDate = defaultDate.toISOString().split('T')[0];
-
-                // Log this for debugging
-                logger.info(
-                  `No due date found in fee structure ${feeStructure.name}, using default date: ${calculatedDueDate}`
-                );
-              }
+              const invoiceDate = new Date();
+              const calculation = school.fee_settings?.invoiceSettings?.dueDateCalculation || 'fixed_days';
+              const calculatedDueDate = feeStructure.due_date || due_date || calculateInvoiceDueDate({
+                invoiceDate,
+                calculation,
+                dueDays: school.fee_settings?.defaultPaymentDueDays,
+                customDate: due_date
+              });
 
               // Generate unique invoice number (optimized)
               const classCode = getClassCodeOptimized(feeStructure, student, classCodesMap);
@@ -709,7 +755,7 @@ const generateInvoices = async (req, res, next) => {
                 section: feeStructure.section,
                 fee_type_name: feeStructure.feeType?.name || 'Fee',
                 fee_type_id: feeStructure.fee_type_id,
-                invoice_date: new Date(),
+                invoice_date: invoiceDate,
                 due_date: calculatedDueDate,
                 amount: parseFloat(feeStructure.amount) || 0,
                 base_amount: parseFloat(feeStructure.amount) || 0,
@@ -733,7 +779,7 @@ const generateInvoices = async (req, res, next) => {
                   notes ||
                   `One-time full fee payment for ${feeStructure.academic_year} - ${feeStructure.name}`,
                 school_id: req.schoolId,
-                branch_id: feeStructure.branch_id || req.branchId,
+                branch_id: effectiveBranchId,
                 created_by: req.user.id
               });
               invoices.push(invoice); // Store the invoice object
@@ -826,7 +872,7 @@ const generateInvoices = async (req, res, next) => {
                       notes ||
                       `Installment ${i + 1} of ${totalInstallments} for ${feeStructure.academic_year} - ${feeStructure.name}`,
                     school_id: req.schoolId,
-                    branch_id: feeStructure.branch_id || req.branchId,
+                    branch_id: effectiveBranchId,
                     created_by: req.user.id
                   },
                   maxInvoiceNumbersMap
@@ -1258,6 +1304,7 @@ const cancelInvoice = async (req, res, next) => {
 
 // Manual fee adjustment (waive or add fees)
 const adjustInvoice = async (req, res, next) => {
+  let transaction;
   try {
     const { id } = req.params;
     const {
@@ -1266,20 +1313,36 @@ const adjustInvoice = async (req, res, next) => {
       adjustment_reason,
       notes
     } = req.body;
+    const amount = Number(adjustment_amount);
+    const reason = typeof adjustment_reason === 'string' ? adjustment_reason.trim() : '';
 
-    if (!adjustment_type || !adjustment_amount || adjustment_amount <= 0) {
-      throw new ApiError(400, 'Valid adjustment type and amount are required');
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      Number(amount.toFixed(2)) !== amount ||
+      !reason ||
+      reason.length > 500
+    ) {
+      throw new ApiError(400, 'A positive amount to two decimal places and a reason up to 500 characters are required');
     }
 
     if (!['waive', 'add'].includes(adjustment_type)) {
       throw new ApiError(400, 'Adjustment type must be either "waive" or "add"');
     }
 
-    const invoice = await FeeInvoice.findOne({
-      where: {
-        id,
-        school_id: req.schoolId
+    const invoiceWhere = { id, school_id: req.schoolId };
+    if (req.user.role === 'branch_admin') {
+      if (!req.user.branch_id) {
+        throw new ApiError(403, 'Branch access is not configured for this account');
       }
+      invoiceWhere.branch_id = req.user.branch_id;
+    }
+
+    transaction = await sequelize.transaction();
+    const invoice = await FeeInvoice.findOne({
+      where: invoiceWhere,
+      transaction,
+      lock: transaction.LOCK.UPDATE
     });
 
     if (!invoice) {
@@ -1290,33 +1353,81 @@ const adjustInvoice = async (req, res, next) => {
       throw new ApiError(400, 'Cannot adjust cancelled invoice');
     }
 
-    let newTotalAmount = parseFloat(invoice.total_amount);
-    let newBalanceAmount = parseFloat(invoice.balance_amount);
+    const adjustmentCents = Math.round(amount * 100);
+    const previousTotalCents = Math.round(Number(invoice.total_amount) * 100);
+    const previousBalanceCents = Math.round(Number(invoice.balance_amount) * 100);
+    const paidCents = Math.round(Number(invoice.paid_amount || 0) * 100);
+    let newTotalCents = previousTotalCents;
+    let newBalanceCents = previousBalanceCents;
+    let newDiscountCents = Math.round(Number(invoice.discount_amount || 0) * 100);
 
     if (adjustment_type === 'waive') {
       // Waive fees (reduce total amount)
-      if (adjustment_amount > newBalanceAmount) {
+      if (adjustmentCents > previousBalanceCents) {
         throw new ApiError(400, 'Waiver amount cannot exceed remaining balance');
       }
-      newTotalAmount -= parseFloat(adjustment_amount);
-      newBalanceAmount -= parseFloat(adjustment_amount);
+      newTotalCents -= adjustmentCents;
+      newBalanceCents -= adjustmentCents;
+      newDiscountCents += adjustmentCents;
     } else {
       // Add fees (increase total amount)
-      newTotalAmount += parseFloat(adjustment_amount);
-      newBalanceAmount += parseFloat(adjustment_amount);
+      newTotalCents += adjustmentCents;
+      newBalanceCents += adjustmentCents;
     }
+    const newTotalAmount = newTotalCents / 100;
+    const newBalanceAmount = newBalanceCents / 100;
+    const previousTotalAmount = previousTotalCents / 100;
+    const previousBalanceAmount = previousBalanceCents / 100;
+    const newDiscountAmount = newDiscountCents / 100;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = invoice.due_date ? new Date(`${invoice.due_date}T00:00:00`) : null;
+    const isOverdue = dueDate && dueDate < today;
+    const nextStatus = paidCents >= newTotalCents
+      ? 'paid'
+      : paidCents > 0
+        ? 'partial_paid'
+        : isOverdue
+          ? 'overdue'
+          : invoice.status;
+    const nextPaymentStatus = paidCents >= newTotalCents
+      ? 'paid'
+      : paidCents > 0
+        ? 'partial'
+        : isOverdue
+          ? 'overdue'
+          : 'pending';
 
-    // Update invoice
+    const adjustment = await FeeInvoiceAdjustment.create(
+      {
+        invoice_id: invoice.id,
+        school_id: req.schoolId,
+        branch_id: invoice.branch_id,
+        adjustment_type,
+        adjustment_amount: amount,
+        adjustment_reason: reason,
+        previous_total_amount: previousTotalAmount,
+        new_total_amount: newTotalAmount,
+        previous_balance_amount: previousBalanceAmount,
+        new_balance_amount: newBalanceAmount,
+        created_by: req.user.id
+      },
+      { transaction }
+    );
+
     await invoice.update({
       total_amount: newTotalAmount,
       balance_amount: newBalanceAmount,
+      discount_amount: newDiscountAmount,
+      status: nextStatus,
+      payment_status: nextPaymentStatus,
       notes: notes || invoice.notes,
       updated_by: req.user.id
-    });
+    }, { transaction });
+    await transaction.commit();
 
-    // Create adjustment record (you might want to create a separate table for this)
     logger.info(
-      `Fee adjustment applied: ${adjustment_type} ${adjustment_amount} for invoice ${invoice.invoice_number}. Reason: ${adjustment_reason}`
+      `Fee adjustment applied: ${adjustment_type} ${amount} for invoice ${invoice.invoice_number}. Reason: ${reason}`
     );
 
     return res.status(200).json({
@@ -1325,14 +1436,48 @@ const adjustInvoice = async (req, res, next) => {
       data: {
         invoice_id: invoice.id,
         adjustment_type,
-        adjustment_amount: parseFloat(adjustment_amount),
+        adjustment_amount: amount,
         new_total_amount: newTotalAmount,
         new_balance_amount: newBalanceAmount,
-        adjustment_reason
+        adjustment_reason: reason,
+        adjustment_id: adjustment.id
       }
     });
   } catch (error) {
+    if (transaction && !transaction.finished) {
+      await transaction.rollback();
+    }
     logger.error('Error adjusting invoice:', error);
+    return next(error);
+  }
+};
+
+const getInvoiceAdjustments = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const invoiceWhere = { id, school_id: req.schoolId };
+    if (req.user.role === 'branch_admin') {
+      if (!req.user.branch_id) {
+        throw new ApiError(403, 'Branch access is not configured for this account');
+      }
+      invoiceWhere.branch_id = req.user.branch_id;
+    }
+
+    const invoice = await FeeInvoice.findOne({ where: invoiceWhere, attributes: ['id'] });
+    if (!invoice) throw new ApiError(404, 'Invoice not found');
+
+    const adjustmentWhere = { invoice_id: id, school_id: req.schoolId };
+    if (req.user.role === 'branch_admin') adjustmentWhere.branch_id = req.user.branch_id;
+
+    const adjustments = await FeeInvoiceAdjustment.findAll({
+      where: adjustmentWhere,
+      include: [{ model: User, as: 'createdBy', attributes: ['id', 'first_name', 'last_name'] }],
+      order: [['created_at', 'DESC']]
+    });
+
+    return res.status(200).json({ success: true, data: adjustments });
+  } catch (error) {
+    logger.error('Error fetching invoice adjustments:', error);
     return next(error);
   }
 };
@@ -1614,6 +1759,7 @@ module.exports = {
   updateInvoice,
   cancelInvoice,
   adjustInvoice,
+  getInvoiceAdjustments,
   getGroupedInvoices,
   generateUniqueInvoiceNumber,
   getClassCode,

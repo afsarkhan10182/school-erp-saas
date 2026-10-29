@@ -11,7 +11,9 @@
       <div>
         <button
           @click="openCreateModal"
-          class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
+          :disabled="!selectedBranchId"
+          :title="selectedBranchId ? 'Add inventory item' : 'Select a branch first'"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus class="w-4 h-4" />
           Add Item
@@ -62,7 +64,7 @@
                 <div class="text-xs text-gray-500">Total: {{ item.total_quantity }}</div>
               </td>
               <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                ${{ item.unit_price }}
+                {{ formatCurrency(Number(item.unit_price) || 0, currencyCode) }}
               </td>
               <td class="px-5 py-3.5 whitespace-nowrap">
                 <span
@@ -95,7 +97,12 @@
                 </button>
               </td>
             </tr>
-            <tr v-if="items.length === 0 && !loading">
+            <tr v-if="!selectedBranchId">
+              <td colspan="6" class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                Select a branch from the header to view or manage inventory items.
+              </td>
+            </tr>
+            <tr v-else-if="items.length === 0 && !loading">
               <td colspan="6" class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                 No items found. Create one to get started.
               </td>
@@ -191,7 +198,7 @@
             >
             <div class="relative rounded-md shadow-sm">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span class="text-gray-500 sm:text-sm">$</span>
+                <span class="text-gray-500 sm:text-sm">{{ currencySymbol }}</span>
               </div>
               <input
                 v-model="form.unit_price"
@@ -258,7 +265,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { formatCurrency } from '~/utils/formatters';
 import { InventoryItems, InventoryCategories } from '~/api/inventory';
 import { Plus } from 'lucide-vue-next';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
@@ -267,8 +275,23 @@ import { extractList, apiErrorMessage } from '~/utils/list-response';
 import Pagination from '~/components/ui/Pagination.vue';
 import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
-const { selectedBranchId } = useGlobalBranch();
+const { selectedBranchId, currentBranch, currentSchool, availableBranches } = useGlobalBranch();
 const { showError, showSuccess } = useToast();
+
+const currencyCode = computed(
+  () =>
+    currentBranch.value?.currency ||
+    currentSchool.value?.currency ||
+    availableBranches.value[0]?.currency ||
+    'INR'
+);
+const currencySymbol = computed(
+  () =>
+    currentBranch.value?.currency_symbol ||
+    currentSchool.value?.currency_symbol ||
+    availableBranches.value[0]?.currency_symbol ||
+    '₹'
+);
 
 const items = ref<any[]>([]);
 const categories = ref<any[]>([]);

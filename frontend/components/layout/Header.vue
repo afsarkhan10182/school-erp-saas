@@ -12,7 +12,7 @@
         <Menu class="w-5 h-5 text-gray-600 dark:text-gray-300" />
       </button>
 
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+      <h2 class="hidden text-xl font-semibold text-gray-900 dark:text-white sm:block">
         {{ pageTitle }}
       </h2>
     </div>

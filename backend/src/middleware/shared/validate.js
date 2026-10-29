@@ -18,12 +18,6 @@ const { validationError } = apiResponse;
 const validate = validations => {
   const validationLogic = async (req, res, next) => {
     try {
-      // Log the request body for debugging
-      if (process.env.NODE_ENV === 'development') {
-        logger.debug('Validation middleware - Request body:', req.body);
-        logger.debug('Validation middleware - Request files:', req.files);
-      }
-
       // Run all validations
       await Promise.all(validations.map(validation => validation.run(req)));
 
@@ -35,14 +29,15 @@ const validate = validations => {
       // Format validation errors
       const formattedErrors = {};
       errors.array().forEach(error => {
-        if (!formattedErrors[error.param]) {
-          formattedErrors[error.param] = error.msg;
+        const field = error.path || error.param || 'validation';
+        if (!formattedErrors[field]) {
+          formattedErrors[field] = error.msg;
         }
       });
 
       // Log validation errors for debugging
       if (process.env.NODE_ENV === 'development') {
-        logger.debug('Validation errors:', formattedErrors);
+        logger.debug('Validation errors in fields:', Object.keys(formattedErrors));
       }
 
       // Send validation error response

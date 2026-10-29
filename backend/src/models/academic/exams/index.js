@@ -6,6 +6,7 @@ const ReportTemplate = require('./report-template.model');
 const GradingSystem = require('./grading-system.model');
 const GradeScale = require('./grade-scale.model');
 const ExamSchedule = require('./exam-schedule.model');
+const ExamSubjectMark = require('./exam-subject-mark.model');
 const ExamHall = require('./exam-hall.model');
 
 module.exports = {
@@ -17,5 +18,6 @@ module.exports = {
   GradingSystem,
   GradeScale,
   ExamSchedule,
+  ExamSubjectMark,
   ExamHall
 };

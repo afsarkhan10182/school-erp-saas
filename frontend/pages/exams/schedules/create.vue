@@ -38,6 +38,7 @@
               :options="examOptions"
               placeholder="Select exam"
               :loading="examsLoading"
+              :disabled="!selectionForm.branch_id"
               @change="onExamSelectionChange"
             />
           </div>
@@ -52,6 +53,7 @@
               :options="classOptions"
               placeholder="Select class"
               :loading="classesLoading"
+              :disabled="!selectionForm.branch_id"
               @change="onClassSelectionChange"
             />
           </div>
@@ -68,6 +70,9 @@
             </button>
           </div>
         </div>
+        <p v-if="!selectionForm.branch_id" class="text-sm text-amber-700 dark:text-amber-300">
+          Select a branch from the global selector before creating or editing a schedule.
+        </p>
 
         <!-- Section and Stream Selection Row -->
         <div
@@ -463,7 +468,7 @@ import { examScheduleApi } from '~/api/academic/exam-schedules';
 const route = useRoute();
 const { showToast } = useToast();
 const { user } = useAuth();
-const { selectedBranchId } = useGlobalBranch();
+const { selectedBranchId, effectiveBranchId, currentSchool, isSuperAdmin } = useGlobalBranch();
 const {
   classes,
   classOptions,
@@ -481,6 +486,9 @@ const {
 } = useAcademics();
 const { exams, isLoading: examsLoading, loadExams } = useExams();
 const { halls, hallOptions, loading: hallsLoading, loadExamHalls: loadHalls } = useExamHalls();
+const schoolId = computed(() =>
+  isSuperAdmin.value ? currentSchool.value?.id : user.value?.school_id
+);
 
 // Reactive data
 const saving = ref(false);
@@ -490,30 +498,34 @@ const existingScheduleIds = ref([]);
 
 // Selection form
 const selectionForm = reactive({
-  branch_id: selectedBranchId.value || '',
+  branch_id: effectiveBranchId.value || '',
   exam_id: '',
   class_id: '',
   section_id: '',
   stream_id: ''
 });
 
-watch(selectedBranchId, async newBranchId => {
-  selectionForm.branch_id = newBranchId || '';
-  selectionForm.exam_id = '';
-  selectionForm.class_id = '';
-  selectionForm.section_id = '';
-  selectionForm.stream_id = '';
-  filterApplied.value = false;
-  generatedSchedules.value = [];
-  if (newBranchId) {
+watch(
+  [selectedBranchId, effectiveBranchId, schoolId],
+  async ([, newBranchId]) => {
+    selectionForm.branch_id = newBranchId || '';
+    selectionForm.exam_id = '';
+    selectionForm.class_id = '';
+    selectionForm.section_id = '';
+    selectionForm.stream_id = '';
+    filterApplied.value = false;
+    generatedSchedules.value = [];
+    if (!newBranchId || !schoolId.value) {
+      classes.value = [];
+      exams.value = [];
+      return;
+    }
     await Promise.all([
-      loadExams({ branch_id: newBranchId }),
-      fetchClasses({ branchId: newBranchId })
+      loadExams({ school_id: schoolId.value, branch_id: newBranchId }),
+      fetchClasses({ schoolId: schoolId.value, branchId: newBranchId })
     ]);
-  } else {
-    await Promise.all([loadExams(), fetchClasses()]);
   }
-});
+);
 
 // Schedule parameters
 const scheduleParams = reactive({
@@ -552,8 +564,7 @@ const examOptions = computed(() => {
 
 // Check if section field should be shown
 const showSectionField = computed(() => {
-  const selectedClass = classes.value.find(cls => cls.id === selectionForm.class_id);
-  return selectedClass?.has_sections || false;
+  return sectionOptions.value.some(section => section.class_id === selectionForm.class_id);
 });
 
 // Check if stream field should be shown
@@ -569,9 +580,8 @@ const canProceedToStep2 = computed(() => {
 
 // Check if filter button can be enabled
 const canApplyFilter = computed(() => {
-  const branchId = selectionForm.branch_id || selectedBranchId.value || user.value?.branch_id;
   const basicRequirements =
-    branchId && selectionForm.exam_id && selectionForm.class_id;
+    selectionForm.branch_id && selectionForm.exam_id && selectionForm.class_id;
 
   if (!basicRequirements) {
     return false;
@@ -826,11 +836,11 @@ const loadSubjectsForClass = async (classId, sectionId = null) => {
     };
 
     // Add optional filters
-    if (user.value?.school_id) {
-      params.school_id = user.value.school_id;
+    if (schoolId.value) {
+      params.school_id = schoolId.value;
     }
-    if (selectedBranchId.value) {
-      params.branch_id = selectedBranchId.value;
+    if (selectionForm.branch_id) {
+      params.branch_id = selectionForm.branch_id;
     }
     if (sectionId) {
       params.section_id = sectionId;
@@ -922,16 +932,17 @@ const onClassSelectionChange = async () => {
     const selectedClassData = classes.value.find(cls => cls.id === selectionForm.class_id);
     selectedClass.value = selectedClassData;
 
-    // Fetch sections if the class has sections
-    if (selectedClassData?.has_sections) {
-      await fetchSections({ classId: selectionForm.class_id });
-    }
+    await fetchSections({
+      schoolId: schoolId.value,
+      branchId: selectionForm.branch_id,
+      classId: selectionForm.class_id
+    });
 
     // Fetch streams if the class has streams
-    if (selectedClassData?.has_streams && user.value?.school_id) {
+    if (selectedClassData?.has_streams && schoolId.value) {
       await fetchStreams({
-        schoolId: user.value.school_id,
-        branchId: selectedBranchId.value || undefined,
+        schoolId: schoolId.value,
+        branchId: selectionForm.branch_id,
         classId: selectionForm.class_id
       });
     }
@@ -1000,18 +1011,17 @@ const loadMarkDistributionsForExam = async () => {
     return;
   }
 
-  if (!user.value || !user.value.school_id) {
+  if (!user.value || !schoolId.value) {
     showToast('User information not available', 'error');
     return;
   }
 
-  const branchId =
-    selectedBranchId.value || selectedExam.value?.branch_id || user.value?.branch_id || undefined;
+  const branchId = selectionForm.branch_id || selectedExam.value?.branch_id || undefined;
 
   try {
     clearMarkFieldValues();
     await loadMarkDistributions({
-      school_id: user.value.school_id,
+      school_id: schoolId.value,
       branch_id: branchId,
       is_active: true,
       limit: 100
@@ -1096,8 +1106,13 @@ const saveSchedules = async () => {
     return;
   }
 
-  if (!user.value?.school_id) {
+  if (!user.value || !schoolId.value) {
     showToast('User information not available', 'error');
+    return;
+  }
+
+  if (!selectionForm.branch_id) {
+    showToast('Select a branch before saving schedules', 'error');
     return;
   }
 
@@ -1154,7 +1169,7 @@ const saveSchedules = async () => {
   saving.value = true;
 
   try {
-    const branchId = selectedBranchId.value || user.value.branch_id;
+    const branchId = selectionForm.branch_id;
     const durationMinutes = Number(scheduleParams.duration) || 0;
 
     // Prepare all schedules data for bulk create
@@ -1208,7 +1223,7 @@ const saveSchedules = async () => {
         ...markDistribution,
         total_marks: totalMarks || undefined,
         pass_marks: passMarks || undefined,
-        school_id: user.value.school_id,
+        school_id: schoolId.value,
         branch_id: branchId
       };
 
@@ -1255,9 +1270,9 @@ const loadExistingSchedules = async () => {
   }
 
   try {
-    const branchId = selectedBranchId.value || user.value?.branch_id;
+    const branchId = selectionForm.branch_id;
     const response = await examScheduleApi.getAll({
-      school_id: user.value.school_id,
+      school_id: schoolId.value,
       branch_id: branchId,
       exam_id: selectionForm.exam_id,
       class_id: selectionForm.class_id,
@@ -1347,18 +1362,16 @@ onMounted(async () => {
     isEditMode.value = true;
 
     // Set branch first if provided, otherwise use default
-    if (query.branch_id) {
-      selectionForm.branch_id = query.branch_id;
-    } else if (selectedBranchId.value) {
-      selectionForm.branch_id = selectedBranchId.value;
-    } else if (user.value?.branch_id) {
-      selectionForm.branch_id = user.value.branch_id;
-    }
+    if (query.branch_id) selectionForm.branch_id = query.branch_id;
+    else selectionForm.branch_id = effectiveBranchId.value || '';
 
     // Load data based on branch first
-    const branchId = selectionForm.branch_id || user.value?.branch_id;
-    if (branchId) {
-      await Promise.all([loadExams({ branch_id: branchId }), fetchClasses({ branchId: branchId })]);
+    const branchId = selectionForm.branch_id;
+    if (branchId && schoolId.value) {
+      await Promise.all([
+        loadExams({ school_id: schoolId.value, branch_id: branchId }),
+        fetchClasses({ schoolId: schoolId.value, branchId })
+      ]);
 
       // Now set the form values after data is loaded
       // Wait for nextTick to ensure reactive updates
@@ -1378,8 +1391,12 @@ onMounted(async () => {
         const selectedClassData = classes.value.find(cls => cls.id === selectionForm.class_id);
         selectedClass.value = selectedClassData;
 
-        if (selectedClassData?.has_sections) {
-          await fetchSections({ classId: selectionForm.class_id });
+        if (selectedClassData) {
+          await fetchSections({
+            schoolId: schoolId.value,
+            branchId,
+            classId: selectionForm.class_id
+          });
           // Wait for sections to load before setting section_id
           await nextTick();
           // Set section_id after sections are loaded - this will auto-populate dropdown
@@ -1410,9 +1427,12 @@ onMounted(async () => {
     }
   } else {
     // Load data based on branch
-    const branchId = selectionForm.branch_id || user.value?.branch_id;
-    if (branchId) {
-      await Promise.all([loadExams({ branch_id: branchId }), fetchClasses({ branchId: branchId })]);
+    const branchId = selectionForm.branch_id;
+    if (branchId && schoolId.value) {
+      await Promise.all([
+        loadExams({ school_id: schoolId.value, branch_id: branchId }),
+        fetchClasses({ schoolId: schoolId.value, branchId })
+      ]);
     }
 
     // Load initial mark distributions

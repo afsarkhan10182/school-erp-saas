@@ -34,15 +34,27 @@ export const ExamSeatings = {
 export const OnlineExams = {
   list: (params?: any) => apiCall('get', '/online-exams', { params }),
   available: () => apiCall('get', '/online-exams/available'),
-  get: (id: string) => apiCall('get', `/online-exams/${id}`),
+  parentProgress: (studentId: string) =>
+    apiCall('get', '/online-exams/parent/progress', { params: { student_id: studentId } }),
+  get: (id: string, params?: { branch_id?: string }) => apiCall('get', `/online-exams/${id}`, { params }),
   create: (data: any) => apiCall('post', '/online-exams', data),
-  update: (id: string, data: any) => apiCall('put', `/online-exams/${id}`, data),
-  remove: (id: string) => apiCall('delete', `/online-exams/${id}`),
-  addQuestion: (id: string, data: any) => apiCall('post', `/online-exams/${id}/questions`, data),
-  deleteQuestion: (id: string, questionId: string) =>
-    apiCall('delete', `/online-exams/${id}/questions/${questionId}`),
-  take: (id: string) => apiCall('get', `/online-exams/${id}/take`),
-  submit: (id: string, data: { student_id?: string; answers_json: Record<string, number> }) =>
-    apiCall('post', `/online-exams/${id}/submit`, data),
-  results: (id: string) => apiCall('get', `/online-exams/${id}/results`)
+  update: (id: string, data: any, params?: { branch_id?: string }) =>
+    apiCall('put', `/online-exams/${id}`, { ...data, ...params }),
+  remove: (id: string, params?: { branch_id?: string }) =>
+    apiCall('delete', `/online-exams/${id}`, { params }),
+  addQuestion: (id: string, data: any, params?: { branch_id?: string }) =>
+    apiCall('post', `/online-exams/${id}/questions`, { ...data, ...params }),
+  deleteQuestion: (id: string, questionId: string, params?: { branch_id?: string }) =>
+    apiCall('delete', `/online-exams/${id}/questions/${questionId}`, { params }),
+  take: (id: string, params?: { branch_id?: string }) =>
+    apiCall('get', `/online-exams/${id}/take`, { params }),
+  saveAnswers: (id: string, data: { answers_json: Record<string, number> }) =>
+    apiCall('patch', `/online-exams/${id}/attempt`, data),
+  submit: (
+    id: string,
+    data: { student_id?: string; answers_json: Record<string, number> },
+    params?: { branch_id?: string }
+  ) => apiCall('post', `/online-exams/${id}/submit`, { ...data, ...params }),
+  results: (id: string, params?: { branch_id?: string }) =>
+    apiCall('get', `/online-exams/${id}/results`, { params })
 };

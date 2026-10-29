@@ -1,57 +1,50 @@
 import { apiCall } from '~/utils/api';
 
+export interface ReportTemplateConfig {
+  show_rank?: boolean;
+  show_remarks?: boolean;
+  [key: string]: unknown;
+}
+
 export interface ReportTemplate {
   id: string;
   name: string;
-  description?: string;
-  template_type: string;
+  code: string;
+  description: string | null;
+  report_type: 'student_wise' | 'detailed';
+  footer_template: string | null;
+  config: ReportTemplateConfig | null;
+  is_default: boolean;
   is_active: boolean;
-  school_id: string;
-  branch_id?: string;
-  created_by?: string;
-  updated_by?: string;
-  created_at?: string;
-  updated_at?: string;
+  school_id: string | null;
 }
 
 export interface ReportTemplateFilters {
-  page?: number;
-  limit?: number;
-  search?: string;
-  is_active?: boolean;
   school_id?: string;
-  branch_id?: string;
-  template_type?: string;
+}
+
+export interface CopyReportTemplateData {
+  source_template_id: string;
+  name: string;
+  description?: string | null;
+  footer_template?: string | null;
+  config?: Pick<ReportTemplateConfig, 'show_rank' | 'show_remarks'>;
+  school_id?: string;
+}
+
+export interface UpdateReportTemplateData {
+  id: string;
+  name: string;
+  description?: string | null;
+  footer_template?: string | null;
+  config?: Pick<ReportTemplateConfig, 'show_rank' | 'show_remarks'>;
+  school_id?: string;
 }
 
 export const reportTemplateApi = {
-  // Get all templates
-  getAll: async (filters: ReportTemplateFilters = {}) => {
-    return apiCall('get', '/report-templates', { params: filters });
-  },
-
-  // Get single template
-  getById: async (templateId: string) => {
-    return apiCall('get', `/report-templates/${templateId}`);
-  },
-
-  // Create template
-  create: async (data: any) => {
-    return apiCall('post', '/report-templates', data);
-  },
-
-  // Update template
-  update: async (data: any) => {
-    return apiCall('put', `/report-templates/${data.id}`, data);
-  },
-
-  // Delete template
-  delete: async (templateId: string) => {
-    return apiCall('delete', `/report-templates/${templateId}`);
-  },
-
-  // Get templates for dropdown
-  getDropdown: async () => {
-    return apiCall('get', '/report-templates/dropdown');
-  }
+  getAll: (filters: ReportTemplateFilters = {}) =>
+    apiCall('get', '/exam-reports/templates', { params: filters }),
+  create: (data: CopyReportTemplateData) => apiCall('post', '/exam-reports/templates', data),
+  update: ({ id, ...data }: UpdateReportTemplateData) =>
+    apiCall('put', `/exam-reports/templates/${encodeURIComponent(id)}`, data)
 };

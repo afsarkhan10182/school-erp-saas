@@ -14,6 +14,8 @@ const { Op } = require('sequelize');
 const { sequelize } = require('~/config/database');
 const XLSX = require('xlsx');
 const { createDateRange } = require('~/utils/shared/dateUtils');
+const getPaymentMethodInvoiceIds = require('~/utils/financial/paymentMethodInvoiceIds');
+const parseMonthlyPeriods = require('~/utils/financial/parseMonthlyPeriods');
 
 // Helper function to get student full name
 const getStudentFullName = student => {
@@ -29,6 +31,19 @@ const getStudentFullName = student => {
   } else {
     return 'Unknown Student';
   }
+};
+
+const applyPaymentMethodFilter = async (whereClause, req, paymentMethod) => {
+  if (!paymentMethod) return;
+
+  whereClause.id = {
+    [Op.in]: await getPaymentMethodInvoiceIds({
+      paymentMethod,
+      schoolId: req.schoolId,
+      branchId: req.user.role === 'branch_admin' ? req.user.branch_id : req.query.branch_id,
+      academicYear: req.query.academic_year
+    })
+  };
 };
 
 // Get fee collection summary
@@ -47,7 +62,9 @@ const getFeeCollectionSummary = async (req, res, next) => {
       section_id,
       stream_id,
       payment_model,
-      months
+      payment_method,
+      months,
+      periods
     } = req.query;
 
     const whereClause = {
@@ -65,6 +82,7 @@ const getFeeCollectionSummary = async (req, res, next) => {
 
     if (academic_year) whereClause.academic_year = academic_year;
     if (status) whereClause.status = status;
+    await applyPaymentMethodFilter(whereClause, req, payment_method);
 
     // Add payment model filtering
     if (payment_model) {
@@ -72,7 +90,9 @@ const getFeeCollectionSummary = async (req, res, next) => {
     }
 
     // Add months filtering for monthly payments
-    if (payment_model === 'monthly' && months && months.length > 0) {
+    if (payment_model === 'monthly' && periods) {
+      whereClause[Op.or] = parseMonthlyPeriods(periods);
+    } else if (payment_model === 'monthly' && months && months.length > 0) {
       // Convert months to array if it's a string
       const monthsArray = Array.isArray(months)
         ? months
@@ -296,7 +316,9 @@ const getFeeInvoiceReport = async (req, res, next) => {
       to_date,
       branch_id,
       payment_model,
+      payment_method,
       months,
+      academic_year,
       class_id,
       section_id,
       stream_id
@@ -310,13 +332,25 @@ const getFeeInvoiceReport = async (req, res, next) => {
     // Handle branch filtering based on user role
     if (req.user.role === 'branch_admin') {
       // Branch admin can only see invoices for their assigned branch
+      if (!req.user.branch_id) throw new ApiError(403, 'Branch access is not configured for this account');
       whereClause.branch_id = req.user.branch_id;
     } else if (branch_id) {
       // If specific branch is selected
       whereClause.branch_id = branch_id;
     }
 
-    if (status) whereClause.status = status;
+    if (status) {
+      const statuses = (Array.isArray(status) ? status : String(status).split(','))
+        .map(value => String(value).trim())
+        .filter(Boolean);
+      const validStatuses = ['draft', 'sent', 'paid', 'partial_paid', 'overdue', 'cancelled'];
+      if (!statuses.length || statuses.some(value => !validStatuses.includes(value))) {
+        throw new ApiError(400, 'Invalid invoice status filter');
+      }
+      whereClause.status = statuses.length > 1 ? { [Op.in]: statuses } : statuses[0];
+    }
+    if (academic_year) whereClause.academic_year = academic_year;
+    await applyPaymentMethodFilter(whereClause, req, payment_method);
 
     // Add payment model filtering
     if (payment_model) {
@@ -358,6 +392,22 @@ const getFeeInvoiceReport = async (req, res, next) => {
       ];
     }
 
+    const { due_from, due_to } = req.query;
+    if (due_from || due_to) {
+      const isIsoDate = value => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+        const date = new Date(`${value}T00:00:00Z`);
+        return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+      };
+      if ((due_from && !isIsoDate(due_from)) || (due_to && !isIsoDate(due_to)) || (due_from && due_to && due_from > due_to)) {
+        throw new ApiError(400, 'Due date filters must be valid dates in ascending order');
+      }
+      const dueDateFilter = {};
+      if (due_from) dueDateFilter[Op.gte] = due_from;
+      if (due_to) dueDateFilter[Op.lte] = due_to;
+      whereClause.due_date = dueDateFilter;
+    }
+
     logger.debug('getFeeInvoiceReport: Query parameters', {
       whereClause,
       page,
@@ -385,6 +435,12 @@ const getFeeInvoiceReport = async (req, res, next) => {
             as: 'feeType'
           }
         ]
+      },
+      {
+        model: Branch,
+        as: 'branch',
+        attributes: ['id', 'name', 'code'],
+        required: false
       }
     ];
 
@@ -427,13 +483,34 @@ const getFeeInvoiceReport = async (req, res, next) => {
       includeClause[0].where.branch_id = req.user.branch_id;
     }
 
-    const { count, rows: invoices } = await FeeInvoice.findAndCountAll({
-      where: whereClause,
-      include: includeClause,
-      order: [['created_at', 'DESC']],
-      limit: parseInt(limit),
-      offset: offset
-    });
+    const [report, aggregateRows] = await Promise.all([
+      FeeInvoice.findAndCountAll({
+        where: whereClause,
+        include: includeClause,
+        order: [['created_at', 'DESC']],
+        limit: parseInt(limit),
+        offset: offset
+      }),
+      FeeInvoice.findAll({
+        where: whereClause,
+        include: [{
+          model: Student,
+          as: 'student',
+          attributes: [],
+          where: includeClause[0].where,
+          required: true
+        }],
+        attributes: [
+          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('"FeeInvoice"."total_amount"')), 'total_amount'],
+          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('"FeeInvoice"."paid_amount"')), 'paid_amount'],
+          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('"FeeInvoice"."discount_amount"')), 'discount_amount'],
+          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('"FeeInvoice"."balance_amount"')), 'balance_amount']
+        ],
+        raw: true
+      })
+    ]);
+    const { count, rows: invoices } = report;
+    const totals = aggregateRows[0] || {};
 
     const totalPages = Math.ceil(count / parseInt(limit));
 
@@ -441,6 +518,12 @@ const getFeeInvoiceReport = async (req, res, next) => {
       success: true,
       data: {
         invoices,
+        summary: {
+          total_amount: Number(totals.total_amount) || 0,
+          paid_amount: Number(totals.paid_amount) || 0,
+          discount_amount: Number(totals.discount_amount) || 0,
+          balance_amount: Number(totals.balance_amount) || 0
+        },
         pagination: {
           current_page: parseInt(page),
           total_pages: totalPages,
@@ -470,6 +553,7 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       to_date,
       branch_id,
       report_type,
+      payment_method,
       columns
     } = req.query;
 
@@ -487,6 +571,9 @@ const exportFeeInvoicesReport = async (req, res, next) => {
     }
 
     if (status) whereClause.status = status;
+    if (report_type !== 'receipts') {
+      await applyPaymentMethodFilter(whereClause, req, payment_method);
+    }
     if (from_date && to_date) {
       const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
 
@@ -550,7 +637,7 @@ const exportFeeInvoicesReport = async (req, res, next) => {
     if (report_type === 'receipts') {
       // Export receipts report - use same logic as getReceiptsReport
       const allPayments = await FeePayment.findAll({
-        where: whereClause,
+        where: { ...whereClause, payment_status: 'completed' },
         include: [
           {
             model: FeeInvoice,
@@ -1413,8 +1500,19 @@ const getFeeStats = async (req, res, next) => {
 // GET endpoint to retrieve month-wise payment status for monthly payments
 const getMonthlyPaymentStatus = async (req, res, next) => {
   try {
-    const { months, year, class_id, section_id, stream_id, branch_id, search, page, limit } =
-      req.query;
+    const {
+      months,
+      year,
+      class_id,
+      section_id,
+      stream_id,
+      branch_id,
+      search,
+      payment_method,
+      periods,
+      page,
+      limit
+    } = req.query;
 
     // Debug logging
     logger.debug('getMonthlyPaymentStatus: Raw query params:', {
@@ -1427,16 +1525,17 @@ const getMonthlyPaymentStatus = async (req, res, next) => {
       fullQuery: req.query
     });
 
-    // Convert months to array - handle both array and string formats
-    let monthsArray = [];
-    if (Array.isArray(months)) {
-      monthsArray = months.map(m => parseInt(m.toString().trim())).filter(m => !isNaN(m));
-    } else if (typeof months === 'string' && months.trim()) {
-      monthsArray = months
-        .split(',')
-        .map(m => parseInt(m.trim()))
-        .filter(m => !isNaN(m));
-    }
+    const selectedPeriods = parseMonthlyPeriods(periods);
+    const monthsArray = selectedPeriods.length
+      ? [...new Set(selectedPeriods.map(period => period.month))]
+      : Array.isArray(months)
+        ? months.map(m => parseInt(m.toString().trim())).filter(m => !isNaN(m))
+        : typeof months === 'string' && months.trim()
+          ? months
+              .split(',')
+              .map(m => parseInt(m.trim()))
+              .filter(m => !isNaN(m))
+          : [];
 
     logger.debug('getMonthlyPaymentStatus: Parsed monthsArray:', monthsArray);
 
@@ -1452,14 +1551,13 @@ const getMonthlyPaymentStatus = async (req, res, next) => {
     const limitNum = limit ? parseInt(limit) : 10;
     const offset = isPrintMode ? 0 : (pageNum - 1) * limitNum;
 
-    const whereClause = {
-      school_id: req.schoolId,
-      payment_model: 'monthly',
-      month: {
-        [Op.in]: monthsArray
-      },
-      year: currentYear
-    };
+    const whereClause = { school_id: req.schoolId, payment_model: 'monthly' };
+    if (selectedPeriods.length) {
+      whereClause[Op.or] = selectedPeriods;
+    } else {
+      whereClause.month = { [Op.in]: monthsArray };
+      whereClause.year = currentYear;
+    }
 
     // Handle branch filtering
     if (req.user.role === 'branch_admin') {
@@ -1467,6 +1565,7 @@ const getMonthlyPaymentStatus = async (req, res, next) => {
     } else if (branch_id) {
       whereClause.branch_id = branch_id;
     }
+    await applyPaymentMethodFilter(whereClause, req, payment_method);
 
     logger.debug('getMonthlyPaymentStatus: Starting query with whereClause:', whereClause);
 
@@ -1600,6 +1699,8 @@ const getMonthlyPaymentStatus = async (req, res, next) => {
           model: FeePayment,
           as: 'payments',
           attributes: ['id', 'payment_amount', 'payment_date', 'payment_method', 'payment_status'],
+          where: { payment_status: 'completed' },
+          required: false,
           order: [['created_at', 'DESC']],
           limit: 5 // Limit to last 5 payments per invoice
         }
@@ -1802,6 +1903,7 @@ const getFeeInvoiceReportGrouped = async (req, res, next) => {
       to_date,
       branch_id,
       payment_model,
+      payment_method,
       months,
       class_id,
       section_id,
@@ -1824,6 +1926,7 @@ const getFeeInvoiceReportGrouped = async (req, res, next) => {
     } else if (branch_id) {
       whereClause.branch_id = branch_id;
     }
+    await applyPaymentMethodFilter(whereClause, req, payment_method);
 
     if (status) whereClause.status = status;
 
