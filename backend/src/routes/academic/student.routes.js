@@ -1,4 +1,5 @@
 const express = require('express');
+const config = require('~/config/config');
 const { resolveTemplatesPath } = require('~/utils/shared/pathHelper');
 const {
   createStudent,
@@ -8,8 +9,11 @@ const {
   getStudentsByClass,
   getStudentStats,
   getStudentReport,
+  getStudentRiskRegister,
   exportStudentReport,
   bulkImportStudents,
+  getStudentImportHistory,
+  undoStudentImportBatch,
   getStudentInvoiceBreakdown,
   setStudentAuthentication
 } = require('~/controllers/academic/student.controller');
@@ -72,7 +76,7 @@ router.use(setSchoolContext);
 
 // Middleware to ensure user has appropriate role
 router.use(
-  authorize(['super_admin', 'admin', 'branch_admin', 'teacher', 'student', 'parent'])
+  authorize(['super_admin', 'admin', 'branch_admin', 'accountant', 'teacher'])
 );
 
 // Middleware to check subscription status
@@ -84,6 +88,7 @@ router.use(validateModuleAccess('students'));
 // POST endpoint to create a new student
 router.post(
   '/',
+  authorize(['super_admin', 'admin', 'branch_admin']),
   validateSubscriptionLimits,
   uploadFields([
     { name: 'student_profile_picture', maxCount: 1 },
@@ -92,35 +97,66 @@ router.post(
   createStudent
 );
 
+router.get(
+  '/import-history',
+  authorize(['super_admin', 'admin', 'branch_admin']),
+  getStudentImportHistory
+);
+
+router.post(
+  '/import-history/:id/undo',
+  authorize(['super_admin', 'admin', 'branch_admin']),
+  undoStudentImportBatch
+);
+
 // POST endpoint for bulk import students from CSV
-router.post('/bulk-import', uploadCSV('csv_file'), bulkImportStudents);
+router.post(
+  '/bulk-import',
+  authorize(['super_admin', 'admin', 'branch_admin']),
+  uploadCSV('csv_file', {
+    spreadsheets: true,
+    maxFileSize: config.uploads.studentImportMaxFileSize
+  }),
+  bulkImportStudents
+);
 
 // GET endpoint to retrieve all students
-router.get('/', getStudents);
+router.get('/', authorize(['super_admin', 'admin', 'branch_admin', 'teacher']), getStudents);
 
 // GET endpoint to retrieve students by class
-router.get('/by-class', getStudentsByClass);
+router.get('/by-class', authorize(['super_admin', 'admin', 'branch_admin', 'teacher']), getStudentsByClass);
 
 // GET endpoint to retrieve student statistics
-router.get('/stats', getStudentStats);
+router.get('/stats', authorize(['super_admin', 'admin', 'branch_admin']), getStudentStats);
 
 // GET endpoint to retrieve student report
-router.get('/report', getStudentReport);
+router.get('/report', authorize(['super_admin', 'admin', 'branch_admin']), getStudentReport);
+
+router.get('/risk-register', authorize(['super_admin', 'admin', 'branch_admin']), getStudentRiskRegister);
 
 // GET endpoint to export student report
-router.get('/export', exportStudentReport);
+router.get('/export', authorize(['super_admin', 'admin', 'branch_admin']), exportStudentReport);
 
 // GET endpoint to retrieve a specific student by ID
-router.get('/:id', getStudentById);
+router.get('/:id', authorize(['super_admin', 'admin', 'branch_admin', 'teacher']), getStudentById);
 
-router.put('/:id/authentication', setStudentAuthentication);
+router.put(
+  '/:id/authentication',
+  authorize(['super_admin', 'admin', 'branch_admin']),
+  setStudentAuthentication
+);
 
 // GET endpoint to retrieve student invoice breakdown (for accordion details)
-router.get('/:id/invoice-breakdown', getStudentInvoiceBreakdown);
+router.get(
+  '/:id/invoice-breakdown',
+  authorize(['super_admin', 'admin', 'branch_admin', 'accountant']),
+  getStudentInvoiceBreakdown
+);
 
 // PUT endpoint to update a student
 router.put(
   '/:id',
+  authorize(['super_admin', 'admin', 'branch_admin']),
   uploadFields([
     { name: 'student_profile_picture', maxCount: 1 },
     { name: 'guardian_picture', maxCount: 1 }

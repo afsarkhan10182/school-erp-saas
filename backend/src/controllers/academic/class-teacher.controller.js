@@ -14,8 +14,13 @@ class ClassTeacherController {
         is_active: true
       };
 
-      // Use branch_id from query if provided, otherwise use user's branch_id
-      if (branch_id) {
+      // Branch-bound roles must not widen their assignment list through a query override.
+      if (['branch_admin', 'teacher'].includes(req.user.role)) {
+        if (!req.user.branch_id) {
+          return next(new ApiError(403, 'User is not assigned to a branch'));
+        }
+        whereClause.branch_id = req.user.branch_id;
+      } else if (branch_id) {
         whereClause.branch_id = branch_id;
       } else {
         whereClause.branch_id = req.user.branch_id;

@@ -6,8 +6,14 @@ export interface SaasParams {
   search?: string;
   status?: string;
   subscription_plan?: string;
+  registered_period?: '7d' | '30d' | '90d' | '365d';
+  sort?: 'newest' | 'oldest' | 'name_asc' | 'name_desc' | 'expiry_soonest';
   id?: string;
-  is_active?: boolean;
+  is_active?: boolean | '' | 'true' | 'false';
+  is_popular?: '' | 'true' | 'false';
+  billing_cycle?: '' | 'monthly' | 'yearly' | 'lifetime';
+  sort_by?: 'name' | 'price' | 'sort_order' | 'created_at';
+  sort_order?: 'ASC' | 'DESC';
 }
 
 export const Saas = {

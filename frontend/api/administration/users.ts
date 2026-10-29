@@ -5,6 +5,7 @@ export interface UserParams {
   limit?: number;
   role?: string;
   schoolId?: string;
+  school_id?: string;
   branch_id?: string;
 }
 
@@ -33,6 +34,10 @@ export interface PasswordData {
 export const Users = {
   getAll: async (params?: UserParams) => {
     return apiCall('get', '/users', { params });
+  },
+
+  getByBranch: async (branchId: string, params?: Omit<UserParams, 'schoolId' | 'branch_id'>) => {
+    return apiCall('get', `/users/branch/${branchId}`, { params });
   },
 
   getById: async (id: string) => {

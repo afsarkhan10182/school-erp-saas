@@ -1,366 +1,416 @@
 <template>
-  <div
-    v-if="show"
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-    @click="$emit('close')"
-  >
+  <Teleport to="body">
     <div
-      class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
-      @click.stop
+      v-if="show"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[100000]"
+      @click="$emit('close')"
     >
-      <div class="mt-3">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Quick Fee Collection</h3>
-          <button
-            @click="$emit('close')"
-            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <X class="h-6 w-6" />
-          </button>
-        </div>
-
-        <!-- Student Selection -->
-        <div class="mb-6 relative search-area">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Select Student
-          </label>
-          <div class="flex gap-4">
-            <div class="flex-1 relative">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search by name or admission number..."
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                @input="debouncedSearch"
-                @focus="searchStudents"
-                @keydown="handleKeydown"
-              />
-              <!-- Clear button when student is selected -->
-              <button
-                v-if="selectedStudent"
-                @click="clearSelection"
-                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                title="Clear selection"
-              >
-                <X class="h-4 w-4" />
-              </button>
+      <div
+        class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
+        @click.stop
+      >
+        <div class="mt-3">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                Quick Fee Collection
+              </h3>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                F2 Search · F4 Fill dues · F5 Record payment · F6 Save & print · F8 Clear amount ·
+                Esc Cancel
+              </p>
             </div>
             <button
-              @click="searchStudents"
-              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              @click="$emit('close')"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
-              Search
+              <X class="h-6 w-6" />
             </button>
           </div>
 
-          <!-- Student Results -->
-          <div
-            v-if="searchResults.length > 0"
-            ref="searchResultsContainer"
-            class="mt-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 z-10 relative"
-          >
-            <div
-              v-for="(student, index) in searchResults"
-              :key="student.id"
-              :ref="el => setStudentItemRef(el, index)"
-              @click="selectStudent(student)"
-              :class="[
-                'px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-gray-600 last:border-b-0',
-                index === selectedIndex
-                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-100'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-              ]"
-            >
-              <div class="font-medium">{{ getStudentFullName(student) }}</div>
-              <div class="text-sm text-gray-500 dark:text-gray-400">
-                {{ student.admission_number }} - {{ student.current_class
-                }}{{ student.section ? `-${student.section}` : '' }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Selected Student Dues -->
-        <div v-if="selectedStudent && studentDues && studentDues.summary" class="mb-6">
-          <!-- Student Dues Summary -->
-          <div
-            v-if="studentDues?.summary"
-            class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-600"
-          >
-            <h4 class="font-medium text-blue-900 dark:text-blue-100 mb-3">
-              {{ getStudentFullName(selectedStudent) }}
-            </h4>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-              <div>
-                <span class="text-blue-600 dark:text-blue-300">Total Dues:</span>
-                <div class="font-medium text-red-600">
-                  ₹{{ formatCurrency(studentDues.summary.total_dues) }}
-                </div>
-              </div>
-              <div>
-                <span class="text-blue-600 dark:text-blue-300">Overdue:</span>
-                <div class="font-medium text-red-600">
-                  ₹{{ formatCurrency(studentDues.summary.overdue_amount) }}
-                </div>
-              </div>
-              <div>
-                <span class="text-blue-600 dark:text-blue-300">Total Amount:</span>
-                <div class="font-medium text-blue-900 dark:text-blue-100">
-                  ₹{{ formatCurrency(studentDues.summary.total_amount || 0) }}
-                </div>
-              </div>
-              <div>
-                <span class="text-blue-600 dark:text-blue-300">Total Paid:</span>
-                <div class="font-medium text-green-600 dark:text-green-400">
-                  ₹{{ formatCurrency(studentDues.summary.total_paid || 0) }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Paid Months Summary -->
-            <div
-              v-if="groupedPayments.length > 0"
-              class="mt-4 pt-3 border-t border-blue-200 dark:border-blue-600"
-            >
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium text-blue-700 dark:text-blue-200"
-                  >Paid Months:</span
+          <!-- Student Selection -->
+          <div class="mb-6 relative search-area">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Student
+            </label>
+            <div class="flex gap-4">
+              <div class="flex-1 relative">
+                <input
+                  ref="searchInput"
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Search by name or admission number..."
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  @input="debouncedSearch"
+                  @focus="searchStudents"
+                  @keydown="handleKeydown"
+                />
+                <!-- Clear button when student is selected -->
+                <button
+                  v-if="selectedStudent"
+                  @click="clearSelection"
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  title="Clear selection"
                 >
-                <span class="text-xs text-blue-600 dark:text-blue-300">
-                  {{
-                    studentDues?.summary?.paid_months_count ||
-                    groupedPayments.reduce((sum, p) => sum + p.months_covered, 0)
-                  }}
-                  month{{
-                    (studentDues?.summary?.paid_months_count ||
-                      groupedPayments.reduce((sum, p) => sum + p.months_covered, 0)) > 1
-                      ? 's'
-                      : ''
-                  }}
-                  paid
-                </span>
+                  <X class="h-4 w-4" />
+                </button>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <div
-                  v-for="payment in groupedPayments"
-                  :key="payment.id"
-                  class="inline-flex items-center px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-full"
-                  :title="`Paid: ₹${formatCurrency(payment.paid_amount)} on ${formatDate(payment.payment_date)}`"
-                >
-                  <!-- Display simplified month names -->
-                  <span v-if="payment.month_names && payment.month_names.trim()">
-                    {{ simplifyMonthNames(payment.month_names) }}
-                  </span>
-                  <span v-else-if="payment.month && payment.year">
-                    {{ getMonthName(payment.month) }} {{ payment.year }}
-                  </span>
-                  <span v-else-if="payment.months_covered > 1">
-                    {{ payment.months_covered }} months
-                  </span>
-                  <span v-else> Month {{ payment.month || 'N/A' }} </span>
-                </div>
-              </div>
+              <button
+                @click="searchStudents"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
+                Search
+              </button>
             </div>
-          </div>
 
-          <!-- Monthly Payments List -->
-          <div
-            v-if="studentDues?.monthly_payments && studentDues.monthly_payments.length > 0"
-            class="space-y-3 mb-6"
-          >
-            <h5 class="font-medium text-gray-900 dark:text-white">Monthly Payments</h5>
-
-            <!-- Simplified Pending Monthly Payments Summary -->
-            <div v-if="studentDues?.summary?.pending_months_count > 0" class="space-y-2 mb-4">
-              <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Pending Monthly Payments
-              </h6>
-
-              <!-- Summary Card -->
+            <!-- Student Results -->
+            <div
+              v-if="searchResults.length > 0"
+              ref="searchResultsContainer"
+              class="mt-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 z-10 relative"
+            >
               <div
-                class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700"
+                v-for="(student, index) in searchResults"
+                :key="student.id"
+                :ref="el => setStudentItemRef(el, index)"
+                @click="selectStudent(student)"
+                :class="[
+                  'px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-gray-600 last:border-b-0',
+                  index === selectedIndex
+                    ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-100'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                ]"
+              >
+                <div class="font-medium">{{ getStudentFullName(student) }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ student.admission_number }} - {{ student.current_class
+                  }}{{ student.section ? `-${student.section}` : '' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected Student Dues -->
+          <div v-if="selectedStudent && studentDues && studentDues.summary" class="mb-6">
+            <!-- Student Dues Summary -->
+            <div
+              v-if="studentDues?.summary"
+              class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-600"
+            >
+              <h4 class="font-medium text-blue-900 dark:text-blue-100 mb-3">
+                {{ getStudentFullName(selectedStudent) }}
+              </h4>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <span class="text-blue-600 dark:text-blue-300">Total Dues:</span>
+                  <div class="font-medium text-red-600">
+                    ₹{{ formatCurrency(studentDues.summary.total_dues) }}
+                  </div>
+                </div>
+                <div>
+                  <span class="text-blue-600 dark:text-blue-300">Overdue:</span>
+                  <div class="font-medium text-red-600">
+                    ₹{{ formatCurrency(studentDues.summary.overdue_amount) }}
+                  </div>
+                </div>
+                <div>
+                  <span class="text-blue-600 dark:text-blue-300">Total Amount:</span>
+                  <div class="font-medium text-blue-900 dark:text-blue-100">
+                    ₹{{ formatCurrency(studentDues.summary.total_amount || 0) }}
+                  </div>
+                </div>
+                <div>
+                  <span class="text-blue-600 dark:text-blue-300">Total Paid:</span>
+                  <div class="font-medium text-green-600 dark:text-green-400">
+                    ₹{{ formatCurrency(studentDues.summary.total_paid || 0) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Paid Months Summary -->
+              <div
+                v-if="groupedPayments.length > 0"
+                class="mt-4 pt-3 border-t border-blue-200 dark:border-blue-600"
               >
                 <div class="flex items-center justify-between mb-2">
-                  <div class="font-medium text-gray-900 dark:text-white">
-                    {{ ungroupedPayments[0]?.feeStructure?.feeType?.name || 'Monthly Fee' }}
-                  </div>
-                  <span class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ studentDues.summary.pending_months_count }} month{{
-                      studentDues.summary.pending_months_count > 1 ? 's' : ''
-                    }}
-                    pending
+                  <span class="text-sm font-medium text-blue-700 dark:text-blue-200"
+                    >Fully paid months:</span
+                  >
+                  <span class="text-xs text-blue-600 dark:text-blue-300">
+                    {{ paidMonthsCount }} month{{ paidMonthsCount === 1 ? '' : 's' }} paid
                   </span>
                 </div>
-
-                <!-- Common Values (shown once) -->
-                <div class="grid grid-cols-3 gap-3 mb-2 text-sm">
-                  <div>
-                    <span class="text-gray-500 dark:text-gray-400">Monthly:</span>
-                    <div class="font-medium">₹{{ formatCurrency(monthlyFeeAmount) }}</div>
-                  </div>
-                  <div>
-                    <span class="text-gray-500 dark:text-gray-400">Total Due:</span>
-                    <div class="font-medium">
-                      ₹{{ formatCurrency(studentDues.summary.total_dues) }}
-                    </div>
-                  </div>
-                  <div>
-                    <span class="text-gray-500 dark:text-gray-400">Structure:</span>
-                    <div class="text-xs text-gray-600 dark:text-gray-400 truncate">
-                      {{ ungroupedPayments[0]?.feeStructure?.name || 'Standard' }}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Pending Months List -->
-                <div class="border-t border-gray-200 dark:border-gray-600 pt-2">
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Pending Months:</div>
-                  <div class="flex flex-wrap gap-1">
-                    <span
-                      v-for="payment in ungroupedPayments"
-                      :key="payment.id"
-                      class="inline-flex items-center px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded"
-                    >
+                <div class="flex flex-wrap gap-2">
+                  <div
+                    v-for="payment in groupedPayments"
+                    :key="payment.id"
+                    class="inline-flex items-center px-2 py-1 text-xs rounded-full"
+                    :class="
+                      payment.status === 'paid'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                        : 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200'
+                    "
+                    :title="`Paid: ₹${formatCurrency(payment.paid_amount)} on ${formatDate(payment.payment_date)}`"
+                  >
+                    <!-- Display simplified month names -->
+                    <span v-if="payment.month_names && payment.month_names.trim()">
+                      {{ simplifyMonthNames(payment.month_names) }}
+                    </span>
+                    <span v-else-if="payment.month && payment.year">
                       {{ getMonthName(payment.month) }} {{ payment.year }}
                     </span>
+                    <span v-else-if="payment.months_covered > 1">
+                      {{ payment.months_covered }} months
+                    </span>
+                    <span v-else> Month {{ payment.month || 'N/A' }} </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- No Pending Payments Message -->
+            <!-- Monthly Payments List -->
             <div
-              v-else-if="studentDues?.summary?.paid_months_count > 0"
-              class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-600"
+              v-if="studentDues?.monthly_payments && studentDues.monthly_payments.length > 0"
+              class="space-y-3 mb-6"
             >
-              <div class="text-sm text-green-800 dark:text-green-200 text-center">
-                ✅ All monthly payments are up to date! No pending amounts.
+              <h5 class="font-medium text-gray-900 dark:text-white">Monthly Payments</h5>
+
+              <!-- Simplified Pending Monthly Payments Summary -->
+              <div v-if="studentDues?.summary?.pending_months_count > 0" class="space-y-2 mb-4">
+                <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Pending Monthly Payments
+                </h6>
+
+                <!-- Summary Card -->
+                <div
+                  class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700"
+                >
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="font-medium text-gray-900 dark:text-white">
+                      {{ ungroupedPayments[0]?.feeStructure?.feeType?.name || 'Monthly Fee' }}
+                    </div>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ studentDues.summary.pending_months_count }} month{{
+                        studentDues.summary.pending_months_count > 1 ? 's' : ''
+                      }}
+                      pending
+                    </span>
+                  </div>
+
+                  <!-- Common Values (shown once) -->
+                  <div class="grid grid-cols-3 gap-3 mb-2 text-sm">
+                    <div>
+                      <span class="text-gray-500 dark:text-gray-400">Monthly:</span>
+                      <div class="font-medium">₹{{ formatCurrency(monthlyFeeAmount) }}</div>
+                    </div>
+                    <div>
+                      <span class="text-gray-500 dark:text-gray-400">Total Due:</span>
+                      <div class="font-medium">
+                        ₹{{ formatCurrency(studentDues.summary.total_dues) }}
+                      </div>
+                    </div>
+                    <div>
+                      <span class="text-gray-500 dark:text-gray-400">Structure:</span>
+                      <div class="text-xs text-gray-600 dark:text-gray-400 truncate">
+                        {{ ungroupedPayments[0]?.feeStructure?.name || 'Standard' }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Pending Months List -->
+                  <div class="border-t border-gray-200 dark:border-gray-600 pt-2">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Pending Months:</div>
+                    <div class="flex flex-wrap gap-1">
+                      <span
+                        v-for="payment in ungroupedPayments"
+                        :key="payment.id"
+                        class="inline-flex items-center px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded"
+                      >
+                        {{ getMonthName(payment.month) }} {{ payment.year }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- No Pending Payments Message -->
+              <div
+                v-else-if="studentDues?.summary?.paid_months_count > 0"
+                class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-600"
+              >
+                <div class="text-sm text-green-800 dark:text-green-200 text-center">
+                  ✅ All monthly payments are up to date! No pending amounts.
+                </div>
+              </div>
+            </div>
+
+            <!-- Other Invoices Summary -->
+            <div
+              v-if="studentDues?.invoices && studentDues.invoices.length > 0"
+              class="mb-4 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400"
+            >
+              Other: {{ studentDues.invoices.length }} invoices | ₹{{
+                formatCurrency(
+                  studentDues.invoices.reduce((sum, inv) => sum + inv.balance_amount, 0)
+                )
+              }}
+            </div>
+
+            <div v-if="studentDues.selectable_invoices.length" class="mb-4">
+              <label
+                class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                <input v-model="manualAllocation" type="checkbox" class="rounded border-gray-300" />
+                Choose specific invoices
+              </label>
+              <div
+                v-if="manualAllocation"
+                class="mt-2 max-h-52 overflow-y-auto rounded border border-gray-200 dark:border-gray-600"
+              >
+                <label
+                  v-for="invoice in studentDues.selectable_invoices"
+                  :key="invoice.id"
+                  class="flex cursor-pointer items-center justify-between gap-3 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 dark:border-gray-700"
+                >
+                  <span class="flex min-w-0 items-center gap-2">
+                    <input
+                      type="checkbox"
+                      :checked="selectedInvoiceIds.has(invoice.id)"
+                      @change="toggleInvoice(invoice.id)"
+                      class="rounded border-gray-300"
+                    />
+                    <span class="truncate"
+                      >{{ invoice.invoice_number }} · {{ invoice.fee_type
+                      }}<span v-if="invoice.month && invoice.year">
+                        · {{ getMonthName(invoice.month) }} {{ invoice.year }}</span
+                      ></span
+                    >
+                  </span>
+                  <span class="shrink-0">₹{{ formatCurrency(invoice.balance_amount) }}</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Payment Form -->
+            <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <h5 class="font-medium text-gray-900 dark:text-white mb-2">Record Payment</h5>
+              <div class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Payment Amount
+                    </label>
+                    <input
+                      v-model="paymentForm.amount"
+                      type="number"
+                      step="0.01"
+                      :max="paymentLimit"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Enter amount"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Payment Method
+                    </label>
+                    <EnhancedDropdown
+                      v-model="paymentForm.payment_method"
+                      :options="paymentMethodOptions"
+                      placeholder="Select payment method"
+                    />
+                  </div>
+                  <div class="flex items-end">
+                    <button
+                      @click="submitPayment"
+                      :disabled="
+                        !paymentForm.amount ||
+                        paymentForm.amount <= 0 ||
+                        (manualAllocation && selectedInvoiceIds.size === 0) ||
+                        isSubmitting ||
+                        validationMessage.includes('⚠️')
+                      "
+                      class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {{ isSubmitting ? 'Recording...' : 'Record Payment' }}
+                    </button>
+                  </div>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                  <button
+                    @click="paymentForm.amount = paymentLimit"
+                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    <span v-if="manualAllocation">Pay Selected Total</span>
+                    <span v-else>Pay Full Amount</span>
+                    (₹{{ formatCurrency(paymentLimit) }})
+                  </button>
+                </div>
+                <!-- Validation Message -->
+                <div
+                  v-if="validationMessage"
+                  class="text-sm p-2 rounded-md"
+                  :class="{
+                    'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-600':
+                      validationMessage.includes('⚠️'),
+                    'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-600':
+                      validationMessage.includes('✅')
+                  }"
+                >
+                  <p>{{ validationMessage }}</p>
+                </div>
+
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  <p>
+                    💡 System automatically picks earliest pending months first when you enter an
+                    amount.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Other Invoices Summary -->
+          <!-- Receipt Display -->
           <div
-            v-if="studentDues?.invoices && studentDues.invoices.length > 0"
-            class="mb-4 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400"
+            v-if="lastPaymentReceipt"
+            class="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-600 text-xs text-blue-800 dark:text-blue-200"
           >
-            Other: {{ studentDues.invoices.length }} invoices | ₹{{
-              formatCurrency(studentDues.invoices.reduce((sum, inv) => sum + inv.balance_amount, 0))
+            Receipt: {{ lastPaymentReceipt.receipt_number || 'N/A' }} | ₹{{
+              formatCurrency(lastPaymentReceipt.receipt_data?.amount || lastPaymentReceipt.amount)
+            }}
+            |
+            {{
+              formatDate(
+                lastPaymentReceipt.receipt_data?.payment_date || lastPaymentReceipt.payment_date
+              )
             }}
           </div>
 
-          <!-- Payment Form -->
-          <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <h5 class="font-medium text-gray-900 dark:text-white mb-2">Record Payment</h5>
-            <div class="space-y-3">
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Payment Amount
-                  </label>
-                  <input
-                    v-model="paymentForm.amount"
-                    type="number"
-                    step="0.01"
-                    :max="studentDues.summary.total_dues"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Enter amount"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Payment Method
-                  </label>
-                  <EnhancedDropdown
-                    v-model="paymentForm.payment_method"
-                    :options="paymentMethodOptions"
-                    placeholder="Select payment method"
-                  />
-                </div>
-                <div class="flex items-end">
-                  <button
-                    @click="submitPayment"
-                    :disabled="
-                      !paymentForm.amount ||
-                      paymentForm.amount <= 0 ||
-                      isSubmitting ||
-                      validationMessage.includes('⚠️')
-                    "
-                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {{ isSubmitting ? 'Recording...' : 'Record Payment' }}
-                  </button>
-                </div>
-              </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400">
-                <button
-                  @click="paymentForm.amount = studentDues.summary.total_dues"
-                  class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  Pay Full Amount (₹{{ formatCurrency(studentDues.summary.total_dues) }})
-                </button>
-              </div>
-              <!-- Validation Message -->
-              <div
-                v-if="validationMessage"
-                class="text-sm p-2 rounded-md"
-                :class="{
-                  'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-600':
-                    validationMessage.includes('⚠️'),
-                  'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-600':
-                    validationMessage.includes('✅')
-                }"
-              >
-                <p>{{ validationMessage }}</p>
-              </div>
-
-              <div class="text-xs text-gray-500 dark:text-gray-400">
-                <p>
-                  💡 System automatically picks earliest pending months first when you enter an
-                  amount.
-                </p>
-              </div>
-            </div>
+          <!-- Loading State -->
+          <div v-if="isLoading" class="text-center py-8">
+            <div
+              class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+            ></div>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading...</p>
           </div>
-        </div>
-
-        <!-- Receipt Display -->
-        <div
-          v-if="lastPaymentReceipt"
-          class="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-600 text-xs text-blue-800 dark:text-blue-200"
-        >
-          Receipt: {{ lastPaymentReceipt.receipt_number || 'N/A' }} | ₹{{
-            formatCurrency(lastPaymentReceipt.receipt_data?.amount || lastPaymentReceipt.amount)
-          }}
-          |
-          {{
-            formatDate(
-              lastPaymentReceipt.receipt_data?.payment_date || lastPaymentReceipt.payment_date
-            )
-          }}
-        </div>
-
-        <!-- Loading State -->
-        <div v-if="isLoading" class="text-center py-8">
-          <div
-            class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
-          ></div>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import { X, Search, CreditCard, FileText } from 'lucide-vue-next';
-import { Students, FeeInvoices } from '~/api';
+import { FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import { useFeeSettings } from '~/utils/settings';
+import { getEnabledFeePaymentMethods } from '~/utils/feePaymentMethods';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const { showSuccess, showError, showInfo } = useToast();
+const { effectiveBranchId, currentSchool, isSuperAdmin } = useGlobalBranch();
 
 const props = defineProps({
   show: {
@@ -376,12 +426,23 @@ const searchQuery = ref('');
 const searchResults = ref([]);
 const selectedStudent = ref(null);
 const studentDues = ref(null);
+const manualAllocation = ref(false);
+const selectedInvoiceIds = ref(new Set());
 const isLoading = ref(false);
 const isSubmitting = ref(false);
 const lastPaymentReceipt = ref(null);
 const selectedIndex = ref(-1); // Track selected item index for keyboard navigation
+const searchInput = ref(null);
 const searchResultsContainer = ref(null);
 const studentItemRefs = ref([]);
+let searchRevision = 0;
+const collectionScope = () => ({
+  ...(isSuperAdmin.value && currentSchool.value?.id ? { school_id: currentSchool.value.id } : {}),
+  ...(effectiveBranchId.value ? { branch_id: effectiveBranchId.value } : {})
+});
+const collectionScopeKey = computed(() =>
+  `${isSuperAdmin.value ? currentSchool.value?.id || '' : ''}:${effectiveBranchId.value}`
+);
 
 // Payment form
 const paymentForm = ref({
@@ -390,13 +451,16 @@ const paymentForm = ref({
   payment_date: new Date().toISOString().split('T')[0],
   notes: ''
 });
-const paymentMethodOptions = [
-  { value: 'cash', label: 'Cash' },
-  { value: 'card', label: 'Card' },
-  { value: 'upi', label: 'UPI' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'cheque', label: 'Cheque' }
-];
+const paymentMethodOptions = ref(getEnabledFeePaymentMethods());
+const { getPaymentMethods } = useFeeSettings();
+const loadPaymentMethodOptions = async () => {
+  paymentMethodOptions.value = getEnabledFeePaymentMethods(await getPaymentMethods());
+  if (!paymentMethodOptions.value.some(({ value }) => value === paymentForm.value.payment_method)) {
+    paymentForm.value.payment_method = paymentMethodOptions.value[0]?.value || '';
+  }
+};
+
+onMounted(loadPaymentMethodOptions);
 
 // VueUse debounced search
 const debouncedSearch = useDebounceFn(() => {
@@ -405,6 +469,7 @@ const debouncedSearch = useDebounceFn(() => {
 
 // Search students with debouncing
 const searchStudents = async () => {
+  const revision = ++searchRevision;
   if (!searchQuery.value.trim()) {
     searchResults.value = [];
     selectedIndex.value = -1;
@@ -413,14 +478,13 @@ const searchStudents = async () => {
   }
 
   try {
-    const response = await Students.getAll({
-      search: searchQuery.value,
-      limit: 10
-    });
+    const response = await FeeInvoices.searchStudents({ search: searchQuery.value, ...collectionScope() });
+    if (revision !== searchRevision) return;
     searchResults.value = response.data || [];
     selectedIndex.value = -1; // Reset selection when new results come in
     studentItemRefs.value = []; // Clear refs for new results
   } catch (error) {
+    if (revision !== searchRevision) return;
     searchResults.value = [];
     selectedIndex.value = -1;
     studentItemRefs.value = [];
@@ -522,6 +586,41 @@ const handleKeydown = event => {
   }
 };
 
+const handleRapidShortcut = event => {
+  if (
+    !props.show ||
+    event.defaultPrevented ||
+    event.repeat ||
+    event.altKey ||
+    event.ctrlKey ||
+    event.metaKey
+  )
+    return;
+
+  if (event.key === 'F2') {
+    event.preventDefault();
+    searchInput.value?.focus();
+  } else if (event.key === 'F4') {
+    event.preventDefault();
+    const due = Number(studentDues.value?.summary?.total_dues);
+    if (selectedStudent.value && Number.isFinite(due) && due > 0) {
+      paymentForm.value.amount = paymentLimit.value;
+    }
+  } else if (event.key === 'F5') {
+    event.preventDefault();
+    submitPayment();
+  } else if (event.key === 'F6') {
+    event.preventDefault();
+    submitPayment(true);
+  } else if (event.key === 'F8') {
+    event.preventDefault();
+    paymentForm.value.amount = '';
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    emit('close');
+  }
+};
+
 // Handle clicking outside search area
 const handleClickOutside = event => {
   // Close search results when clicking outside the search area
@@ -539,10 +638,21 @@ const clearSelection = () => {
   selectedIndex.value = -1;
   studentItemRefs.value = [];
   lastPaymentReceipt.value = null;
+  selectedInvoiceIds.value = new Set();
 };
+
+watch(collectionScopeKey, () => {
+  if (!props.show) return;
+  searchRevision += 1;
+  clearSelection();
+  paymentForm.value.amount = '';
+  isLoading.value = false;
+  showInfo('School or branch changed. Select the student again.');
+});
 
 // Select student and load dues
 const selectStudent = async student => {
+  selectedInvoiceIds.value = new Set();
   selectedStudent.value = student;
   searchResults.value = []; // Clear search results
   selectedIndex.value = -1; // Reset selection index
@@ -554,11 +664,14 @@ const selectStudent = async student => {
 
 // Load student dues
 const loadStudentDues = async studentId => {
+  const scopeKey = collectionScopeKey.value;
   isLoading.value = true;
   try {
     const response = await FeeInvoices.getStudentDues({
-      student_id: studentId
+      student_id: studentId,
+      ...collectionScope()
     });
+    if (scopeKey !== collectionScopeKey.value || selectedStudent.value?.id !== studentId) return;
 
     // Ensure we have a proper structure with fallbacks
     studentDues.value = {
@@ -570,9 +683,11 @@ const loadStudentDues = async studentId => {
         ...response.data?.summary
       },
       invoices: response.data?.invoices || [],
-      monthly_payments: response.data?.monthly_payments || []
+      monthly_payments: response.data?.monthly_payments || [],
+      selectable_invoices: response.data?.selectable_invoices || []
     };
   } catch (error) {
+    if (scopeKey !== collectionScopeKey.value || selectedStudent.value?.id !== studentId) return;
     // Set default structure on error
     studentDues.value = {
       summary: {
@@ -582,16 +697,39 @@ const loadStudentDues = async studentId => {
         monthly_payment_count: 0
       },
       invoices: [],
-      monthly_payments: []
+      monthly_payments: [],
+      selectable_invoices: []
     };
   } finally {
-    isLoading.value = false;
+    if (scopeKey === collectionScopeKey.value) isLoading.value = false;
   }
 };
 
+const toggleInvoice = id => {
+  const next = new Set(selectedInvoiceIds.value);
+  next.has(id) ? next.delete(id) : next.add(id);
+  selectedInvoiceIds.value = next;
+};
+
+const paymentLimit = computed(() => {
+  if (!manualAllocation.value) return Number(studentDues.value?.summary?.total_dues || 0);
+  return (studentDues.value?.selectable_invoices || [])
+    .filter(invoice => selectedInvoiceIds.value.has(invoice.id))
+    .reduce((sum, invoice) => sum + Number(invoice.balance_amount || 0), 0);
+});
+
 // Submit smart payment
-const submitPayment = async () => {
-  if (!selectedStudent.value || !paymentForm.value.amount) {
+const submitPayment = async (printReceiptAfterPayment = false) => {
+  const amount = Number(paymentForm.value.amount);
+  const totalDues = paymentLimit.value;
+  if (
+    !selectedStudent.value ||
+    isSubmitting.value ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    !Number.isFinite(totalDues) ||
+    amount > totalDues
+  ) {
     return;
   }
 
@@ -599,10 +737,15 @@ const submitPayment = async () => {
   try {
     const response = await FeeInvoices.recordSmartPayment({
       student_id: selectedStudent.value.id,
-      payment_amount: parseFloat(paymentForm.value.amount),
+      ...collectionScope(),
+      payment_amount: amount,
       payment_method: paymentForm.value.payment_method,
       payment_date: paymentForm.value.payment_date,
-      notes: paymentForm.value.notes
+      notes: paymentForm.value.notes,
+      ...(manualAllocation.value && {
+        payment_mode: 'manual',
+        selected_invoice_ids: [...selectedInvoiceIds.value]
+      })
     });
 
     // Reset form
@@ -612,6 +755,7 @@ const submitPayment = async () => {
       payment_date: new Date().toISOString().split('T')[0],
       notes: ''
     };
+    selectedInvoiceIds.value = new Set();
 
     // Store receipt data (without months info)
     const data = response.data;
@@ -622,7 +766,7 @@ const submitPayment = async () => {
     showSuccess(`Payment recorded successfully! ₹${data.total_payment_amount.toLocaleString()}`);
 
     // Show receipt first, then close modal and update listing
-    emit('view-combined-receipt', data);
+    emit('view-combined-receipt', data, { print: printReceiptAfterPayment });
 
     // Close modal after showing receipt
     setTimeout(() => {
@@ -761,6 +905,8 @@ watch(
       searchResults.value = [];
       selectedStudent.value = null;
       studentDues.value = null;
+      manualAllocation.value = false;
+      selectedInvoiceIds.value = new Set();
       selectedIndex.value = -1;
       studentItemRefs.value = [];
       paymentForm.value = {
@@ -773,9 +919,11 @@ watch(
 
       // Add click outside listener
       document.addEventListener('click', handleClickOutside);
+      document.addEventListener('keydown', handleRapidShortcut);
     } else {
       // Remove click outside listener when modal closes
       document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleRapidShortcut);
     }
   }
 );
@@ -803,6 +951,12 @@ const groupedPayments = computed(() => {
   return filteredPayments;
 });
 
+const paidMonthsCount = computed(
+  () =>
+    studentDues.value?.summary?.paid_months_count ??
+    groupedPayments.value.reduce((sum, payment) => sum + (payment.months_covered || 0), 0)
+);
+
 const ungroupedPayments = computed(() => {
   if (!studentDues.value?.monthly_payments) return [];
 
@@ -812,6 +966,7 @@ const ungroupedPayments = computed(() => {
   // Get paid months from grouped payments
   const paidMonths = new Set();
   groupedPayments.value.forEach(payment => {
+    if (payment.status !== 'paid') return;
     // Add each month-year combination that's been paid
     if (payment.month_names) {
       const monthList = payment.month_names.split(', ');
@@ -855,12 +1010,14 @@ const validationMessage = computed(() => {
   }
 
   const amount = parseFloat(paymentForm.value.amount);
-  const totalDues = studentDues.value.summary.total_dues;
+  const totalDues = paymentLimit.value;
   const monthlyFee = studentDues.value.summary.monthly_fee || 0;
 
   if (amount > totalDues) {
     return `⚠️ Amount exceeds total dues. Maximum amount: ₹${totalDues.toLocaleString()}`;
   }
+
+  if (manualAllocation.value) return '';
 
   if (monthlyFee > 0) {
     const monthsCovered = Math.floor(amount / monthlyFee);
@@ -875,5 +1032,6 @@ const validationMessage = computed(() => {
 // Cleanup event listeners on component unmount
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('keydown', handleRapidShortcut);
 });
 </script>

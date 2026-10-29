@@ -2,6 +2,8 @@ const { Op, Sequelize } = require('sequelize');
 const {
   Exam,
   ExamResult,
+  ExamSchedule,
+  ExamSubjectMark,
   Student,
   School,
   Branch,
@@ -13,6 +15,41 @@ const {
 const BaseService = require('~/services/shared/base.service');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
+const getExamPassStatus = require('~/utils/academic/examPassStatus');
+
+const getStudentsForExam = async exam => {
+  const schedules = await ExamSchedule.findAll({
+    where: {
+      exam_id: exam.id,
+      school_id: exam.school_id,
+      branch_id: exam.branch_id,
+      status: { [Op.ne]: 'cancelled' }
+    },
+    attributes: ['class_id', 'section_id']
+  });
+  const classScopes = schedules
+    .filter(schedule => schedule.class_id)
+    .map(schedule => ({
+      class_id: schedule.class_id,
+      ...(schedule.section_id ? { section_id: schedule.section_id } : {})
+    }));
+
+  if (!classScopes.length) return [];
+
+  return Student.findAll({
+    where: {
+      school_id: exam.school_id,
+      branch_id: exam.branch_id,
+      status: 'active',
+      [Op.or]: classScopes
+    },
+    attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number'],
+    order: [
+      ['roll_number', 'ASC'],
+      ['first_name', 'ASC']
+    ]
+  });
+};
 
 class ExamService extends BaseService {
   /**
@@ -317,6 +354,17 @@ class ExamService extends BaseService {
         throw new ApiError(400, 'Cannot delete exam as it has results. Delete results first.');
       }
 
+      const schedules = await ExamSchedule.findAll({
+        where: { exam_id: id, school_id: exam.school_id, branch_id: exam.branch_id },
+        attributes: ['id']
+      });
+      const hasSubjectMarks = await ExamSubjectMark.count({
+        where: { exam_schedule_id: { [Op.in]: schedules.map(schedule => schedule.id) } }
+      });
+      if (hasSubjectMarks) {
+        throw new ApiError(409, 'Cannot delete exam while scheduled subject marks exist');
+      }
+
       await exam.destroy();
 
       return { message: 'Exam deleted successfully' };
@@ -528,6 +576,17 @@ class ExamService extends BaseService {
         throw new ApiError(404, 'Exam not found');
       }
 
+      const gradingSystem = await GradingSystem.findOne({
+        where: { school_id: user.school_id, is_active: true },
+        include: [
+          {
+            model: GradeScale,
+            as: 'gradeScales',
+            attributes: ['min_percentage', 'max_percentage', 'is_passing']
+          }
+        ]
+      });
+
       const whereClause = { exam_id: examId };
 
       if (search) {
@@ -563,11 +622,16 @@ class ExamService extends BaseService {
         offset: offset
       });
 
+      const results = rows.map(row => {
+        const data = row.toJSON();
+        return { ...data, is_passed: getExamPassStatus(data.percentage, data.is_absent, gradingSystem) };
+      });
+
       const totalPages = Math.ceil(count / parseInt(limit));
 
       return {
         exam,
-        results: rows,
+        results,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -689,34 +753,19 @@ class ExamService extends BaseService {
    */
   static async uploadMarksFile(examId, file, user) {
     return this.executeWithErrorHandling(async () => {
-      // Validate exam exists
       const exam = await Exam.findOne({
         where: {
           id: examId,
           school_id: user.school_id,
           ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
-        },
-        include: [
-          {
-            model: Class,
-            as: 'class',
-            attributes: ['id', 'name']
-          }
-        ]
+        }
       });
 
       if (!exam) {
         throw new ApiError(404, 'Exam not found');
       }
 
-      // Get students for this exam
-      const students = await Student.findAll({
-        where: {
-          school_id: user.school_id,
-          status: 'active'
-        },
-        attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number']
-      });
+      const students = await getStudentsForExam(exam);
 
       // Process file based on extension
       const fileExtension = file.originalname.split('.').pop().toLowerCase();
@@ -747,38 +796,19 @@ class ExamService extends BaseService {
    */
   static async downloadMarksTemplate(examId, user) {
     return this.executeWithErrorHandling(async () => {
-      // Validate exam exists
       const exam = await Exam.findOne({
         where: {
           id: examId,
           school_id: user.school_id,
           ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
-        },
-        include: [
-          {
-            model: Class,
-            as: 'class',
-            attributes: ['id', 'name']
-          }
-        ]
+        }
       });
 
       if (!exam) {
         throw new ApiError(404, 'Exam not found');
       }
 
-      // Get students for this exam
-      const students = await Student.findAll({
-        where: {
-          school_id: user.school_id,
-          status: 'active'
-        },
-        attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number'],
-        order: [
-          ['roll_number', 'ASC'],
-          ['first_name', 'ASC']
-        ]
-      });
+      const students = await getStudentsForExam(exam);
 
       // Generate Excel template
       const ExcelJS = require('exceljs');
@@ -935,15 +965,12 @@ class ExamService extends BaseService {
   static async processCSVFile(file, students) {
     const Papa = require('papaparse');
     const fs = require('fs');
-    const path = require('path');
 
     return new Promise((resolve, reject) => {
       const results = [];
-      const { resolveUploadsPath } = require('~/utils/shared/pathHelper');
-      const tempPath = resolveUploadsPath('temp', file.filename);
 
       try {
-        const csvContent = fs.readFileSync(tempPath, 'utf-8');
+        const csvContent = fs.readFileSync(file.path, 'utf-8');
         const result = Papa.parse(csvContent, {
           header: true,
           skipEmptyLines: true,
@@ -951,8 +978,7 @@ class ExamService extends BaseService {
         });
 
         if (result.errors.length > 0) {
-          reject(new Error(`CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`));
-          return;
+          throw new Error(`CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`);
         }
 
         for (const data of result.data) {
@@ -982,11 +1008,11 @@ class ExamService extends BaseService {
           }
         }
 
-        // Clean up temp file
-        fs.unlink(tempPath, () => {});
         resolve(results);
       } catch (error) {
         reject(error);
+      } finally {
+        fs.unlink(file.path, () => {});
       }
     });
   }
@@ -1016,61 +1042,54 @@ class ExamService extends BaseService {
    */
   static async processExcelFile(file, students) {
     const ExcelJS = require('exceljs');
-    const path = require('path');
     const fs = require('fs');
 
     const workbook = new ExcelJS.Workbook();
-    const { resolveUploadsPath } = require('~/utils/shared/pathHelper');
-    const tempPath = resolveUploadsPath('temp', file.filename);
+    try {
+      await workbook.xlsx.readFile(file.path);
+      const worksheet = workbook.getWorksheet(1);
+      const results = [];
+      const headers = {};
 
-    await workbook.xlsx.readFile(tempPath);
-    const worksheet = workbook.getWorksheet(1);
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell, colNumber) => {
+        headers[cell.value] = colNumber;
+      });
 
-    const results = [];
-    const headers = {};
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
 
-    // Get headers
-    const headerRow = worksheet.getRow(1);
-    headerRow.eachCell((cell, colNumber) => {
-      headers[cell.value] = colNumber;
-    });
+        const record = {
+          admission_number: row.getCell(headers['Admission Number'] || headers['admission_number'])
+            ?.value,
+          student_name: row.getCell(headers['Student Name'] || headers['student_name'])?.value,
+          roll_number: row.getCell(headers['Roll Number'] || headers['roll_number'])?.value,
+          marks_obtained:
+            parseFloat(row.getCell(headers['Marks Obtained'] || headers['marks_obtained'])?.value) ||
+            0,
+          is_absent:
+            row.getCell(headers['Is Absent'] || headers['is_absent'])?.value === true ||
+            row.getCell(headers['Is Absent'] || headers['is_absent'])?.value === 'TRUE' ||
+            row.getCell(headers['Is Absent'] || headers['is_absent'])?.value === '1',
+          remarks: row.getCell(headers['Remarks'] || headers['remarks'])?.value || ''
+        };
 
-    // Process data rows
-    worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip header row
+        const student = students.find(
+          s =>
+            s.admission_number === record.admission_number ||
+            `${s.first_name} ${s.last_name}`.toLowerCase() === record.student_name?.toLowerCase()
+        );
 
-      const record = {
-        admission_number: row.getCell(headers['Admission Number'] || headers['admission_number'])
-          ?.value,
-        student_name: row.getCell(headers['Student Name'] || headers['student_name'])?.value,
-        roll_number: row.getCell(headers['Roll Number'] || headers['roll_number'])?.value,
-        marks_obtained:
-          parseFloat(row.getCell(headers['Marks Obtained'] || headers['marks_obtained'])?.value) ||
-          0,
-        is_absent:
-          row.getCell(headers['Is Absent'] || headers['is_absent'])?.value === true ||
-          row.getCell(headers['Is Absent'] || headers['is_absent'])?.value === 'TRUE' ||
-          row.getCell(headers['Is Absent'] || headers['is_absent'])?.value === '1',
-        remarks: row.getCell(headers['Remarks'] || headers['remarks'])?.value || ''
-      };
+        if (student) {
+          record.student_id = student.id;
+          results.push(record);
+        }
+      });
 
-      // Find matching student
-      const student = students.find(
-        s =>
-          s.admission_number === record.admission_number ||
-          `${s.first_name} ${s.last_name}`.toLowerCase() === record.student_name?.toLowerCase()
-      );
-
-      if (student) {
-        record.student_id = student.id;
-        results.push(record);
-      }
-    });
-
-    // Clean up temp file
-    fs.unlink(tempPath, () => {});
-
-    return results;
+      return results;
+    } finally {
+      fs.unlink(file.path, () => {});
+    }
   }
 }
 

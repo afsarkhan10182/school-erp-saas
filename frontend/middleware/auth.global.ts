@@ -65,4 +65,39 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     // For other protected routes, include redirect parameter to return after login
     return navigateTo(`/auth/login?redirect=${encodeURIComponent(to.fullPath)}`);
   }
+
+  // CASE 4: Role-based boundary enforcement for authenticated sessions
+  if (isAuthenticated && !isPublicRoute) {
+    const role = user.value?.role;
+
+    // Non-super_admin cannot access SaaS platform owner workspace
+    if (role !== 'super_admin' && to.path.startsWith('/saas')) {
+      return navigateTo('/dashboard');
+    }
+
+    // Publishing exam results is an administrative action, not a teacher or family workflow.
+    if (
+      to.path === '/exams/publication' &&
+      !['super_admin', 'admin', 'branch_admin'].includes(role)
+    ) {
+      return navigateTo(homePathForRole(role));
+    }
+
+    if (
+      to.path === '/reports/attendance' &&
+      !['super_admin', 'admin', 'branch_admin'].includes(role)
+    ) {
+      return navigateTo(homePathForRole(role));
+    }
+
+    // Students and Parents are strictly confined to the family/student portal
+    if (
+      (role === 'student' || role === 'parent') &&
+      !to.path.startsWith('/portal') &&
+      to.path !== '/logout' &&
+      to.path !== '/profile'
+    ) {
+      return navigateTo('/portal');
+    }
+  }
 });

@@ -31,6 +31,10 @@ export const useMarksEntry = () => {
    */
   const saveMarks = async (data: {
     exam_id: string;
+    class_id: string;
+    section_id?: string;
+    subject_id: string;
+    branch_id: string;
     marks_data: Array<{
       student_id: string;
       theory_marks_obtained?: number;

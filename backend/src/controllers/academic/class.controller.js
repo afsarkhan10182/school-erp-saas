@@ -1,4 +1,4 @@
-const { Class, School, Branch, User, Section, Stream } = require('~/models');
+const { Class, ClassTeacher, SubjectTeacher, School, Branch, User, Section, Stream } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
@@ -28,6 +28,7 @@ class ClassController {
         limit = 10,
         search = '',
         is_active = '',
+        school_id = '',
         branch_id = '',
         sort_by = 'sort_order',
         sort_order = 'ASC'
@@ -40,11 +41,11 @@ class ClassController {
 
       // Super admin can see all classes
       if (req.user.role === 'super_admin') {
-        logger.debug('getAllClasses: Super admin - no additional constraints');
-        // No additional constraints
-      } else if (req.user.role === 'admin') {
+        if (school_id) whereClause.school_id = school_id;
+        logger.debug('getAllClasses: Super admin school filter:', school_id || 'all schools');
+      } else if (req.user.role === 'admin' || req.user.role === 'accountant') {
         whereClause.school_id = req.user.school_id;
-        logger.debug('getAllClasses: School admin - filtering by school_id:', req.user.school_id);
+        logger.debug('getAllClasses: School-scoped user - filtering by school_id:', req.user.school_id);
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
         whereClause.branch_id = req.user.branch_id;
@@ -614,9 +615,40 @@ class ClassController {
         if (req.query.branch_id) {
           whereClause.branch_id = req.query.branch_id;
         }
-      } else if (req.user.role === 'branch_admin') {
+      } else if (req.user.role === 'accountant') {
+        whereClause.school_id = req.user.school_id;
+        const branchId = req.user.branch_id || req.query.branch_id;
+        if (branchId) whereClause.branch_id = branchId;
+      } else if (['branch_admin', 'receptionist'].includes(req.user.role)) {
         whereClause.school_id = req.user.school_id;
         whereClause.branch_id = req.user.branch_id;
+      } else if (req.user.role === 'teacher') {
+        const assignmentWhere = {
+          teacher_id: req.user.id,
+          school_id: req.user.school_id,
+          branch_id: req.user.branch_id
+        };
+        const [classAssignments, subjectAssignments] = await Promise.all([
+          ClassTeacher.findAll({
+            where: { ...assignmentWhere, is_active: true },
+            attributes: ['class_id'],
+            raw: true
+          }),
+          SubjectTeacher.findAll({
+            where: assignmentWhere,
+            attributes: ['class_id'],
+            raw: true
+          })
+        ]);
+        const assignedClassIds = [...new Set(
+          [...classAssignments, ...subjectAssignments].map(assignment => assignment.class_id).filter(Boolean)
+        )];
+        whereClause = {
+          ...whereClause,
+          school_id: req.user.school_id,
+          branch_id: req.user.branch_id,
+          id: assignedClassIds
+        };
       }
 
       const classes = await Class.findAll({

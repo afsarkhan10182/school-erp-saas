@@ -433,7 +433,7 @@ class AcademicYearController {
   static async getAcademicYearsForDropdown(req, res, next) {
     try {
       const academicYears = await AcademicYear.findAll({
-        attributes: ['id', 'name', 'is_current'],
+        attributes: ['id', 'name', 'code', 'is_current'],
         order: [
           ['is_current', 'DESC'],
           ['name', 'DESC']

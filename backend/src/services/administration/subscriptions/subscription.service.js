@@ -57,22 +57,26 @@ class SubscriptionService {
     startDate,
     trialDays,
     existingStartDate = null,
-    existingEndDate = null
+    existingEndDate = null,
+    requestedStatus = null
   ) {
     if (!plan) {
       return {
         startDate: existingStartDate,
         endDate: existingEndDate,
-        schoolStatus: 'active' // Default status
+        schoolStatus: this.resolveSchoolStatus(requestedStatus, 'active')
       };
     }
 
-    const calculatedStartDate = startDate ? new Date(startDate) : new Date();
-    const calculatedEndDate = this.calculateEndDate(
-      calculatedStartDate,
-      plan.billing_cycle,
-      trialDays
-    );
+    const calculatedStartDate = startDate
+      ? new Date(startDate)
+      : existingStartDate
+        ? new Date(existingStartDate)
+        : new Date();
+    const usesTrialPeriod = requestedStatus === 'trial' || (!requestedStatus && plan.code === 'TRIAL');
+    const calculatedEndDate = usesTrialPeriod
+      ? this.calculateEndDate(calculatedStartDate, null, trialDays)
+      : this.calculateEndDate(calculatedStartDate, plan.billing_cycle);
     const calculatedStatus = this.calculateSchoolStatus(
       plan.code,
       calculatedStartDate,
@@ -82,8 +86,16 @@ class SubscriptionService {
     return {
       startDate: calculatedStartDate,
       endDate: calculatedEndDate,
-      schoolStatus: calculatedStatus
+      schoolStatus: this.resolveSchoolStatus(requestedStatus, calculatedStatus)
     };
+  }
+
+  static resolveSchoolStatus(requestedStatus, calculatedStatus) {
+    if (requestedStatus == null || requestedStatus === '') return calculatedStatus;
+    if (!['trial', 'active', 'suspended', 'expired'].includes(requestedStatus)) {
+      throw new ApiError(400, 'Invalid subscription status');
+    }
+    return requestedStatus;
   }
 
   // Helper method to validate admin email
@@ -200,26 +212,35 @@ class SubscriptionService {
 
   // Get all subscription plans
   static async getAllPlans(params = {}) {
-    const { page = 1, limit = 10, is_active, billing_cycle } = params;
+    const { is_active, billing_cycle, is_popular, search = '', sort_by = 'sort_order', sort_order = 'ASC' } = params;
+    const page = Math.min(10000, Math.max(1, Number.parseInt(params.page, 10) || 1));
+    const limit = Math.min(100, Math.max(1, Number.parseInt(params.limit, 10) || 10));
     const offset = (page - 1) * limit;
 
     const whereClause = {};
-    if (is_active !== undefined) {
-      whereClause.is_active = is_active;
-    }
-
+    if (['true', 'false'].includes(String(is_active))) whereClause.is_active = String(is_active) === 'true';
+    if (['true', 'false'].includes(String(is_popular))) whereClause.is_popular = String(is_popular) === 'true';
     if (billing_cycle) {
       whereClause.billing_cycle = billing_cycle;
     }
+    const query = String(search).trim().slice(0, 100);
+    if (query) whereClause[Op.or] = [
+      { name: { [Op.iLike]: `%${query}%` } },
+      { code: { [Op.iLike]: `%${query}%` } }
+    ];
+    const sortableFields = ['name', 'price', 'sort_order', 'created_at'];
+    const safeSortBy = sortableFields.includes(sort_by) ? sort_by : 'sort_order';
+    const safeSortOrder = String(sort_order).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const order = safeSortBy === 'sort_order'
+      ? [['sort_order', safeSortOrder], ['name', 'ASC']]
+      : [[safeSortBy, safeSortOrder], ['name', 'ASC']];
 
     const { count, rows } = await SubscriptionPlan.findAndCountAll({
       where: whereClause,
-      order: [
-        ['sort_order', 'ASC'],
-        ['name', 'ASC']
-      ],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      order,
+      limit,
+      offset,
+      distinct: true,
       include: [
         {
           model: User,
@@ -244,7 +265,7 @@ class SubscriptionService {
       plans: rows,
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
+        limit,
         total: count,
         pages: Math.ceil(count / limit)
       }
@@ -470,8 +491,26 @@ class SubscriptionService {
 
   // Get schools with subscription details
   static async getSchoolsWithSubscriptions(params = {}) {
-    const { page = 1, limit = 10, search, status, subscription_plan, id } = params;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      status,
+      subscription_plan,
+      registered_period,
+      sort = 'newest',
+      id
+    } = params;
     const offset = (page - 1) * limit;
+    const sortOrder = {
+      newest: [['created_at', 'DESC']],
+      oldest: [['created_at', 'ASC']],
+      name_asc: [['name', 'ASC']],
+      name_desc: [['name', 'DESC']],
+      expiry_soonest: [['subscription_end_date', 'ASC']]
+    }[sort];
+
+    if (!sortOrder) throw new ApiError(400, 'Invalid school directory sort');
 
     const whereClause = {};
 
@@ -488,7 +527,13 @@ class SubscriptionService {
       ];
     }
 
-    if (status) {
+    if (status === 'expiring') {
+      const today = new Date();
+      const throughDate = new Date(today);
+      throughDate.setDate(throughDate.getDate() + 30);
+      whereClause.status = { [Op.in]: ['active', 'trial'] };
+      whereClause.subscription_end_date = { [Op.between]: [today, throughDate] };
+    } else if (status) {
       whereClause.status = status;
     }
 
@@ -496,9 +541,17 @@ class SubscriptionService {
       whereClause.subscription_plan = subscription_plan;
     }
 
+    if (registered_period) {
+      const days = { '7d': 7, '30d': 30, '90d': 90, '365d': 365 }[registered_period];
+      if (!days) throw new ApiError(400, 'Invalid school registration period');
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      whereClause.created_at = { [Op.gte]: since };
+    }
+
     const { count, rows } = await School.findAndCountAll({
       where: whereClause,
-      order: [['created_at', 'DESC']],
+      order: sortOrder,
       limit: parseInt(limit),
       offset: parseInt(offset),
       include: [
@@ -512,10 +565,23 @@ class SubscriptionService {
       ]
     });
 
+    const branchCounts = rows.length
+      ? await Branch.findAll({
+          where: { school_id: rows.map(school => school.id) },
+          attributes: ['school_id', [sequelize.fn('COUNT', sequelize.col('id')), 'branch_count']],
+          group: ['school_id'],
+          raw: true
+        })
+      : [];
+    const branchCountBySchool = new Map(
+      branchCounts.map(({ school_id, branch_count }) => [school_id, Number(branch_count)])
+    );
+
     // Transform the data to match frontend expectations
     const transformedSchools = await Promise.all(
       rows.map(async school => {
         const schoolData = school.toJSON();
+        schoolData.branch_count = branchCountBySchool.get(school.id) || 0;
 
         // Get admin user
         schoolData.admin_user = schoolData.users?.[0] || null;
@@ -687,7 +753,10 @@ class SubscriptionService {
       const { startDate, endDate, schoolStatus } = this.calculateSubscriptionDates(
         plan,
         subscriptionData.start_date,
-        subscriptionData.trial_days
+        subscriptionData.trial_days,
+        null,
+        null,
+        subscriptionData.status
       );
 
       // Create school
@@ -856,6 +925,13 @@ class SubscriptionService {
         plan = await this.validateAndGetPlan(subscriptionData.plan_code);
       }
 
+      const planChanged = plan != null;
+      const statusChanged =
+        subscriptionData.status != null && subscriptionData.status !== school.status;
+      if (!plan && statusChanged && ['trial', 'active'].includes(subscriptionData.status)) {
+        plan = await SubscriptionPlan.findOne({ where: { code: school.subscription_plan } });
+      }
+
       // Handle file uploads using helper method
       const fileData = this.handleFileUploads(uploadedFiles);
 
@@ -865,7 +941,8 @@ class SubscriptionService {
         subscriptionData.start_date,
         subscriptionData.trial_days,
         school.subscription_start_date,
-        school.subscription_end_date
+        school.subscription_end_date,
+        subscriptionData.status
       );
 
       // Update school data - combine school data and subscription data
@@ -877,14 +954,20 @@ class SubscriptionService {
 
       // Only update subscription-related fields if plan is changing
       if (plan) {
-        updateData.subscription_plan = plan.code;
-        updateData.subscription_start_date = startDate;
-        updateData.subscription_end_date = endDate;
-        updateData.max_students = plan.max_students;
-        updateData.max_staff = plan.max_staff;
-        updateData.max_branches = plan.max_branches;
-        updateData.modules = plan.modules;
+        if (planChanged) {
+          updateData.subscription_plan = plan.code;
+          updateData.max_students = plan.max_students;
+          updateData.max_staff = plan.max_staff;
+          updateData.max_branches = plan.max_branches;
+          updateData.modules = plan.modules;
+        }
+        if (planChanged || (statusChanged && ['trial', 'active'].includes(subscriptionData.status))) {
+          updateData.subscription_start_date = startDate;
+          updateData.subscription_end_date = endDate;
+        }
         updateData.status = schoolStatus;
+      } else if (statusChanged) {
+        updateData.status = this.resolveSchoolStatus(subscriptionData.status, school.status);
       }
 
       await school.update(updateData, { transaction });

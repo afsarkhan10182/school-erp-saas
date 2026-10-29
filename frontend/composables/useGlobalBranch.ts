@@ -1,5 +1,6 @@
 import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import { resolveEffectiveBranchId as resolveBranchId } from '~/utils/resolveEffectiveBranchId';
 
 /**
  * useGlobalBranch — single source of truth for the current branch context.
@@ -12,9 +13,26 @@ export function useGlobalBranch() {
   const authStore = useAuthStore();
 
   // Currently selected branch id (null = "All Branches")
-  const selectedBranchId = computed<string>(
-    () => authStore.currentBranch?.id || authStore.user?.branch_id || ''
-  );
+  const selectedBranchId = computed<string>(() => {
+    // Platform mode: superadmin with no school context must not have any branch selected
+    if (authStore.isSuperAdmin && !authStore.currentSchool?.id) {
+      if (authStore.currentBranch) {
+        authStore.setCurrentBranch(null);
+      }
+      return '';
+    }
+    if (
+      authStore.currentBranch &&
+      authStore.currentSchool &&
+      authStore.currentBranch.school_id &&
+      authStore.currentBranch.school_id !== authStore.currentSchool.id
+    ) {
+      authStore.setCurrentBranch(null);
+      return '';
+    }
+    if (authStore.isAdmin && !authStore.currentBranch) return '';
+    return authStore.currentBranch?.id || authStore.user?.branch_id || '';
+  });
 
   // Currently selected branch object
   const currentBranch = computed(() => authStore.currentBranch);
@@ -24,6 +42,12 @@ export function useGlobalBranch() {
 
   // Currently selected school (for super_admin school switching)
   const currentSchool = computed(() => authStore.currentSchool);
+  const effectiveBranchId = computed(() => resolveBranchId(
+    selectedBranchId.value,
+    availableBranches.value,
+    authStore.isSuperAdmin,
+    currentSchool.value?.id
+  ));
 
   // Role flags
   const isSuperAdmin = computed(() => authStore.isSuperAdmin);
@@ -32,10 +56,16 @@ export function useGlobalBranch() {
 
   /**
    * Whether the topbar branch selector is visible.
-   * Hidden for: branch_admin, teachers, students, parents, and single-branch schools.
+   * Visible for:
+   * - Super admin ONLY when inspecting a school with multiple branches.
+   * - School admin when having multiple branches.
+   * Hidden for: branch_admin, teachers, students, parents, and platform-mode superadmin.
    */
   const showBranchSelector = computed(() => {
-    if (!authStore.isSuperAdmin && !authStore.isAdmin) return false;
+    if (authStore.isSuperAdmin) {
+      return !!authStore.currentSchool?.id && (authStore.availableBranches?.length || 0) > 1;
+    }
+    if (!authStore.isAdmin) return false;
     // Show if there's more than 1 branch available
     return (authStore.availableBranches?.length || 0) > 1;
   });
@@ -46,11 +76,26 @@ export function useGlobalBranch() {
    */
   const branchScopeParams = computed(() => {
     const params: Record<string, string> = {};
-    if (authStore.currentSchool?.id && authStore.isSuperAdmin) {
-      params.school_id = authStore.currentSchool.id;
+    if (authStore.isSuperAdmin) {
+      if (authStore.currentSchool?.id) {
+        params.school_id = authStore.currentSchool.id;
+        if (
+          authStore.currentBranch?.id &&
+          (!authStore.currentBranch.school_id || authStore.currentBranch.school_id === authStore.currentSchool.id)
+        ) {
+          params.branch_id = authStore.currentBranch.id;
+        }
+      }
+      return params;
     }
     if (authStore.currentBranch?.id) {
-      params.branch_id = authStore.currentBranch.id;
+      const branchBelongsToSchool =
+        !authStore.currentSchool?.id ||
+        !authStore.currentBranch.school_id ||
+        authStore.currentBranch.school_id === authStore.currentSchool.id;
+      if (branchBelongsToSchool) {
+        params.branch_id = authStore.currentBranch.id;
+      }
     }
     return params;
   });
@@ -83,6 +128,7 @@ export function useGlobalBranch() {
 
   return {
     selectedBranchId,
+    effectiveBranchId,
     currentBranch,
     availableBranches,
     currentSchool,

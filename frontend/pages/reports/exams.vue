@@ -221,7 +221,7 @@ const progressRows = ref<any[]>([]);
 const progressExams = ref<any[]>([]);
 
 const resolvedSchoolId = computed(() => currentSchool.value?.id || user.value?.school_id);
-const resolvedBranchId = computed(() => selectedBranchId.value || user.value?.branch_id);
+const resolvedBranchId = computed(() => selectedBranchId.value);
 
 const examOptions = computed(() =>
   exams.value.map((exam: any) => ({ value: exam.id, label: exam.name }))

@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <!-- Filter Card ("Select Ground") -->
+    <!-- Student filters -->
     <div
       class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm space-y-4"
     >

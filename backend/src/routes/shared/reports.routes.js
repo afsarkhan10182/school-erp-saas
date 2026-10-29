@@ -7,7 +7,7 @@ const router = express.Router();
 const staff = [
   verifyToken,
   setSchoolContext,
-  authorize(['super_admin', 'admin', 'branch_admin', 'teacher'])
+  authorize(['super_admin', 'admin', 'branch_admin', 'teacher', 'accountant'])
 ];
 
 const MODULE_GATE = {

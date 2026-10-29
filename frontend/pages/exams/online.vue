@@ -61,6 +61,59 @@
 
       <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
 
+      <div
+        class="mb-3 grid grid-cols-1 gap-2 rounded-md bg-white p-3 shadow sm:grid-cols-2 lg:grid-cols-5 dark:bg-gray-800"
+      >
+        <input
+          v-model.trim="listFilters.search"
+          type="search"
+          aria-label="Search online exams"
+          placeholder="Search exam title"
+          class="min-w-0 rounded-md border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900"
+        />
+        <select
+          v-model="listFilters.class_id"
+          aria-label="Filter by class"
+          class="rounded-md border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900"
+        >
+          <option value="">All classes</option>
+          <option v-for="item in classes" :key="item.id" :value="item.id">
+            {{ item.name }}
+          </option>
+        </select>
+        <select
+          v-model="listFilters.status"
+          aria-label="Filter by status"
+          class="rounded-md border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900"
+        >
+          <option value="">All statuses</option>
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
+        </select>
+        <select
+          v-model="listFilters.window"
+          aria-label="Filter by exam window"
+          class="rounded-md border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900"
+        >
+          <option value="any">Any time</option>
+          <option value="upcoming">Upcoming</option>
+          <option value="open">Open now</option>
+          <option value="closed">Closed</option>
+        </select>
+        <select
+          v-model="listFilters.sort"
+          aria-label="Sort online exams"
+          class="rounded-md border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900"
+        >
+          <option value="start_desc">Start time: newest</option>
+          <option value="start_asc">Start time: oldest</option>
+          <option value="title">Title</option>
+        </select>
+        <p class="text-xs text-gray-500 sm:col-span-2 lg:col-span-5" aria-live="polite">
+          Showing {{ pagedExams.length }} of {{ filteredExams.length }} matching exams
+        </p>
+      </div>
+
       <div class="bg-white dark:bg-gray-800 shadow rounded-md overflow-x-auto mb-8">
         <table class="min-w-full divide-y">
           <thead>
@@ -74,7 +127,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="e in exams" :key="e.id" class="border-t">
+            <tr v-for="e in pagedExams" :key="e.id" class="border-t">
               <td class="px-4 py-3 text-sm">{{ e.title }}</td>
               <td class="px-4 py-3 text-sm">{{ e.class?.name || '—' }}</td>
               <td class="px-4 py-3 text-sm">{{ e.question_count }}</td>
@@ -90,8 +143,16 @@
             </tr>
           </tbody>
         </table>
-        <p v-if="!exams.length" class="p-6 text-sm text-gray-500">No online exams yet.</p>
+        <p v-if="!filteredExams.length" class="p-6 text-sm text-gray-500">
+          {{ exams.length ? 'No exams match these filters.' : 'No online exams yet.' }}
+        </p>
       </div>
+      <Pagination
+        :pagination="{ page: currentPage, limit: pageSize, total: filteredExams.length }"
+        item-label="exams"
+        @page-changed="currentPage = $event"
+        @page-size-changed="changeExamPageSize"
+      />
 
       <div v-if="active" class="space-y-6">
         <div class="flex items-center justify-between flex-wrap gap-2">
@@ -281,6 +342,8 @@ import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { apiErrorMessage, extractList } from '~/utils/list-response';
 import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import Pagination from '~/components/ui/Pagination.vue';
+import { filterOnlineExams, paginateOnlineExams } from '~/utils/filterOnlineExams.js';
 
 const { user } = useAuth();
 const { selectedBranchId } = useGlobalBranch();
@@ -290,6 +353,15 @@ const students = ref<any[]>([]);
 const questionBank = ref<any[]>([]);
 const active = ref<any>(null);
 const error = ref('');
+const currentPage = ref(1);
+const pageSize = ref(10);
+const listFilters = reactive({
+  search: '',
+  class_id: '',
+  status: '',
+  window: 'any',
+  sort: 'start_desc'
+});
 const takeMode = ref(false);
 const paperQuestions = ref<any[]>([]);
 const answers = reactive<Record<string, number>>({});
@@ -301,6 +373,10 @@ const examToDelete = ref('');
 const classOptions = computed(() => classes.value.map(item => ({ value: item.id, label: item.name })));
 const questionBankOptions = computed(() =>
   questionBank.value.map(item => ({ value: item.id, label: item.title }))
+);
+const filteredExams = computed(() => filterOnlineExams(exams.value, listFilters, new Date()));
+const pagedExams = computed(() =>
+  paginateOnlineExams(filteredExams.value, currentPage.value, pageSize.value)
 );
 const studentOptions = computed(() =>
   students.value.map(item => ({
@@ -316,11 +392,21 @@ const correctOptionOptions = [
 ];
 
 watch(selectedBranchId, async () => {
+  currentPage.value = 1;
   form.class_id = '';
   active.value = null;
   await loadLookups();
   await loadList();
 });
+
+watch(listFilters, () => {
+  currentPage.value = 1;
+});
+
+const changeExamPageSize = (limit: number) => {
+  pageSize.value = Number(limit) || 10;
+  currentPage.value = 1;
+};
 
 const form = reactive({
   title: '',
@@ -357,6 +443,7 @@ const loadLookups = async () => {
 const loadList = async () => {
   const res: any = await OnlineExams.list(branchParams());
   exams.value = res.data?.exams || [];
+  currentPage.value = 1;
 };
 
 const createExam = async () => {
@@ -375,13 +462,13 @@ const openExam = async (id: string) => {
   takeMode.value = false;
   results.value = [];
   submitResult.value = null;
-  const res: any = await OnlineExams.get(id);
+  const res: any = await OnlineExams.get(id, branchParams());
   active.value = res.data?.exam;
 };
 
 const publish = async (e: any) => {
   try {
-    await OnlineExams.update(e.id, { status: 'published' });
+    await OnlineExams.update(e.id, { status: 'published' }, branchParams());
     await loadList();
     if (active.value?.id === e.id) await openExam(e.id);
   } catch (err) {
@@ -398,7 +485,7 @@ const confirmRemoveExam = async () => {
   examToDelete.value = '';
   if (!id) return;
   try {
-    await OnlineExams.remove(id);
+    await OnlineExams.remove(id, branchParams());
     if (active.value?.id === id) active.value = null;
     await loadList();
   } catch (e) {
@@ -415,7 +502,7 @@ const addQuestion = async () => {
       correct_option: qForm.correct_option,
       marks: qForm.marks,
       sort_order: qForm.sort_order
-    });
+    }, branchParams());
     qForm.question_text = '';
     qForm.options = ['', '', '', ''];
     qForm.correct_option = 0;
@@ -442,7 +529,7 @@ const importQuestion = async () => {
     correct_option: 0,
     marks: 1,
     sort_order: (active.value.questions || []).length
-  });
+  }, branchParams());
   questionBankId.value = '';
   await openExam(active.value.id);
   await loadList();
@@ -451,7 +538,7 @@ const importQuestion = async () => {
 const deleteQuestion = async (qid: string) => {
   if (!active.value) return;
   try {
-    await OnlineExams.deleteQuestion(active.value.id, qid);
+    await OnlineExams.deleteQuestion(active.value.id, qid, branchParams());
     await openExam(active.value.id);
     await loadList();
   } catch (e) {
@@ -462,7 +549,7 @@ const deleteQuestion = async (qid: string) => {
 const startTake = async () => {
   if (!active.value) return;
   try {
-    const res: any = await OnlineExams.take(active.value.id);
+    const res: any = await OnlineExams.take(active.value.id, branchParams());
     paperQuestions.value = res.data?.exam?.questions || [];
     Object.keys(answers).forEach(k => delete answers[k]);
     takeMode.value = true;
@@ -478,7 +565,7 @@ const submitTake = async () => {
     const res: any = await OnlineExams.submit(active.value.id, {
       student_id: takeStudentId.value,
       answers_json: { ...answers }
-    });
+    }, branchParams());
     submitResult.value = res.data;
     await loadResults();
   } catch (e) {
@@ -489,7 +576,7 @@ const submitTake = async () => {
 const loadResults = async () => {
   if (!active.value) return;
   try {
-    const res: any = await OnlineExams.results(active.value.id);
+    const res: any = await OnlineExams.results(active.value.id, branchParams());
     results.value = res.data?.results || [];
   } catch (e) {
     error.value = apiErrorMessage(e);

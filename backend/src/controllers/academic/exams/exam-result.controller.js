@@ -5,6 +5,7 @@ const { success, error } = require('~/utils/shared/apiResponse');
 const { asyncHandler } = require('~/utils/shared/apiResponse');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
+const getExamPassStatus = require('~/utils/academic/examPassStatus');
 
 class ExamResultController {
   /**
@@ -17,11 +18,22 @@ class ExamResultController {
       limit = 50,
       search,
       grade,
-      sort_by = 'total_marks',
+      sort_by = 'marks_obtained',
       sort_order = 'DESC'
     } = req.query;
 
     const offset = (page - 1) * limit;
+
+    const gradingSystem = await GradingSystem.findOne({
+      where: { school_id: req.user.school_id, is_active: true },
+      include: [
+        {
+          model: GradeScale,
+          as: 'gradeScales',
+          attributes: ['min_percentage', 'max_percentage', 'is_passing']
+        }
+      ]
+    });
 
     // Build where clause
     const whereClause = {
@@ -50,7 +62,15 @@ class ExamResultController {
         {
           model: Student,
           as: 'student',
-          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number']
+          attributes: [
+            'id',
+            'first_name',
+            'last_name',
+            'admission_number',
+            'roll_number',
+            'class_id',
+            'section_id'
+          ]
         },
         {
           model: Exam,
@@ -63,8 +83,13 @@ class ExamResultController {
       offset: parseInt(offset)
     });
 
+    const results = rows.map(row => {
+      const data = row.toJSON();
+      return { ...data, is_passed: getExamPassStatus(data.percentage, data.is_absent, gradingSystem) };
+    });
+
     const result = {
-      results: rows,
+      results,
       pagination: {
         total: count,
         page: parseInt(page),
@@ -232,6 +257,16 @@ class ExamResultController {
   static exportResults = asyncHandler(async (req, res) => {
     const { examId } = req.params;
     const { format = 'csv' } = req.query;
+    const gradingSystem = await GradingSystem.findOne({
+      where: { school_id: req.user.school_id, is_active: true },
+      include: [
+        {
+          model: GradeScale,
+          as: 'gradeScales',
+          attributes: ['min_percentage', 'max_percentage', 'is_passing']
+        }
+      ]
+    });
 
     // Get all results for the exam
     const results = await ExamResult.findAll({
@@ -252,7 +287,7 @@ class ExamResultController {
           attributes: ['name', 'max_marks']
         }
       ],
-      order: [['total_marks', 'DESC']]
+      order: [['marks_obtained', 'DESC']]
     });
 
     if (results.length === 0) {
@@ -260,23 +295,26 @@ class ExamResultController {
     }
 
     // Generate export data
-    const exportData = results.map((result, index) => ({
-      'S.No': index + 1,
-      'Student Name': `${result.student.first_name} ${result.student.last_name}`,
-      'Admission Number': result.student.admission_number,
-      'Roll Number': result.student.roll_number,
-      'Marks Obtained': result.marks_obtained,
-      'Total Marks': result.total_marks,
-      Percentage: result.percentage,
-      Grade: result.grade,
-      Status: result.is_passed ? 'Passed' : 'Failed',
-      Remarks: result.remarks
-    }));
+    const exportData = results.map((result, index) => {
+      const isPassed = getExamPassStatus(result.percentage, result.is_absent, gradingSystem);
+      return {
+        'S.No': index + 1,
+        'Student Name': `${result.student.first_name} ${result.student.last_name}`,
+        'Admission Number': result.student.admission_number,
+        'Roll Number': result.student.roll_number,
+        'Marks Obtained': result.marks_obtained,
+        'Total Marks': result.exam.max_marks,
+        Percentage: result.percentage,
+        Grade: result.grade,
+        Status: result.is_absent ? 'Absent' : isPassed == null ? 'Not graded' : isPassed ? 'Passed' : 'Failed',
+        Remarks: result.remarks
+      };
+    });
 
     if (format === 'csv') {
-      // Convert to CSV
-      const csvHeader = Object.keys(exportData[0]).join(',');
-      const csvRows = exportData.map(row => Object.values(row).join(','));
+      const csvValue = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+      const csvHeader = Object.keys(exportData[0]).map(csvValue).join(',');
+      const csvRows = exportData.map(row => Object.values(row).map(csvValue).join(','));
       const csvContent = [csvHeader, ...csvRows].join('\n');
 
       res.setHeader('Content-Type', 'text/csv');

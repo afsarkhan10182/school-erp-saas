@@ -5,11 +5,13 @@ const {
   updateInvoice,
   cancelInvoice,
   adjustInvoice,
+  getInvoiceAdjustments,
   getGroupedInvoices
 } = require('~/controllers/financial/core.controller');
 const {
   applyLateFees,
   recordPayment,
+  reversePayment,
   getInvoicePayments,
   getPaymentById,
   getStudentPayments,
@@ -17,6 +19,7 @@ const {
 } = require('~/controllers/financial/payment.controller');
 const {
   getStudentDues,
+  searchStudentsForFees,
   getStudentFeeLedger,
   recordSmartPayment,
   getAvailableMonths,
@@ -51,6 +54,7 @@ const {
   checkSubscriptionStatus
 } = require('~/middleware/administration/subscriptionValidation');
 const router = express.Router();
+const { requireEnabledFeePaymentMethod } = require('~/middleware/financial/fee-payment-method');
 
 // Middleware to ensure authentication
 router.use(verifyToken);
@@ -73,6 +77,7 @@ router.post(
 router.post(
   '/smart-payment',
   requireRole('super_admin', 'admin', 'branch_admin', 'accountant'),
+  requireEnabledFeePaymentMethod,
   recordSmartPayment
 );
 
@@ -80,10 +85,17 @@ router.post(
 router.post(
   '/flexible-installment',
   requireRole('super_admin', 'admin', 'branch_admin', 'accountant'),
+  requireEnabledFeePaymentMethod,
   recordFlexibleInstallmentPayment
 );
 
 // GET endpoint to retrieve student dues for quick collection
+router.get(
+  '/students/search',
+  requireRole('super_admin', 'admin', 'branch_admin', 'accountant'),
+  searchStudentsForFees
+);
+
 router.get(
   '/student-dues',
   requireRole('super_admin', 'admin', 'branch_admin', 'accountant'),
@@ -217,6 +229,8 @@ router.get(
   getPaymentById
 );
 
+router.post('/payment/:paymentId/reverse', requireRole('super_admin', 'admin'), reversePayment);
+
 // GET endpoint to get receipt data for a specific payment (on-demand - returns structured data)
 router.get(
   '/payment/:paymentId/receipt-data',
@@ -239,6 +253,12 @@ router.post(
 );
 
 // Invoice-specific routes
+router.get(
+  '/:id/adjustments',
+  requireRole('super_admin', 'admin', 'branch_admin'),
+  getInvoiceAdjustments
+);
+
 // GET endpoint to retrieve a specific invoice by ID
 router.get(
   '/:id',
@@ -257,6 +277,7 @@ router.put(
 router.post(
   '/:id/payment',
   requireRole('super_admin', 'admin', 'branch_admin', 'accountant'),
+  requireEnabledFeePaymentMethod,
   recordPayment
 );
 

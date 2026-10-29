@@ -290,9 +290,6 @@
             <div class="text-center">
               <div class="text-2xl font-bold text-white flex items-center justify-center">
                 {{ Object.keys(classDistribution).length }}
-                <span class="ml-2 text-sm bg-white/20 px-2 py-1 rounded-full">
-                  <TrendingUp class="w-3 h-3" />
-                </span>
               </div>
               <div class="text-xs text-indigo-100">Classes</div>
               <div class="text-xs text-indigo-200 mt-1">
@@ -307,21 +304,9 @@
             <div class="text-center">
               <div class="text-3xl font-bold text-green-300 flex items-center justify-center">
                 {{ pagination.total_records }}
-                <span
-                  v-if="studentTrend > 0"
-                  class="ml-2 text-sm bg-green-500/30 px-2 py-1 rounded-full text-green-200"
-                >
-                  +{{ studentTrend }}
-                </span>
-                <span
-                  v-else-if="studentTrend < 0"
-                  class="ml-2 text-sm bg-red-500/30 px-2 py-1 rounded-full text-red-200"
-                >
-                  {{ studentTrend }}
-                </span>
               </div>
               <div class="text-xs text-indigo-100">Total Students</div>
-              <div class="text-xs text-indigo-200 mt-1">{{ getTimeContextText() }}</div>
+              <div class="text-xs text-indigo-200 mt-1">Current filtered results</div>
             </div>
 
             <!-- Largest Group -->
@@ -631,6 +616,17 @@
               :disabled="isLoading"
             />
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Category</label
+            >
+            <EnhancedDropdown
+              :options="studentCategoryOptions"
+              v-model="filters.category_id"
+              placeholder="All Categories"
+              :disabled="isLoading || studentCategories.length === 0"
+            />
+          </div>
 
           <!-- Apply Filters Button -->
           <div class="flex items-end">
@@ -832,13 +828,12 @@ import {
   Users,
   UserPlus,
   UserMinus,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Lightbulb,
   Printer
 } from 'lucide-vue-next';
 import { Students } from '~/api';
+import { StudentCategories } from '~/api/students/academic-services';
+import { extractList } from '~/utils/list-response';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
@@ -934,8 +929,13 @@ const statusOptions = [
   { value: 'active', label: 'Active' },
   { value: 'inactive', label: 'Inactive' },
   { value: 'graduated', label: 'Graduated' },
-  { value: 'transferred', label: 'Transferred' }
+  { value: 'transferred', label: 'Transferred' },
+  { value: 'dropped', label: 'Dropped' }
 ];
+const studentCategories = ref([]);
+const studentCategoryOptions = computed(() =>
+  studentCategories.value.map(category => ({ value: category.id, label: category.name }))
+);
 
 // Summary data from backend (for accurate totals)
 const summaryData = ref({
@@ -968,7 +968,9 @@ const filters = reactive({
   class_id: '',
   stream_id: '',
   section_id: '',
-  status: ''
+  status: '',
+  gender: '',
+  category_id: ''
 });
 
 const { selectedBranchId, currentSchool } = useGlobalBranch();
@@ -986,6 +988,8 @@ watch(selectedBranchId, async newVal => {
   filters.class_id = '';
   filters.section_id = '';
   filters.stream_id = '';
+  filters.category_id = '';
+  await loadStudentCategories();
   await loadClasses();
   await loadData();
 });
@@ -996,6 +1000,8 @@ watch(currentSchool, async () => {
   filters.class_id = '';
   filters.section_id = '';
   filters.stream_id = '';
+  filters.category_id = '';
+  await loadStudentCategories();
   await loadClasses();
   await loadData();
 });
@@ -1025,8 +1031,13 @@ const loadReport = async () => {
       page: pagination.value.current_page,
       limit: pagination.value.per_page,
       status: filters.status,
+      gender: filters.gender,
       school_id: filters.school_id,
-      branch_id: filters.branch_id
+      branch_id: filters.branch_id,
+      class_id: filters.class_id,
+      section_id: filters.section_id,
+      stream_id: filters.stream_id,
+      category_id: filters.category_id
     };
 
     // Map date parameters - backend expects from_date and to_date
@@ -1131,7 +1142,13 @@ const loadStats = async () => {
       school_id: filters.school_id,
       branch_id: filters.branch_id,
       class_id: filters.class_id,
-      section_id: filters.section_id
+      section_id: filters.section_id,
+      stream_id: filters.stream_id,
+      category_id: filters.category_id,
+      status: filters.status,
+      gender: filters.gender,
+      from_date: filters.fromDate,
+      to_date: filters.toDate
     };
 
     // Remove undefined values
@@ -1195,6 +1212,19 @@ const loadClasses = async () => {
     console.log('Classes loaded:', classes.value.length);
   } catch (error) {
     console.error('Error loading classes:', error);
+  }
+};
+
+const loadStudentCategories = async () => {
+  try {
+    const response = await StudentCategories.getAll({
+      school_id: filters.school_id || undefined,
+      branch_id: filters.branch_id || undefined
+    });
+    studentCategories.value = extractList(response, ['categories']);
+  } catch (error) {
+    studentCategories.value = [];
+    showToast('Unable to load student categories', 'error');
   }
 };
 
@@ -1403,11 +1433,13 @@ const statusDistribution = computed(() => {
 });
 
 const genderDistribution = computed(() => {
-  // For now, use placeholder data since backend doesn't provide gender stats
-  // This would need to be added to the backend stats endpoint
+  const counts = Object.fromEntries(
+    (stats.value.gender_distribution || []).map(item => [item.gender, Number(item.count)])
+  );
   return {
-    Male: Math.floor(stats.value.total * 0.52),
-    Female: Math.floor(stats.value.total * 0.48)
+    Male: counts.male || 0,
+    Female: counts.female || 0,
+    Other: counts.other || 0
   };
 });
 
@@ -1501,36 +1533,6 @@ const getClassSizeInfo = () => {
   return { average, min, max };
 };
 
-const getTimeContextText = () => {
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-  ];
-
-  return `vs ${monthNames[month]} ${year}`;
-};
-
-// Student trend (placeholder - would need historical data)
-const studentTrend = computed(() => {
-  // This would typically compare current month vs previous month
-  // For now, return a placeholder value
-  return 5; // +5 students
-});
-
 // Missing functions referenced in template
 const getLargestGroupName = () => {
   const distribution = genderDistribution.value;
@@ -1538,7 +1540,7 @@ const getLargestGroupName = () => {
     (max, [name, count]) => (count > max.count ? { name, count } : max),
     { name: 'None', count: 0 }
   );
-  return maxGender.name;
+  return maxGender.count ? maxGender.name : 'No data';
 };
 
 const getInactivePercentage = () => {
@@ -1558,8 +1560,8 @@ const filterByClass = className => {
 
 // Add missing filterByGender function
 const filterByGender = gender => {
-  // For now, we'll implement this as a status filter since gender isn't a direct filter
-  filters.status = gender;
+  filters.gender = gender.toLowerCase();
+  pagination.value.current_page = 1;
   loadData();
 };
 
@@ -1746,7 +1748,10 @@ const downloadReport = async format => {
       branch_id: filters.branch_id,
       class_id: filters.class_id,
       section_id: filters.section_id,
-      status: filters.status
+      stream_id: filters.stream_id,
+      category_id: filters.category_id,
+      status: filters.status,
+      gender: filters.gender
     };
 
     const selectedColumns = displayedColumns.value.map(col => ({
@@ -1887,6 +1892,7 @@ onMounted(async () => {
     initializeFilters();
 
     // Load initial data with default filters
+    await loadStudentCategories();
     await loadData();
 
     // Add click outside listener for dropdown

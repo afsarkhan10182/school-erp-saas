@@ -16,14 +16,14 @@
       </div>
     </div>
 
-    <!-- Select Ground Section -->
+    <!-- Marks filters -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3
             class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
           >
-            Select Ground
+            Select filters
           </h3>
         </div>
         <div class="p-6">
@@ -80,6 +80,7 @@
                 :options="subjectOptions"
                 placeholder="Select subject"
                 :loading="subjectsLoading"
+                helper-text="Only subjects scheduled for this exam and class are available."
                 @change="onSubjectChange"
               />
             </div>
@@ -270,6 +271,42 @@
           </button>
         </div>
       </div>
+
+      <section class="mt-6 rounded-lg border border-gray-200 bg-white p-5 shadow dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white">Import component marks</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Download the selected subject’s template, preview the filled file, then apply it to this form. Nothing is saved until you click Save.
+            </p>
+          </div>
+          <button type="button" class="rounded border px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700" @click="downloadImportTemplate">
+            <Download class="mr-1 inline h-4 w-4" /> Download template
+          </button>
+        </div>
+        <div class="mt-4 flex flex-wrap items-end gap-3">
+          <label class="min-w-64 flex-1 text-sm text-gray-700 dark:text-gray-300">
+            CSV or Excel file
+            <input ref="importFileInput" type="file" accept=".csv,.xlsx,.xls" class="mt-1 block w-full rounded border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-700" @change="onImportFileChange" />
+          </label>
+          <button type="button" class="rounded bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-50" :disabled="!importFile || importing" @click="previewImport">
+            {{ importing ? 'Previewing…' : 'Preview file' }}
+          </button>
+        </div>
+        <div v-if="importPreview" class="mt-4 rounded border p-4 dark:border-gray-700" aria-live="polite">
+          <p class="text-sm font-medium text-gray-900 dark:text-white">
+            {{ importPreview.records.length }} matched row(s) · {{ importPreview.errors.length }} issue(s)
+          </p>
+          <ul v-if="importPreview.errors.length" class="mt-2 list-inside list-disc text-sm text-red-700 dark:text-red-300">
+            <li v-for="issue in importPreview.errors" :key="`${issue.row}-${issue.errors.join()}`">
+              Row {{ issue.row }}: {{ issue.errors.join('; ') }}
+            </li>
+          </ul>
+          <button type="button" class="mt-3 rounded bg-emerald-700 px-4 py-2 text-sm text-white disabled:opacity-50" :disabled="importPreview.errors.length > 0 || !importPreview.records.length" @click="applyImportPreview">
+            Apply to marks form
+          </button>
+        </div>
+      </section>
     </div>
 
     <!-- No Students Message -->
@@ -291,7 +328,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { Save, Users, Filter } from 'lucide-vue-next';
+import { Save, Users, Filter, Download } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
@@ -299,12 +336,14 @@ import { useExams } from '~/composables/useExams';
 import { useMarksEntry } from '~/composables/useMarksEntry';
 import { useAuth } from '~/composables/useAuth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
-import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignment';
+import { subjectTeacherApi } from '~/api/academic/subject-teachers';
+import { examScheduleApi } from '~/api/academic/exam-schedules';
+import { marksEntryApi, type MarksEntryFilters, type SubjectMarksImportRecord } from '~/api/academic/marks-entry';
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
-const { selectedBranchId } = useGlobalBranch();
+const { selectedBranchId, branchScopeParams } = useGlobalBranch();
 const {
   classes,
   sections,
@@ -369,6 +408,18 @@ const studentMarks = reactive<Record<string, StudentMarks>>({});
 const markDistribution = ref<MarkDistribution | null>(null);
 const loadingStudents = ref(false);
 const saving = ref(false);
+const importFile = ref<File | null>(null);
+const importFileInput = ref<HTMLInputElement | null>(null);
+const importing = ref(false);
+const importPreview = ref<{
+  records: SubjectMarksImportRecord[];
+  errors: Array<{ row: number; errors: string[] }>;
+} | null>(null);
+const selectedClassBranchId = () =>
+  selectedBranchId.value ||
+  classes.value.find(item => item.id === selectedClassId.value)?.branch?.id ||
+  user.value?.branch_id ||
+  '';
 
 watch(selectedBranchId, async newBranchId => {
   selectedExamId.value = '';
@@ -376,6 +427,8 @@ watch(selectedBranchId, async newBranchId => {
   selectedSectionId.value = '';
   selectedSubjectId.value = '';
   students.value = [];
+  clearImportState();
+  await loadExams(examScopeParams());
   if (newBranchId) {
     await fetchClasses({ branchId: newBranchId });
   } else {
@@ -393,8 +446,7 @@ const examOptions = computed(() =>
 );
 
 const showSectionField = computed(() => {
-  const selectedClass = classes.value.find(c => c.id === selectedClassId.value);
-  return selectedClass?.has_sections || false;
+  return !!selectedClassId.value && sections.value.length > 0;
 });
 
 const canLoadStudents = computed(() => {
@@ -405,6 +457,15 @@ const canLoadStudents = computed(() => {
     (!showSectionField.value || selectedSectionId.value)
   );
 });
+
+const examScopeParams = () => {
+  const params = { ...branchScopeParams.value };
+  if (user.value?.school_id) params.school_id = user.value.school_id;
+  if (['teacher', 'branch_admin'].includes(user.value?.role) && user.value?.branch_id) {
+    params.branch_id = selectedBranchId.value || user.value.branch_id;
+  }
+  return params;
+};
 
 const hasChanges = computed(() => {
   return Object.keys(studentMarks).length > 0;
@@ -457,32 +518,51 @@ const loadSubjectsForClass = async () => {
     if (user.value?.school_id) {
       params.school_id = user.value.school_id;
     }
-    if (selectedBranchId.value || user.value?.branch_id) {
-      params.branch_id = selectedBranchId.value || user.value?.branch_id;
-    }
+    if (selectedClassBranchId()) params.branch_id = selectedClassBranchId();
     if (selectedSectionId.value) {
       params.section_id = selectedSectionId.value;
     }
 
-    const response = await classSubjectAssignmentApi.getAll(params);
-
-    let assignments = [];
-    if (response?.assignments && Array.isArray(response.assignments)) {
-      assignments = response.assignments;
-    } else if (response?.data?.assignments && Array.isArray(response.data.assignments)) {
-      assignments = response.data.assignments;
-    } else if (Array.isArray(response?.data)) {
-      assignments = response.data;
+    const [assignmentResponse, scheduleResponse] = await Promise.all([
+      user.value?.role === 'teacher' ? subjectTeacherApi.getAll(params) : Promise.resolve(null),
+      examScheduleApi.getAll({
+        exam_id: selectedExamId.value,
+        class_id: selectedClassId.value,
+        ...(selectedSectionId.value && { section_id: selectedSectionId.value }),
+        school_id: user.value?.school_id,
+        branch_id: selectedClassBranchId(),
+        page: 1,
+        limit: 100
+      })
+    ]);
+    const schedules = scheduleResponse.data?.schedules || scheduleResponse.schedules || [];
+    let assignedSubjectIds: Set<string> | null = null;
+    if (user.value?.role === 'teacher') {
+      const assignmentData =
+        assignmentResponse?.assignments ||
+        assignmentResponse?.data?.subjectTeachers ||
+        assignmentResponse?.data?.assignments ||
+        assignmentResponse?.data ||
+        [];
+      const assignments = Array.isArray(assignmentData) ? assignmentData : [];
+      assignedSubjectIds = new Set(assignments.map((assignment: any) => assignment.subject?.id).filter(Boolean));
     }
 
-    // Extract unique subjects from assignments
+    // The exam schedule is the source of truth for which subjects can receive marks.
     const uniqueSubjects = new Map();
-    assignments.forEach((assignment: any) => {
-      if (assignment.subject && !uniqueSubjects.has(assignment.subject.id)) {
-        uniqueSubjects.set(assignment.subject.id, {
-          id: assignment.subject.id,
-          name: assignment.subject.name,
-          code: assignment.subject.code
+    schedules.forEach((schedule: any) => {
+      if (
+        schedule.class_id === selectedClassId.value &&
+        (!selectedSectionId.value || !schedule.section_id || schedule.section_id === selectedSectionId.value) &&
+        schedule.status !== 'cancelled' &&
+        schedule.subject &&
+        (!assignedSubjectIds || assignedSubjectIds.has(schedule.subject.id)) &&
+        !uniqueSubjects.has(schedule.subject.id)
+      ) {
+        uniqueSubjects.set(schedule.subject.id, {
+          id: schedule.subject.id,
+          name: schedule.subject.name,
+          code: schedule.subject.code
         });
       }
     });
@@ -507,6 +587,7 @@ const onExamChange = () => {
   selectedSectionId.value = '';
   selectedSubjectId.value = '';
   students.value = [];
+  clearImportState();
   Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
   markDistribution.value = null;
 };
@@ -515,13 +596,14 @@ const onClassChange = async () => {
   selectedSectionId.value = '';
   selectedSubjectId.value = '';
   students.value = [];
+  clearImportState();
   Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
   markDistribution.value = null;
 
   if (selectedClassId.value) {
     await fetchSections({
       schoolId: user.value?.school_id,
-      branchId: selectedBranchId.value || user.value?.branch_id,
+      branchId: selectedClassBranchId(),
       classId: selectedClassId.value
     });
     await loadSubjectsForClass();
@@ -531,6 +613,7 @@ const onClassChange = async () => {
 const onSectionChange = async () => {
   selectedSubjectId.value = '';
   students.value = [];
+  clearImportState();
   Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
   markDistribution.value = null;
 
@@ -541,8 +624,72 @@ const onSectionChange = async () => {
 
 const onSubjectChange = () => {
   students.value = [];
+  clearImportState();
   Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
   markDistribution.value = null;
+};
+
+const clearImportState = () => {
+  importFile.value = null;
+  importPreview.value = null;
+  if (importFileInput.value) importFileInput.value.value = '';
+};
+
+const importFilters = (): MarksEntryFilters => ({
+  exam_id: selectedExamId.value,
+  class_id: selectedClassId.value,
+  ...(selectedSectionId.value && { section_id: selectedSectionId.value }),
+  subject_id: selectedSubjectId.value,
+  school_id: user.value?.school_id,
+  branch_id: selectedClassBranchId()
+});
+
+const onImportFileChange = (event: Event) => {
+  importFile.value = (event.target as HTMLInputElement).files?.[0] || null;
+  importPreview.value = null;
+};
+
+const previewImport = async () => {
+  if (!importFile.value) return;
+  importing.value = true;
+  try {
+    const response = await marksEntryApi.previewImport(importFilters(), importFile.value);
+    importPreview.value = response.data.data;
+    showToast('File preview loaded; no marks have been saved', 'success');
+  } catch (error: any) {
+    showToast(error.response?.data?.message || 'Could not preview this file', 'error');
+  } finally {
+    importing.value = false;
+  }
+};
+
+const applyImportPreview = () => {
+  if (!importPreview.value || importPreview.value.errors.length) return;
+  importPreview.value.records.forEach(record => {
+    studentMarks[record.student_id] = {
+      theory_marks_obtained: record.theory_marks_obtained,
+      practical_marks_obtained: record.practical_marks_obtained,
+      viva_marks_obtained: record.viva_marks_obtained,
+      assignment_marks_obtained: record.assignment_marks_obtained,
+      is_absent: record.is_absent
+    };
+  });
+  clearImportState();
+  showToast('Imported marks added to the form; click Save to persist them', 'success');
+};
+
+const downloadImportTemplate = async () => {
+  try {
+    const response = await marksEntryApi.downloadImportTemplate(importFilters());
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'subject-marks-template.xlsx';
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error: any) {
+    showToast(error.response?.data?.message || 'Could not download the template', 'error');
+  }
 };
 
 const loadStudents = async () => {
@@ -559,7 +706,7 @@ const loadStudents = async () => {
       class_id: selectedClassId.value,
       subject_id: selectedSubjectId.value,
       school_id: user.value?.school_id,
-      branch_id: selectedBranchId.value || user.value?.branch_id
+      branch_id: selectedClassBranchId()
     };
 
     if (selectedSectionId.value) {
@@ -625,6 +772,10 @@ const saveMarks = async () => {
 
     const response = (await saveMarksAPI({
       exam_id: selectedExamId.value,
+      class_id: selectedClassId.value,
+      ...(selectedSectionId.value && { section_id: selectedSectionId.value }),
+      subject_id: selectedSubjectId.value,
+      branch_id: selectedClassBranchId(),
       marks_data: marksData
     })) as any;
 
@@ -663,7 +814,7 @@ watch(selectedSectionId, async () => {
 
 // Load initial data
 onMounted(async () => {
-  await Promise.all([loadExams()]);
+  await Promise.all([loadExams(examScopeParams())]);
 
   if (selectedBranchId.value) {
     await fetchClasses({

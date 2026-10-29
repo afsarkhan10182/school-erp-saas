@@ -108,9 +108,12 @@ export default defineNuxtRouteMiddleware(async to => {
 
   // Check if user can access the route
   if (!canAccessRoute(routePath)) {
-    // Redirect to dashboard with error message
+    // Redirect to appropriate home page with error message
+    // Portal users (student/parent) go to /portal, all others go to /dashboard
+    const role = user.value?.role;
+    const redirectPath = role === 'student' || role === 'parent' ? '/portal' : '/dashboard';
     return navigateTo({
-      path: '/dashboard',
+      path: redirectPath,
       query: {
         error: 'module_access_denied',
         module: routePath

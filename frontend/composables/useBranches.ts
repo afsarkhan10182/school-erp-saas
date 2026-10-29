@@ -34,10 +34,10 @@ export function useBranches() {
         response = await Branches.getForDropdown(
           authStore.currentSchool?.id ? { school_id: authStore.currentSchool.id } : undefined
         );
-      } else if (authStore.isAdmin && authStore.currentSchool) {
+      } else if (authStore.isAdmin && (authStore.currentSchool?.id || authStore.user?.school_id)) {
         // School admin can see branches of their school
         response = await Branches.getForDropdown({
-          school_id: authStore.currentSchool.id
+          school_id: authStore.currentSchool?.id || authStore.user?.school_id
         });
       } else {
         // Other roles can only see their assigned branch

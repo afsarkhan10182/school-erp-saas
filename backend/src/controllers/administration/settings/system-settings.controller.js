@@ -1,5 +1,26 @@
-const { School } = require('~/models');
-const { Op } = require('sequelize');
+const { sequelize, School, SettingsChangeLog } = require('~/models');
+const { Transaction } = require('sequelize');
+
+const reversibleFields = [
+  'dateFormat',
+  'defaultLanguage',
+  'timeFormat',
+  'defaultTheme',
+  'defaultPaginationSize',
+  'itemsPerPage',
+  'showNotifications'
+];
+
+const valueState = (school, field) => {
+  if (field === 'dateFormat') return { exists: true, value: school.date_format };
+  const settings = school.settings || {};
+  return Object.prototype.hasOwnProperty.call(settings, field)
+    ? { exists: true, value: settings[field] }
+    : { exists: false, value: null };
+};
+
+const sameState = (left, right) =>
+  left.exists === right.exists && (!left.exists || JSON.stringify(left.value) === JSON.stringify(right.value));
 
 class SystemSettingsController {
   /**
@@ -7,7 +28,7 @@ class SystemSettingsController {
    */
   static async getSystemSettings(req, res) {
     try {
-      const schoolId = req.user.school_id;
+      const schoolId = req.user.role === 'super_admin' ? req.schoolId : req.user.school_id;
 
       if (!schoolId) {
         return res.status(400).json({
@@ -18,7 +39,7 @@ class SystemSettingsController {
 
       // Get school with system settings
       const school = await School.findByPk(schoolId, {
-        attributes: ['id', 'name', 'settings']
+        attributes: ['id', 'name', 'date_format', 'settings']
       });
 
       if (!school) {
@@ -45,9 +66,16 @@ class SystemSettingsController {
       };
 
       // Merge with stored settings
+      const storedSettings = school.settings || {};
+      const savedItemsPerPage = Number(
+        storedSettings.itemsPerPage ?? storedSettings.defaultPaginationSize ?? 25
+      );
       const systemSettings = {
         ...defaultSystemSettings,
-        ...(school.settings || {})
+        ...storedSettings,
+        dateFormat: school.date_format || 'DD/MM/YYYY',
+        itemsPerPage: [10, 25, 50, 100].includes(savedItemsPerPage) ? savedItemsPerPage : 25,
+        showNotifications: storedSettings.showNotifications !== false
       };
 
       res.json({
@@ -71,7 +99,7 @@ class SystemSettingsController {
    */
   static async updateSystemSettings(req, res) {
     try {
-      const schoolId = req.user.school_id;
+      const schoolId = req.user.role === 'super_admin' ? req.schoolId : req.user.school_id;
 
       if (!schoolId) {
         return res.status(400).json({
@@ -83,10 +111,10 @@ class SystemSettingsController {
       const { systemSettings } = req.body;
 
       // Validate required fields
-      if (!systemSettings) {
+      if (!systemSettings || typeof systemSettings !== 'object' || Array.isArray(systemSettings)) {
         return res.status(400).json({
           success: false,
-          message: 'System settings are required'
+          message: 'System settings must be an object'
         });
       }
 
@@ -121,14 +149,38 @@ class SystemSettingsController {
         });
       }
 
+      if (systemSettings.defaultPaginationSize !== undefined) {
+        const defaultPaginationSize = Number(systemSettings.defaultPaginationSize);
+        if (!validPaginationSizes.includes(defaultPaginationSize)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid pagination size'
+          });
+        }
+        systemSettings.defaultPaginationSize = defaultPaginationSize;
+      }
+
+      const validDateFormats = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY'];
       if (
-        systemSettings.defaultPaginationSize &&
-        !validPaginationSizes.includes(systemSettings.defaultPaginationSize)
+        systemSettings.dateFormat !== undefined &&
+        !validDateFormats.includes(systemSettings.dateFormat)
       ) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid pagination size'
-        });
+        return res.status(400).json({ success: false, message: 'Invalid date format' });
+      }
+
+      if (systemSettings.itemsPerPage !== undefined) {
+        const itemsPerPage = Number(systemSettings.itemsPerPage);
+        if (!Number.isInteger(itemsPerPage) || !validPaginationSizes.includes(itemsPerPage)) {
+          return res.status(400).json({ success: false, message: 'Invalid items per page' });
+        }
+        systemSettings.itemsPerPage = itemsPerPage;
+      }
+
+      if (
+        systemSettings.showNotifications !== undefined &&
+        typeof systemSettings.showNotifications !== 'boolean'
+      ) {
+        return res.status(400).json({ success: false, message: 'Invalid notification preference' });
       }
 
       if (systemSettings.enabledModules) {
@@ -142,26 +194,39 @@ class SystemSettingsController {
         }
       }
 
-      // Get current school settings
-      const school = await School.findByPk(schoolId);
-      if (!school) {
-        return res.status(404).json({
-          success: false,
-          message: 'School not found'
+      let updatedSettings;
+      const result = await sequelize.transaction(async transaction => {
+        const school = await School.findByPk(schoolId, {
+          transaction,
+          lock: Transaction.LOCK.UPDATE
         });
-      }
+        if (!school) return null;
 
-      // Merge with existing settings
-      const currentSettings = school.settings || {};
-      const updatedSettings = {
-        ...currentSettings,
-        ...systemSettings
-      };
+        const currentSettings = school.settings || {};
+        updatedSettings = { ...currentSettings, ...systemSettings };
+        const changes = {};
+        for (const field of reversibleFields) {
+          if (!Object.prototype.hasOwnProperty.call(systemSettings, field)) continue;
+          const before = valueState(school, field);
+          const after = { exists: true, value: systemSettings[field] };
+          if (!sameState(before, after)) changes[field] = { before, after };
+        }
 
-      // Update school with new system settings
-      await school.update({
-        settings: updatedSettings
+        await school.update({
+          settings: updatedSettings,
+          ...(systemSettings.dateFormat ? { date_format: systemSettings.dateFormat } : {})
+        }, { transaction });
+        if (Object.keys(changes).length) {
+          await SettingsChangeLog.create({
+            school_id: schoolId,
+            actor_id: req.user.id || null,
+            category: 'system_preferences',
+            changes
+          }, { transaction });
+        }
+        return school;
       });
+      if (!result) return res.status(404).json({ success: false, message: 'School not found' });
 
       res.json({
         success: true,

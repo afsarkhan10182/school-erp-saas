@@ -93,6 +93,7 @@ const pageTitle = computed(() => {
   if (!route?.path) return 'School ERP';
 
   const path = route.path;
+  if (/^\/exams\/[^/]+\/results$/.test(path)) return 'Exam Results';
   const titleMap = {
     '/dashboard': 'Dashboard',
     '/cards/templates': 'Card Templates',
@@ -116,9 +117,21 @@ const pageTitle = computed(() => {
     '/academic/calendar': 'Academic Calendar',
     '/academic/workload': 'Teacher Workload',
     '/academic/timetables': 'Timetables',
+    '/academic/study-materials': 'Study Center',
+    '/academic/classwork': 'Classwork & Logbook',
     '/academic': 'Academic Management',
     '/attendance': 'Attendance',
     '/attendance/analytics': 'Attendance Analytics',
+    '/homework': 'Homework',
+    '/library/library_category': 'Book Categories',
+    '/library': 'Library',
+    '/reception/gate-passes': 'Gate Passes',
+    '/reception/enquiry': 'Admission Enquiries',
+    '/reception/visitor': 'Visitors',
+    '/reception/call_log': 'Call Logs',
+    '/reception/postal': 'Postal Records',
+    '/reception/complaint': 'Complaints',
+    '/reception': 'Reception',
     '/exams/marks-entry': 'Marks Entry',
     '/exams/results': 'Exam Results',
     '/exams/report-cards': 'Report Cards',
@@ -128,7 +141,7 @@ const pageTitle = computed(() => {
     '/reports/attendance': 'Attendance Reports',
     '/reports': 'Reports',
     '/settings': 'Settings',
-    '/saas': 'Subscriptions'
+    '/saas': 'SaaS Dashboard'
   };
 
   const matched = Object.keys(titleMap)

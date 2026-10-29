@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col gap-1">
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Multiple Import</h1>
-      <p class="text-sm text-gray-600 dark:text-gray-400">Import multiple students from CSV file</p>
+      <p class="text-sm text-gray-600 dark:text-gray-400">Import students from CSV or Excel</p>
     </div>
 
     <!-- Instructions Card -->
@@ -86,7 +86,7 @@
             <li>
               <strong>Optional Fields:</strong> LastName, Roll, BloodGroup, Phone, City, State,
               Address, StudentEmail, AadhaarNumber, Stream, PreviousExams, MotherTongue, Religion,
-              Caste, FatherName, MotherName
+              Caste, FatherName, MotherName, House, PEN, APAARID, SRNo, PreviousSoftwareID
             </li>
             <li>Do not import duplicate "Roll Number" or "Admission Number".</li>
             <li>For "Gender" use: male, female, other</li>
@@ -97,7 +97,7 @@
       <!-- Import Form -->
       <div class="card">
         <div>
-          <form @submit.prevent="handleSubmit" class="space-y-6">
+          <form @submit.prevent="handlePreview" class="space-y-6">
             <!-- Branch / School Context -->
             <div
               v-if="currentBranch || currentSchool"
@@ -112,12 +112,12 @@
                 <div>
                   <div class="flex items-center space-x-2">
                     <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                      {{ currentBranch?.name || 'Active Branch' }}
+                      {{ currentBranch?.name || (selectedBranchId ? 'Active Branch' : 'All Branches') }}
                     </span>
                     <span
                       class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-full font-medium"
                     >
-                      Active Branch
+                      {{ selectedBranchId ? 'Active Branch' : 'All Branches' }}
                     </span>
                   </div>
                   <p v-if="currentSchool" class="text-xs text-gray-500 dark:text-gray-400">
@@ -129,6 +129,14 @@
                 Top Navigation Context
               </span>
             </div>
+
+            <p
+              v-if="!form.branch_id"
+              role="status"
+              class="text-sm text-amber-800 dark:text-amber-200"
+            >
+              Select a specific branch from the top navigation before importing students.
+            </p>
 
             <!-- Class Selection -->
             <div>
@@ -178,7 +186,7 @@
             <!-- File Upload -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Select CSV File <span class="text-red-500">*</span>
+                Select CSV or Excel File <span class="text-red-500">*</span>
               </label>
               <div
                 @click="triggerFileInput"
@@ -234,12 +242,16 @@
                     <span
                       class="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
                     >
-                      {{ isDragOver ? 'Drop your CSV file here' : 'Upload a file' }}
+                      {{ isDragOver ? 'Drop your file here' : 'Upload a file' }}
                     </span>
                     <p v-if="!isDragOver" class="pl-1">or drag and drop</p>
                   </div>
                   <p class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ isDragOver ? 'Release to upload' : 'CSV files only' }}
+                    {{ isDragOver ? 'Release to upload' : 'CSV, XLS, or XLSX files' }}
+                  </p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Up to 10 MB and 20,000 student rows. A title line above the headings is
+                    supported.
                   </p>
                 </div>
               </div>
@@ -249,9 +261,8 @@
                 ref="fileInput"
                 type="file"
                 class="hidden"
-                accept=".csv,text/csv"
+                accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 @change="handleFileSelect"
-                multiple="false"
                 style="position: absolute; opacity: 0; pointer-events: none"
               />
 
@@ -267,11 +278,40 @@
               </div>
             </div>
 
+            <section
+              v-if="importHeaders.length"
+              class="space-y-3 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+            >
+              <div>
+                <h3 class="font-medium text-gray-900 dark:text-white">Match file columns</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                  Headings were found on row {{ importHeaderRow }}. Choose a column for every
+                  required field. Map either First name or Full name; optional fields can be left unmapped.
+                </p>
+              </div>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label v-for="field in importFields" :key="field.field" class="text-sm">
+                  <span class="mb-1 block text-gray-700 dark:text-gray-300">
+                    {{ field.label }}<span v-if="field.required" class="text-red-500"> *</span>
+                  </span>
+                  <select v-model="columnMapping[field.field]" class="input w-full">
+                    <option value="">{{ field.required ? 'Select a column' : 'Not mapped' }}</option>
+                    <option v-for="header in importHeaders" :key="header.index" :value="String(header.index)">
+                      {{ header.label }}
+                    </option>
+                  </select>
+                </label>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{ importRowCount }} student rows detected. Only the first worksheet is read.
+              </p>
+            </section>
+
             <!-- Submit Button -->
             <div class="flex justify-end">
               <button
                 type="submit"
-                :disabled="!canSubmit || loading"
+                :disabled="!canSubmit || loading || (importHeaders.length > 0 && !isMappingComplete)"
                 class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span v-if="loading" class="flex items-center gap-2">
@@ -295,19 +335,108 @@
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Importing Students...
+                  {{ isPreviewRequest ? 'Checking rows...' : 'Importing Students...' }}
                 </span>
-                <span v-else>Import Students</span>
+                <span v-else>{{ importHeaders.length ? 'Preview Import' : 'Read headings and match columns' }}</span>
               </button>
             </div>
           </form>
         </div>
       </div>
 
+      <section class="card space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Earlier imports</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Recent runs and row-level errors for this school/branch.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-secondary"
+            :disabled="historyLoading"
+            @click="loadImportHistory"
+          >
+            {{ historyLoading ? 'Refreshing…' : 'Refresh' }}
+          </button>
+        </div>
+        <p v-if="historyError" class="text-sm text-amber-700 dark:text-amber-300">
+          {{ historyError }}
+        </p>
+        <p v-else-if="historyLoading" class="text-sm text-gray-500 dark:text-gray-400">
+          Loading recent imports…
+        </p>
+        <p v-else-if="!importHistory.length" class="text-sm text-gray-500 dark:text-gray-400">
+          No imports recorded for this scope yet.
+        </p>
+        <div v-else class="space-y-3">
+          <article
+            v-for="batch in importHistory"
+            :key="batch.id"
+            class="rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p class="font-medium text-gray-900 dark:text-white">{{ batch.file_name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ new Date(batch.created_at).toLocaleString() }}
+                </p>
+              </div>
+              <span class="text-sm capitalize text-gray-700 dark:text-gray-300">{{ batch.status }}</span>
+            </div>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              {{ batch.successful_rows }} imported · {{ batch.failed_rows }} failed ·
+              {{ batch.total_rows }} total
+            </p>
+            <div v-if="batch.undone_at" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Undo completed {{ new Date(batch.undone_at).toLocaleString() }}
+            </div>
+            <button
+              v-else-if="batch.undo_ready"
+              type="button"
+              class="btn-danger mt-3"
+              :disabled="Boolean(undoingBatchId)"
+              @click="pendingUndoBatch = batch"
+            >
+              {{ undoingBatchId === batch.id ? 'Undoing…' : 'Undo this import' }}
+            </button>
+            <details v-if="batch.row_errors?.length" class="mt-2 text-sm">
+              <summary class="cursor-pointer text-red-700 dark:text-red-300">
+                Review {{ batch.row_errors.length }} row errors
+              </summary>
+              <ul class="mt-2 max-h-40 list-disc space-y-1 overflow-auto pl-5 text-gray-600 dark:text-gray-300">
+                <li v-for="error in batch.row_errors" :key="`${batch.id}-${error.row}`">
+                  Row {{ error.row }}: {{ error.error }}
+                </li>
+              </ul>
+              <p v-if="batch.failed_rows > batch.row_errors.length" class="mt-1 text-xs text-gray-500">
+                Showing the first {{ batch.row_errors.length }} errors.
+              </p>
+            </details>
+          </article>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          Import history cannot be edited. Eligible imports can be undone while they meet the safety
+          checks.
+        </p>
+      </section>
+
+      <ConfirmDialog
+        :show="Boolean(pendingUndoBatch)"
+        title="Undo this student import?"
+        :message="`This removes ${pendingUndoBatch?.successful_rows || 0} imported students only if they have not been edited or used by attendance, exams, fees, homework, library, transport, hostel, or other records. The action cannot be reversed. Any shared or updated guardian records will be preserved.`"
+        confirm-label="Undo import"
+        @close="pendingUndoBatch = null"
+        @confirm="undoImportBatch"
+      />
+
       <!-- Results Modal -->
       <Modal :show="showResults" @close="showResults = false">
         <template #header>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Import Results</h3>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            {{ previewOnly ? 'Review Student Import' : 'Import Results' }}
+          </h3>
         </template>
 
         <template #body>
@@ -326,11 +455,11 @@
             <div
               class="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"
             >
-              <span class="text-sm font-medium text-green-700 dark:text-green-300"
-                >Successfully Imported:</span
-              >
+              <span class="text-sm font-medium text-green-700 dark:text-green-300">
+                {{ previewOnly ? 'Ready to import:' : 'Successfully Imported:' }}
+              </span>
               <span class="text-sm font-bold text-green-600 dark:text-green-400">{{
-                importResults.success || 0
+                importResults.successful || 0
               }}</span>
             </div>
 
@@ -344,6 +473,42 @@
               }}</span>
             </div>
 
+            <p v-if="previewOnly" class="text-sm text-gray-600 dark:text-gray-300">
+              Nothing has been saved. The eligible rows below will be revalidated when you confirm;
+              rows with errors will be skipped. Completed imports may be undone from history when
+              the imported records still meet the undo safety checks.
+            </p>
+
+            <div
+              v-if="previewOnly && importResults.previewRows?.length"
+              class="max-h-56 overflow-auto rounded-lg border border-gray-200 dark:border-gray-600"
+            >
+              <table class="min-w-full text-sm">
+                <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th class="px-3 py-2 text-left">Row</th>
+                    <th class="px-3 py-2 text-left">Student</th>
+                    <th class="px-3 py-2 text-left">Admission No.</th>
+                    <th class="px-3 py-2 text-left">Class / Section</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="row in importResults.previewRows"
+                    :key="row.row"
+                    class="border-t border-gray-100 dark:border-gray-700"
+                  >
+                    <td class="px-3 py-2">{{ row.row }}</td>
+                    <td class="px-3 py-2">{{ row.student_name }}</td>
+                    <td class="px-3 py-2">{{ row.admission_number }}</td>
+                    <td class="px-3 py-2">
+                      {{ row.class }}{{ row.section ? ` / ${row.section}` : '' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <!-- Error Details -->
             <div v-if="importResults.errors && importResults.errors.length > 0" class="mt-4">
               <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Error Details:</h4>
@@ -354,7 +519,7 @@
                   class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm"
                 >
                   <div class="font-medium text-red-800 dark:text-red-200">
-                    Row {{ error.row }}: {{ error.message }}
+                    Row {{ error.row }}: {{ error.error || error.message }}
                   </div>
                   <!-- Show the data that caused the error -->
                   <div v-if="error.data" class="mt-2 text-xs text-gray-600 dark:text-gray-400">
@@ -375,11 +540,20 @@
         </template>
 
         <template #footer>
-          <button
-            @click="showResults = false"
-            class="btn-secondary"
-          >
+          <button @click="showResults = false" class="btn-secondary">
             Close
+          </button>
+          <button
+            v-if="previewOnly && importResults.successful > 0"
+            :disabled="loading"
+            @click="handleSubmit"
+            class="btn-primary disabled:opacity-50"
+          >
+            {{
+              loading
+                ? 'Importing...'
+                : `Confirm and import ${importResults.successful} valid rows`
+            }}
           </button>
         </template>
       </Modal>
@@ -397,6 +571,7 @@ import { Streams } from '~/api';
 import { Download, CheckCircle, X } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Modal from '~/components/ui/Modal.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
@@ -429,9 +604,21 @@ const sectionsLoading = ref(false);
 const streamsLoading = ref(false);
 const isDragOver = ref(false);
 const selectedFile = ref(null);
+const importHeaders = ref([]);
+const importFields = ref([]);
+const importHeaderRow = ref(1);
+const importRowCount = ref(0);
+const columnMapping = reactive({});
 const fileInput = ref(null);
 const showResults = ref(false);
 const importResults = ref({});
+const importHistory = ref([]);
+const historyLoading = ref(false);
+const historyError = ref('');
+const pendingUndoBatch = ref(null);
+const undoingBatchId = ref('');
+const previewOnly = ref(false);
+const isPreviewRequest = ref(false);
 const showDownloadDropdown = ref(false);
 const userBranch = ref(null);
 
@@ -463,6 +650,47 @@ const canSubmit = computed(() => {
 
   return hasBasicFields;
 });
+const isMappingComplete = computed(() => {
+  const required = importFields.value.filter(field => field.required);
+  const nameIndex = columnMapping.FirstName || columnMapping.FullName;
+  const indexes = [...required.map(field => columnMapping[field.field]), nameIndex];
+  return Boolean(nameIndex) && indexes.every(Boolean) && new Set(indexes).size === indexes.length;
+});
+
+const loadImportHistory = async () => {
+  const schoolId = isSuperAdmin.value ? form.school_id : user.value?.school_id;
+  if (!schoolId) return;
+  historyLoading.value = true;
+  historyError.value = '';
+  const params = { school_id: schoolId };
+  if (form.branch_id) params.branch_id = form.branch_id;
+  try {
+    const response = await Students.getImportHistory(params);
+    importHistory.value = response.data || [];
+  } catch (error) {
+    historyError.value = 'Could not load import history. Confirm migrations are current and retry.';
+  } finally {
+    historyLoading.value = false;
+  }
+};
+
+const undoImportBatch = async () => {
+  const batch = pendingUndoBatch.value;
+  if (!batch || undoingBatchId.value) return;
+  undoingBatchId.value = batch.id;
+  try {
+    const params = { school_id: isSuperAdmin.value ? form.school_id : user.value?.school_id };
+    if (form.branch_id) params.branch_id = form.branch_id;
+    const response = await Students.undoImportHistory(batch.id, params);
+    pendingUndoBatch.value = null;
+    showSuccess(response.message || 'Import undone.');
+    await loadImportHistory();
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || 'Could not undo this import.');
+  } finally {
+    undoingBatchId.value = '';
+  }
+};
 
 const schoolOptions = computed(() => {
   return schools.value.map(school => ({
@@ -685,10 +913,12 @@ const handleFileSelect = event => {
   const file = event.target.files[0];
 
   if (file) {
-    if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+    if (/\.(csv|xls|xlsx)$/i.test(file.name)) {
       selectedFile.value = file;
+      importHeaders.value = [];
+      Object.keys(columnMapping).forEach(key => delete columnMapping[key]);
     } else {
-      showError('Please select a valid CSV file');
+      showError('Please select a CSV, XLS, or XLSX file');
       // Reset the input
       if (fileInput.value) {
         fileInput.value.value = '';
@@ -773,10 +1003,11 @@ const handleFileDrop = event => {
 };
 
 const handleDroppedFile = file => {
-  // Check if it's a CSV file
-  if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+  if (/\.(csv|xls|xlsx)$/i.test(file.name)) {
     // Set the selected file
     selectedFile.value = file;
+    importHeaders.value = [];
+    Object.keys(columnMapping).forEach(key => delete columnMapping[key]);
 
     // Update the file input value for consistency
     if (fileInput.value) {
@@ -793,12 +1024,14 @@ const handleDroppedFile = file => {
     // Show success message
     showSuccess(`File "${file.name}" selected successfully!`);
   } else {
-    showError('Please drop a valid CSV file');
+    showError('Please drop a CSV, XLS, or XLSX file');
   }
 };
 
 const removeFile = () => {
   selectedFile.value = null;
+  importHeaders.value = [];
+  Object.keys(columnMapping).forEach(key => delete columnMapping[key]);
   if (fileInput.value) {
     fileInput.value.value = '';
   }
@@ -844,36 +1077,81 @@ const downloadTemplate = async (type = 'complete') => {
   }
 };
 
-const handleSubmit = async () => {
+const buildImportFormData = () => {
+  const formData = new FormData();
+  formData.append('csv_file', selectedFile.value);
+  if (importHeaders.value.length) {
+    formData.append('column_mapping', JSON.stringify(columnMapping));
+  }
+
+  if (isBranchAdmin.value) {
+    formData.append('branch_id', user.value?.branch_id);
+  } else {
+    formData.append('branch_id', form.branch_id);
+  }
+
+  formData.append('class_id', form.class_id);
+  formData.append('stream_id', form.stream_id);
+  formData.append('section_id', form.section_id);
+  formData.append('academic_year_id', form.academic_year_id);
+
+  if (isSuperAdmin.value) formData.append('school_id', form.school_id);
+  return formData;
+};
+
+const handlePreview = () => (importHeaders.value.length ? runImport(true) : discoverImportHeaders());
+const handleSubmit = () => runImport(false);
+
+const discoverImportHeaders = async () => {
+  if (!canSubmit.value) return;
+  loading.value = true;
+  try {
+    const response = await Students.discoverBulkImportHeaders(buildImportFormData());
+    if (!response.success) throw new Error(response.message || 'Could not read file headings');
+    importHeaders.value = response.data.headers;
+    importFields.value = response.data.fields;
+    importHeaderRow.value = response.data.header_row;
+    importRowCount.value = response.data.total_rows;
+    Object.keys(columnMapping).forEach(key => delete columnMapping[key]);
+    const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    importFields.value.forEach(field => {
+      const header = importHeaders.value.find(item => normalize(item.label) === normalize(field.field));
+      columnMapping[field.field] = header ? String(header.index) : '';
+    });
+    showSuccess('File headings loaded. Match the required fields, then preview the import.');
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || 'Could not read file headings');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const runImport = async preview => {
   if (!canSubmit.value) return;
 
   loading.value = true;
+  isPreviewRequest.value = preview;
   try {
-    const formData = new FormData();
-    formData.append('csv_file', selectedFile.value);
-
-    // Set branch_id based on user role
-    if (isBranchAdmin.value) {
-      formData.append('branch_id', user.value?.branch_id);
-    } else {
-      formData.append('branch_id', form.branch_id);
-    }
-
-    formData.append('class_id', form.class_id);
-    formData.append('stream_id', form.stream_id);
-    formData.append('section_id', form.section_id);
-    formData.append('academic_year_id', form.academic_year_id);
-
-    // Add school_id for super admin
-    if (isSuperAdmin.value) {
-      formData.append('school_id', form.school_id);
-    }
-
-    const response = await Students.bulkImport(formData);
+    const formData = buildImportFormData();
+    const response = preview
+      ? await Students.previewBulkImport(formData)
+      : await Students.bulkImport(formData);
 
     if (response.success) {
+      previewOnly.value = Boolean(response.previewOnly);
       importResults.value = response.data;
       showResults.value = true;
+
+      if (preview) {
+        if (response.data.failed > 0) showWarning(response.message);
+        else showSuccess(response.message);
+        return;
+      }
+
+      await loadImportHistory();
+      if (response.history_saved === false) {
+        showWarning('Import completed, but its history summary could not be saved.');
+      }
 
       // Check if there were any failures
       if (response.data.failed > 0) {
@@ -893,6 +1171,8 @@ const handleSubmit = async () => {
       // Reset form only if all imports were successful
       if (response.data.failed === 0) {
         selectedFile.value = null;
+        importHeaders.value = [];
+        Object.keys(columnMapping).forEach(key => delete columnMapping[key]);
         if (fileInput.value) {
           fileInput.value.value = '';
         }
@@ -904,6 +1184,7 @@ const handleSubmit = async () => {
     console.error('Error importing students:', error);
     showError(error.response?.data?.message || 'Import failed. Please try again.');
   } finally {
+    isPreviewRequest.value = false;
     loading.value = false;
   }
 };
@@ -913,8 +1194,7 @@ async function initializeForm() {
   // Auto-sync with global school and branch
   form.school_id =
     currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id || '';
-  form.branch_id =
-    selectedBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
+  form.branch_id = selectedBranchId.value || '';
 
   // Fetch and auto-select current academic year
   await fetchAcademicYears(form.school_id || null);
@@ -957,8 +1237,14 @@ watch(selectedBranchId, async newVal => {
 });
 
 // Initialize data
+watch(
+  () => [form.school_id, form.branch_id],
+  () => loadImportHistory()
+);
+
 onMounted(() => {
   initializeForm();
+  loadImportHistory();
 });
 </script>
 

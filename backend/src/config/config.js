@@ -54,7 +54,10 @@ const config = {
   },
   uploads: {
     dir: process.env.UPLOADS_DIR || './uploads',
+    privateStudyMaterialsDir: process.env.PRIVATE_STUDY_MATERIALS_DIR || './private-uploads/study-materials',
+    privateReportCardsDir: process.env.PRIVATE_REPORT_CARDS_DIR || './private-uploads/report-cards',
     maxFileSize: process.env.MAX_FILE_SIZE || 5 * 1024 * 1024, // 5MB
+    studentImportMaxFileSize: Number(process.env.STUDENT_IMPORT_MAX_FILE_SIZE) || 10 * 1024 * 1024,
     allowedMimeTypes: [
       'image/jpeg',
       'image/png',

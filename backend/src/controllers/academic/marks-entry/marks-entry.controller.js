@@ -1,92 +1,127 @@
-const { Exam, ExamResult, ExamSchedule, Student, Class, Section, Subject } = require('~/models');
+const {
+  Exam,
+  ExamResult,
+  ExamSubjectMark,
+  ExamSchedule,
+  Student,
+  Class,
+  Section,
+  Subject,
+  SubjectTeacher
+} = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
+const { resolveSchoolBranchScope } = require('~/utils/shared/requestScope');
+const XLSX = require('xlsx');
+const fs = require('fs');
+const { parseSubjectMarkImport } = require('~/utils/academic/parseSubjectMarkImport');
+
+const getMarksContext = async (req, { exam_id, class_id, section_id, subject_id }) => {
+  const scope = await resolveSchoolBranchScope(req, {
+    branchRequired: true,
+    lockAssignedBranch: req.user.role === 'teacher'
+  });
+  const exam = await Exam.findOne({
+    where: { id: exam_id, school_id: scope.school_id, branch_id: scope.branch_id }
+  });
+  if (!exam) return { error: 'Exam not found', status: 404 };
+
+  const schedule = await ExamSchedule.findOne({
+    where: {
+      exam_id,
+      school_id: scope.school_id,
+      branch_id: scope.branch_id,
+      class_id,
+      section_id: section_id || null,
+      subject_id,
+      is_active: true,
+      status: { [Op.ne]: 'cancelled' }
+    }
+  });
+  if (!schedule) {
+    return {
+      error: 'This class, section, and subject are not scheduled for this exam',
+      status: 400
+    };
+  }
+
+  if (req.user.role === 'teacher') {
+    const assignment = await SubjectTeacher.findOne({
+      where: {
+        teacher_id: req.user.id,
+        school_id: scope.school_id,
+        branch_id: scope.branch_id,
+        class_id,
+        subject_id,
+        academic_year: exam.academic_year,
+        [Op.or]: [{ section_id: section_id || null }, { section_id: null }]
+      }
+    });
+    if (!assignment) return { error: 'You are not assigned to this class and subject', status: 403 };
+  }
+
+  return { scope, exam, schedule };
+};
+
+const getLegacyResultsForSingleScheduledSubject = async ({
+  exam_id,
+  class_id,
+  section_id,
+  scope,
+  studentIds
+}) => {
+  const scheduleCount = await ExamSchedule.count({
+    where: {
+      exam_id,
+      school_id: scope.school_id,
+      branch_id: scope.branch_id,
+      class_id,
+      section_id: section_id || null,
+      is_active: true,
+      status: { [Op.ne]: 'cancelled' }
+    }
+  });
+  if (scheduleCount !== 1 || !studentIds.length) return [];
+
+  return ExamResult.findAll({
+    where: {
+      exam_id,
+      school_id: scope.school_id,
+      branch_id: scope.branch_id,
+      student_id: { [Op.in]: studentIds }
+    }
+  });
+};
 
 /**
  * Get students for marks entry based on filters
  */
 const getStudentsForMarksEntry = async (req, res) => {
   try {
-    const { exam_id, class_id, section_id, subject_id, school_id, branch_id } = req.query;
+    const { exam_id, class_id, section_id, subject_id } = req.query;
 
     // Validate required parameters
-    if (!exam_id || !class_id) {
+    if (!exam_id || !class_id || !subject_id) {
       return res.status(400).json({
         success: false,
-        message: 'Exam ID and Class ID are required'
+        message: 'Exam, class, and subject are required'
       });
     }
 
-    // Get exam details with schedule
-    const exam = await Exam.findByPk(exam_id, {
-      include: [
-        {
-          model: ExamSchedule,
-          as: 'schedules',
-          required: false
-        }
-      ]
-    });
-
-    if (!exam) {
-      return res.status(404).json({
-        success: false,
-        message: 'Exam not found'
-      });
+    const context = await getMarksContext(req, req.query);
+    if (context.error) {
+      return res.status(context.status).json({ success: false, message: context.error });
     }
+    const { scope, exam, schedule } = context;
 
-    // Check if we have a schedule for this class/section
-    let relevantSchedule = null;
-    if (exam.schedules && exam.schedules.length > 0) {
-      // First, try to find a schedule with matching class_id
-      relevantSchedule = exam.schedules.find(
-        schedule =>
-          schedule.class_id === class_id && (!section_id || schedule.section_id === section_id)
-      );
-
-      // If no specific schedule found, use the first available schedule
-      if (!relevantSchedule) {
-        relevantSchedule = exam.schedules[0];
-      }
-    }
-
-    // If no schedule exists, create a default one for this exam/class combination
-    if (!relevantSchedule) {
-      // Create a default schedule for this exam and class
-      const { ExamSchedule } = require('~/models');
-
-      relevantSchedule = await ExamSchedule.create({
-        exam_id: exam_id,
-        class_id: class_id,
-        section_id: section_id || null,
-        exam_date: new Date().toISOString().split('T')[0], // Today's date
-        start_time: '09:00:00',
-        end_time: '12:00:00',
-        duration_minutes: 180,
-        theory_marks: 70,
-        practical_marks: 20,
-        viva_marks: 10,
-        assignment_marks: 0,
-        total_marks: 100,
-        pass_marks: 35,
-        status: 'scheduled',
-        school_id: school_id || req.user.school_id,
-        branch_id: branch_id || req.user.branch_id,
-        created_by: req.user.id
-      });
-    }
-
-    // Get students based on class and section
     const whereClause = {
       class_id: class_id,
-      school_id: school_id || req.user.school_id,
-      branch_id: branch_id || req.user.branch_id,
+      school_id: scope.school_id,
+      branch_id: scope.branch_id,
       status: 'active'
     };
 
-    if (section_id) {
-      whereClause.section_id = section_id;
-    }
+    whereClause.section_id = section_id || null;
 
     const students = await Student.findAll({
       where: whereClause,
@@ -106,18 +141,29 @@ const getStudentsForMarksEntry = async (req, res) => {
       order: [['roll_number', 'ASC']]
     });
 
-    // Get existing exam results for these students
-    const existingResults = await ExamResult.findAll({
+    const existingResults = await ExamSubjectMark.findAll({
       where: {
-        exam_id: exam_id,
+        exam_schedule_id: schedule.id,
+        school_id: scope.school_id,
+        branch_id: scope.branch_id,
         student_id: {
           [Op.in]: students.map(s => s.id)
         }
       }
     });
+    const legacyResults = await getLegacyResultsForSingleScheduledSubject({
+      exam_id,
+      class_id,
+      section_id,
+      scope,
+      studentIds: students.map(student => student.id)
+    });
 
-    // Create a map of existing results
+    // Legacy exam-wide marks are attributable only when this cohort has one active schedule.
     const resultsMap = {};
+    legacyResults.forEach(result => {
+      resultsMap[result.student_id] = result;
+    });
     existingResults.forEach(result => {
       resultsMap[result.student_id] = result;
     });
@@ -149,12 +195,12 @@ const getStudentsForMarksEntry = async (req, res) => {
 
     // Get exam schedule details for mark distribution
     const markDistribution = {
-      theory_marks: relevantSchedule?.theory_marks || 0,
-      practical_marks: relevantSchedule?.practical_marks || 0,
-      viva_marks: relevantSchedule?.viva_marks || 0,
-      assignment_marks: relevantSchedule?.assignment_marks || 0,
-      total_marks: relevantSchedule?.total_marks || exam.max_marks || 100,
-      pass_marks: relevantSchedule?.pass_marks || 35
+      theory_marks: schedule.theory_marks || 0,
+      practical_marks: schedule.practical_marks || 0,
+      viva_marks: schedule.viva_marks || 0,
+      assignment_marks: schedule.assignment_marks || 0,
+      total_marks: schedule.total_marks || exam.max_marks || 100,
+      pass_marks: schedule.pass_marks || 35
     };
 
     res.json({
@@ -171,7 +217,7 @@ const getStudentsForMarksEntry = async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching students for marks entry:', error);
-    res.status(500).json({
+    res.status(error.statusCode || error.status || 500).json({
       success: false,
       message: 'Failed to fetch students for marks entry',
       error: error.message
@@ -184,24 +230,62 @@ const getStudentsForMarksEntry = async (req, res) => {
  */
 const saveMarks = async (req, res) => {
   try {
-    const { exam_id, marks_data } = req.body;
+    const { exam_id, class_id, section_id, subject_id, marks_data } = req.body;
 
-    if (!exam_id || !marks_data || !Array.isArray(marks_data)) {
+    if (!exam_id || !class_id || !subject_id || !Array.isArray(marks_data) || !marks_data.length) {
       return res.status(400).json({
         success: false,
-        message: 'Exam ID and marks data are required'
+        message: 'Exam, class, subject, and marks data are required'
       });
     }
 
-    const exam = await Exam.findOne({
+    const context = await getMarksContext(req, req.body);
+    if (context.error) {
+      return res.status(context.status).json({ success: false, message: context.error });
+    }
+    const { scope, exam, schedule } = context;
+    const studentIds = marks_data.map(item => item.student_id);
+    if (new Set(studentIds).size !== studentIds.length || studentIds.some(id => !id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Each student must appear once in the marks data' });
+    }
+
+    const students = await Student.findAll({
       where: {
-        id: exam_id,
-        school_id: req.user.school_id,
-        ...(req.user.branch_id && { branch_id: req.user.branch_id })
-      }
+        id: { [Op.in]: studentIds },
+        school_id: scope.school_id,
+        branch_id: scope.branch_id,
+        class_id,
+        section_id: section_id || null,
+        status: 'active'
+      },
+      attributes: ['id']
     });
-    if (!exam) {
-      return res.status(404).json({ success: false, message: 'Exam not found' });
+    if (students.length !== marks_data.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Marks include a student outside this scheduled class and section'
+      });
+    }
+
+    const markLimits = {
+      theory_marks_obtained: Number(schedule.theory_marks) || 0,
+      practical_marks_obtained: Number(schedule.practical_marks) || 0,
+      viva_marks_obtained: Number(schedule.viva_marks) || 0,
+      assignment_marks_obtained: Number(schedule.assignment_marks) || 0
+    };
+    const invalidMarks = marks_data.some(item =>
+      !item.is_absent && Object.entries(markLimits).some(([field, maximum]) => {
+        const value = item[field] == null ? 0 : Number(item[field]);
+        return !Number.isFinite(value) || value < 0 || value > maximum;
+      })
+    );
+    if (invalidMarks) {
+      return res.status(400).json({
+        success: false,
+        message: 'Marks must be valid and within each scheduled component limit'
+      });
     }
 
     const results = [];
@@ -223,49 +307,45 @@ const saveMarks = async (req, res) => {
         let totalMarks = 0;
         if (!is_absent) {
           totalMarks =
-            (theory_marks_obtained || 0) +
-            (practical_marks_obtained || 0) +
-            (viva_marks_obtained || 0) +
-            (assignment_marks_obtained || 0);
+            Number(theory_marks_obtained || 0) +
+            Number(practical_marks_obtained || 0) +
+            Number(viva_marks_obtained || 0) +
+            Number(assignment_marks_obtained || 0);
         }
 
         // Check if result already exists
-        const existingResult = await ExamResult.findOne({
+        const existingResult = await ExamSubjectMark.findOne({
           where: {
-            exam_id: exam_id,
-            student_id: student_id
+            exam_schedule_id: schedule.id,
+            student_id,
+            school_id: scope.school_id,
+            branch_id: scope.branch_id
           }
         });
 
         const resultData = {
-          exam_id: exam_id,
+          exam_schedule_id: schedule.id,
           student_id: student_id,
           theory_marks_obtained: is_absent ? null : theory_marks_obtained,
           practical_marks_obtained: is_absent ? null : practical_marks_obtained,
           viva_marks_obtained: is_absent ? null : viva_marks_obtained,
           assignment_marks_obtained: is_absent ? null : assignment_marks_obtained,
           marks_obtained: is_absent ? 0 : totalMarks,
-          percentage: is_absent ? 0 : (totalMarks / exam.max_marks) * 100,
           is_absent: is_absent,
-          school_id: req.user.school_id,
-          branch_id: req.user.branch_id,
+          school_id: scope.school_id,
+          branch_id: scope.branch_id,
           created_by: req.user.id,
           updated_by: req.user.id
         };
 
         let result;
         if (existingResult) {
-          // Update existing result
-          await ExamResult.update(resultData, {
-            where: {
-              exam_id: exam_id,
-              student_id: student_id
-            }
+          await ExamSubjectMark.update(resultData, {
+            where: { id: existingResult.id }
           });
-          result = await ExamResult.findByPk(existingResult.id);
+          result = await ExamSubjectMark.findByPk(existingResult.id);
         } else {
-          // Create new result
-          result = await ExamResult.create(resultData);
+          result = await ExamSubjectMark.create(resultData);
         }
 
         results.push({
@@ -292,7 +372,7 @@ const saveMarks = async (req, res) => {
     });
   } catch (error) {
     logger.error('Error saving marks:', error);
-    res.status(500).json({
+    res.status(error.statusCode || error.status || 500).json({
       success: false,
       message: 'Failed to save marks',
       error: error.message
@@ -305,60 +385,68 @@ const saveMarks = async (req, res) => {
  */
 const getMarksEntrySummary = async (req, res) => {
   try {
-    const { exam_id, class_id, section_id } = req.query;
+    const { exam_id, class_id, section_id, subject_id } = req.query;
 
-    if (!exam_id || !class_id) {
+    if (!exam_id || !class_id || !subject_id) {
       return res.status(400).json({
         success: false,
-        message: 'Exam ID and Class ID are required'
+        message: 'Exam, class, and subject are required'
       });
     }
 
-    // Get total students
-    const whereClause = {
-      class_id: class_id,
-      school_id: req.user.school_id,
-      branch_id: req.user.branch_id,
-      status: 'active'
-    };
-
-    if (section_id) {
-      whereClause.section_id = section_id;
+    const context = await getMarksContext(req, req.query);
+    if (context.error) {
+      return res.status(context.status).json({ success: false, message: context.error });
     }
-
-    const totalStudents = await Student.count({ where: whereClause });
-
-    // Get students with marks entered
-    const studentsWithMarks = await ExamResult.count({
+    const { scope } = context;
+    const students = await Student.findAll({
       where: {
-        exam_id: exam_id,
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id
-      }
+        school_id: scope.school_id,
+        branch_id: scope.branch_id,
+        class_id,
+        section_id: section_id || null,
+        status: 'active'
+      },
+      attributes: ['id']
     });
-
-    // Get absent students
-    const absentStudents = await ExamResult.count({
-      where: {
-        exam_id: exam_id,
-        is_absent: true,
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id
-      }
+    const results = students.length
+      ? await ExamSubjectMark.findAll({
+          where: {
+            exam_schedule_id: context.schedule.id,
+            school_id: scope.school_id,
+            branch_id: scope.branch_id,
+            student_id: { [Op.in]: students.map(student => student.id) }
+          },
+          attributes: ['student_id', 'is_absent']
+        })
+      : [];
+    const legacyResults = await getLegacyResultsForSingleScheduledSubject({
+      exam_id,
+      class_id,
+      section_id,
+      scope,
+      studentIds: students.map(student => student.id)
     });
+    const resultsByStudent = new Map(results.map(result => [result.student_id, result]));
+    legacyResults.forEach(result => {
+      if (!resultsByStudent.has(result.student_id)) resultsByStudent.set(result.student_id, result);
+    });
+    const allResults = [...resultsByStudent.values()];
+    const absentStudents = allResults.filter(result => result.is_absent).length;
+    const studentsWithMarks = allResults.length;
 
     res.json({
       success: true,
       data: {
-        total_students: totalStudents,
+        total_students: students.length,
         marks_entered: studentsWithMarks,
         absent_students: absentStudents,
-        pending: totalStudents - studentsWithMarks
+        pending: students.length - studentsWithMarks
       }
     });
   } catch (error) {
     logger.error('Error fetching marks entry summary:', error);
-    res.status(500).json({
+    res.status(error.statusCode || error.status || 500).json({
       success: false,
       message: 'Failed to fetch marks entry summary',
       error: error.message
@@ -366,8 +454,88 @@ const getMarksEntrySummary = async (req, res) => {
   }
 };
 
+const previewMarksImport = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'Select a CSV or Excel file' });
+    const context = await getMarksContext(req, req.body);
+    if (context.error) return res.status(context.status).json({ success: false, message: context.error });
+    const { scope, schedule } = context;
+    const students = await Student.findAll({
+      where: {
+        school_id: scope.school_id,
+        branch_id: scope.branch_id,
+        class_id: schedule.class_id,
+        section_id: schedule.section_id || null,
+        status: 'active'
+      },
+      attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number'],
+      order: [['roll_number', 'ASC']]
+    });
+    const workbook = XLSX.readFile(req.file.path, { raw: false });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    const parsed = parseSubjectMarkImport(rows, students, schedule);
+    return res.json({ success: true, data: { ...parsed, total_rows: rows.length } });
+  } catch (error) {
+    logger.error('Error previewing subject marks import:', error);
+    return res.status(400).json({ success: false, message: error.message || 'Could not read the marks file' });
+  } finally {
+    if (req.file?.path) await fs.promises.unlink(req.file.path).catch(() => {});
+  }
+};
+
+const downloadMarksImportTemplate = async (req, res) => {
+  try {
+    const context = await getMarksContext(req, req.query);
+    if (context.error) return res.status(context.status).json({ success: false, message: context.error });
+    const { scope, schedule } = context;
+    const students = await Student.findAll({
+      where: {
+        school_id: scope.school_id,
+        branch_id: scope.branch_id,
+        class_id: schedule.class_id,
+        section_id: schedule.section_id || null,
+        status: 'active'
+      },
+      attributes: ['admission_number', 'first_name', 'last_name', 'roll_number'],
+      order: [['roll_number', 'ASC']]
+    });
+    const columns = [
+      { header: 'Admission Number', key: 'admission_number' },
+      { header: 'Student Name', key: 'student_name' },
+      { header: 'Roll Number', key: 'roll_number' },
+      ...[
+        ['theory_marks_obtained', 'theory_marks'],
+        ['practical_marks_obtained', 'practical_marks'],
+        ['viva_marks_obtained', 'viva_marks'],
+        ['assignment_marks_obtained', 'assignment_marks']
+      ].filter(([, scheduleField]) => Number(schedule[scheduleField]) > 0)
+        .map(([key]) => ({ header: key, key })),
+      { header: 'Is Absent', key: 'is_absent' }
+    ];
+    const workbook = XLSX.utils.book_new();
+    const sheet = XLSX.utils.json_to_sheet(students.map(student => ({
+      admission_number: student.admission_number,
+      student_name: `${student.first_name || ''} ${student.last_name || ''}`.trim(),
+      roll_number: student.roll_number,
+      is_absent: false
+    })), { header: columns.map(column => column.key) });
+    XLSX.utils.sheet_add_aoa(sheet, [columns.map(column => column.header)], { origin: 'A1' });
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Marks Entry');
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="subject-marks-template.xlsx"');
+    return res.send(buffer);
+  } catch (error) {
+    logger.error('Error creating subject marks template:', error);
+    return res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getStudentsForMarksEntry,
   saveMarks,
-  getMarksEntrySummary
+  getMarksEntrySummary,
+  previewMarksImport,
+  downloadMarksImportTemplate
 };

@@ -15,14 +15,14 @@
       </div>
     </div>
 
-    <!-- Filter Card ("Select Ground") -->
+    <!-- Employee filters -->
     <div
       class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700/50 shadow-sm space-y-4"
     >
       <h2
         class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700/50 pb-3"
       >
-        Select Ground
+        Filter staff
       </h2>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

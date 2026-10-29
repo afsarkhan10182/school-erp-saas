@@ -63,6 +63,18 @@ const FeePayment = sequelize.define(
       allowNull: true,
       comment: 'External transaction ID for online payments'
     },
+    idempotency_key: {
+      type: DataTypes.STRING(128),
+      allowNull: true
+    },
+    idempotency_request_hash: {
+      type: DataTypes.STRING(64),
+      allowNull: true
+    },
+    idempotency_response: {
+      type: DataTypes.JSONB,
+      allowNull: true
+    },
     cheque_number: {
       type: DataTypes.STRING(50),
       allowNull: true,
@@ -79,13 +91,29 @@ const FeePayment = sequelize.define(
       comment: 'Reference number for bank transfer or other payment methods'
     },
     payment_status: {
-      type: DataTypes.ENUM('pending', 'completed', 'failed', 'cancelled'),
+      type: DataTypes.ENUM('pending', 'completed', 'failed', 'cancelled', 'reversed'),
       allowNull: false,
       defaultValue: 'completed'
     },
     notes: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    reversed_at: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    reversal_reason: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    reversed_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
     },
     receipt_data: {
       type: DataTypes.JSONB,

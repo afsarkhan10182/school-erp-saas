@@ -1,17 +1,23 @@
-const { Exam, ExamResult, Student, Class, Section } = require('~/models');
+const { Exam, Class, ExamSchedule } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
+const { resolveSchoolBranchScope } = require('~/utils/shared/requestScope');
+
+const getScopeWhere = async req => {
+  const { school_id, branch_id } = await resolveSchoolBranchScope(req, { allowSchoolWide: true });
+  return { school_id, ...(branch_id ? { branch_id } : {}) };
+};
 
 /**
  * Get publication status for exams
  */
 const getPublicationStatus = async (req, res) => {
   try {
-    const { exam_id, class_id, school_id, branch_id, publish_status, result_status } = req.query;
+    const { exam_id, class_id, publish_status, result_status } = req.query;
 
+    const scope = await getScopeWhere(req);
     const whereClause = {
-      school_id: school_id || req.user.school_id,
-      branch_id: branch_id || req.user.branch_id,
+      ...scope,
       is_active: true
     };
 
@@ -31,11 +37,25 @@ const getPublicationStatus = async (req, res) => {
       where: whereClause,
       include: [
         {
-          model: Class,
-          as: 'class',
-          attributes: ['id', 'name'],
-          where: class_id ? { id: class_id } : undefined,
-          required: !!class_id
+          model: ExamSchedule,
+          as: 'schedules',
+          attributes: ['class_id'],
+          where: {
+            school_id: scope.school_id,
+            ...(scope.branch_id ? { branch_id: scope.branch_id } : {}),
+            ...(class_id ? { class_id } : {})
+          },
+          required: !!class_id,
+          include: [{
+            model: Class,
+            as: 'class',
+            attributes: ['id', 'name'],
+            where: {
+              school_id: scope.school_id,
+              ...(scope.branch_id ? { branch_id: scope.branch_id } : {})
+            },
+            required: !!class_id
+          }]
         }
       ],
       order: [['created_at', 'DESC']]
@@ -45,8 +65,8 @@ const getPublicationStatus = async (req, res) => {
     const examsWithStatus = exams.map(exam => ({
       id: exam.id,
       name: exam.name,
-      examType: exam.examType,
-      class: exam.class,
+      examType: { name: ({ 1: 'Marks', 2: 'Grade', 3: 'Marks and Grade' })[exam.type_id] || 'Exam' },
+      class: exam.schedules?.[0]?.class || null,
       publish_status: exam.publish_status || false,
       result_status: exam.result_status || false,
       published_at: exam.published_at,
@@ -59,7 +79,7 @@ const getPublicationStatus = async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching publication status:', error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: 'Failed to fetch publication status',
       error: error.message
@@ -77,46 +97,35 @@ const publishExam = async (req, res) => {
       publish_status,
       result_status,
       notify_students,
-      notify_parents,
-      notification_message
+      notify_parents
     } = req.body;
 
-    if (!exam_id) {
+    if (!exam_id || typeof publish_status !== 'boolean' || typeof result_status !== 'boolean') {
       return res.status(400).json({
         success: false,
-        message: 'Exam ID is required'
+        message: 'exam_id, publish_status and result_status are required'
       });
     }
 
-    // Update exam publication status
+    const scope = await getScopeWhere(req);
     const updateData = {
-      publish_status: publish_status || false,
-      result_status: result_status || false,
+      publish_status,
+      result_status,
       updated_by: req.user.id
     };
 
     if (publish_status) {
       updateData.published_at = new Date();
       updateData.published_by = req.user.id;
+    } else {
+      updateData.published_at = null;
+      updateData.published_by = null;
     }
 
-    await Exam.update(updateData, {
-      where: {
-        id: exam_id,
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id
-      }
-    });
+    const [updatedCount] = await Exam.update(updateData, { where: { id: exam_id, ...scope } });
+    if (!updatedCount) return res.status(404).json({ success: false, message: 'Exam not found' });
 
-    // If notifications are requested, send them
-    if (publish_status && (notify_students || notify_parents)) {
-      // This would integrate with your notification service
-      logger.info(`Notifications requested for exam ${exam_id}`, {
-        notify_students,
-        notify_parents,
-        message: notification_message
-      });
-    }
+    const notificationsRequested = Boolean(publish_status && (notify_students || notify_parents));
 
     res.json({
       success: true,
@@ -125,12 +134,13 @@ const publishExam = async (req, res) => {
         exam_id,
         publish_status,
         result_status,
-        published_at: publish_status ? new Date().toISOString() : null
+        published_at: updateData.published_at?.toISOString() || null,
+        ...(notificationsRequested ? { notifications: 'not_configured' } : {})
       }
     });
   } catch (error) {
     logger.error('Error publishing exam:', error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: 'Failed to publish exam',
       error: error.message
@@ -145,22 +155,27 @@ const bulkPublish = async (req, res) => {
   try {
     const { exam_ids, publish_status, result_status } = req.body;
 
-    if (!exam_ids || !Array.isArray(exam_ids)) {
+    if (!Array.isArray(exam_ids) || !exam_ids.length || exam_ids.some(id => typeof id !== 'string') ||
+        typeof publish_status !== 'boolean' || typeof result_status !== 'boolean') {
       return res.status(400).json({
         success: false,
-        message: 'Exam IDs array is required'
+        message: 'A non-empty exam_ids array, publish_status and result_status are required'
       });
     }
 
+    const scope = await getScopeWhere(req);
     const updateData = {
-      publish_status: publish_status || false,
-      result_status: result_status || false,
+      publish_status,
+      result_status,
       updated_by: req.user.id
     };
 
     if (publish_status) {
       updateData.published_at = new Date();
       updateData.published_by = req.user.id;
+    } else {
+      updateData.published_at = null;
+      updateData.published_by = null;
     }
 
     const [updatedCount] = await Exam.update(updateData, {
@@ -168,8 +183,7 @@ const bulkPublish = async (req, res) => {
         id: {
           [Op.in]: exam_ids
         },
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id
+        ...scope
       }
     });
 
@@ -185,7 +199,7 @@ const bulkPublish = async (req, res) => {
     });
   } catch (error) {
     logger.error('Error bulk publishing exams:', error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: 'Failed to bulk publish exams',
       error: error.message
@@ -199,16 +213,7 @@ const bulkPublish = async (req, res) => {
 const sendNotifications = async (req, res) => {
   try {
     const { examId } = req.params;
-    const { email_enabled, sms_enabled, email_template, sms_template, notification_message } =
-      req.body;
-
-    // Get exam details
-    const exam = await Exam.findByPk(examId, {
-      where: {
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id
-      }
-    });
+    const exam = await Exam.findOne({ where: { id: examId, ...(await getScopeWhere(req)) } });
 
     if (!exam) {
       return res.status(404).json({
@@ -224,58 +229,13 @@ const sendNotifications = async (req, res) => {
       });
     }
 
-    // Get students for this exam
-    const students = await Student.findAll({
-      where: {
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id,
-        is_active: true
-      },
-      include: [
-        {
-          model: ExamResult,
-          as: 'examResults',
-          where: { exam_id: examId },
-          required: true
-        }
-      ]
-    });
-
-    const notificationResults = {
-      email_sent: 0,
-      sms_sent: 0,
-      total_students: students.length
-    };
-
-    // Simulate sending notifications
-    if (email_enabled) {
-      // This would integrate with your email service
-      logger.info(`Email notifications sent for exam ${examId}`, {
-        students_count: students.length,
-        template: email_template,
-        message: notification_message
-      });
-      notificationResults.email_sent = students.length;
-    }
-
-    if (sms_enabled) {
-      // This would integrate with your SMS service
-      logger.info(`SMS notifications sent for exam ${examId}`, {
-        students_count: students.length,
-        template: sms_template,
-        message: notification_message
-      });
-      notificationResults.sms_sent = students.length;
-    }
-
-    res.json({
-      success: true,
-      message: 'Notifications sent successfully',
-      data: notificationResults
+    return res.status(501).json({
+      success: false,
+      message: 'Exam-result notification delivery is not configured.'
     });
   } catch (error) {
     logger.error('Error sending notifications:', error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: 'Failed to send notifications',
       error: error.message
@@ -290,34 +250,16 @@ const getNotificationHistory = async (req, res) => {
   try {
     const { examId } = req.params;
 
-    // This would typically come from a notifications table
-    // For now, return mock data
-    const notifications = [
-      {
-        id: '1',
-        exam_id: examId,
-        type: 'email',
-        sent_at: new Date().toISOString(),
-        recipients_count: 25,
-        status: 'sent'
-      },
-      {
-        id: '2',
-        exam_id: examId,
-        type: 'sms',
-        sent_at: new Date(Date.now() - 3600000).toISOString(),
-        recipients_count: 25,
-        status: 'sent'
-      }
-    ];
+    const exam = await Exam.findOne({ where: { id: examId, ...(await getScopeWhere(req)) } });
+    if (!exam) return res.status(404).json({ success: false, message: 'Exam not found' });
 
     res.json({
       success: true,
-      data: notifications
+      data: []
     });
   } catch (error) {
     logger.error('Error fetching notification history:', error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: 'Failed to fetch notification history',
       error: error.message
@@ -330,11 +272,8 @@ const getNotificationHistory = async (req, res) => {
  */
 const getStats = async (req, res) => {
   try {
-    const { school_id, branch_id } = req.query;
-
     const whereClause = {
-      school_id: school_id || req.user.school_id,
-      branch_id: branch_id || req.user.branch_id,
+      ...(await getScopeWhere(req)),
       is_active: true
     };
 
@@ -359,7 +298,7 @@ const getStats = async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching publication statistics:', error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: 'Failed to fetch publication statistics',
       error: error.message

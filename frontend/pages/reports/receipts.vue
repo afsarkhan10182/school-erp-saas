@@ -652,7 +652,7 @@ definePageMeta({
 const { showToast } = useToast();
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { generateReport, isGenerating, generationProgress } = useExportService();
-const { printReport: printReportCommon } = usePrintReport();
+const { printReport: printReportCommon, openPrintWindow } = usePrintReport();
 
 // Academic composables
 const { classes, sections, fetchClasses, fetchSections } = useAcademics();
@@ -1134,14 +1134,22 @@ const getPaymentMethodText = method => {
 };
 
 const printReceiptsReport = async () => {
+  let printWindow = null;
   try {
     if (!validateColumnVisibility('print')) {
+      return;
+    }
+
+    printWindow = openPrintWindow();
+    if (!printWindow) {
+      showToast('Please allow popups to print the report', 'error');
       return;
     }
 
     const allReceiptsData = await fetchReceiptsData(1, true);
 
     if (allReceiptsData.length === 0) {
+      printWindow.close();
       showToast('No data to print. Please load some receipts first.', 'warning');
       return;
     }
@@ -1171,9 +1179,11 @@ const printReceiptsReport = async () => {
       showSummary: true,
       showFilters: true,
       showFooter: true,
-      autoPrint: true
+      autoPrint: true,
+      printWindow
     });
   } catch (error) {
+    printWindow?.close();
     showToast('Error printing report', 'error');
   }
 };

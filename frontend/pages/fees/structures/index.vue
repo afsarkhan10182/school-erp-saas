@@ -416,16 +416,15 @@
 
                   <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >Due Date <span class="text-red-500">*</span></label
+                      >Due Date (optional)</label
                     >
                     <input
                       v-model="form.due_date"
                       type="date"
-                      required
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     />
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Due date for the full payment. Partial payments are always allowed.
+                      Leave blank to apply the school's invoice due-date policy when invoices are generated. Partial payments are always allowed.
                     </p>
                   </div>
                 </div>
@@ -1005,12 +1004,6 @@ const onPaymentModelChange = () => {
     form.value.installment_amounts = [];
     form.value.installment_due_dates = [];
 
-    // Set default due date for one-time installments
-    if (!form.value.due_date) {
-      const defaultDate = new Date();
-      defaultDate.setMonth(defaultDate.getMonth() + 3);
-      form.value.due_date = defaultDate.toISOString().split('T')[0];
-    }
   } else if (form.value.payment_model === 'monthly') {
     // Reset installment fields for monthly payments
     form.value.installment_type = null; // Use NULL for monthly payments
@@ -1036,12 +1029,6 @@ const onInstallmentTypeChange = () => {
     form.value.installment_due_dates = [];
     form.value.due_date = null; // Clear due_date for multiple installments
 
-    // Set default due date to current date + 3 months if not already set
-    if (!form.value.due_date) {
-      const defaultDate = new Date();
-      defaultDate.setMonth(defaultDate.getMonth() + 3);
-      form.value.due_date = defaultDate.toISOString().split('T')[0];
-    }
   } else if (form.value.installment_type === 'multiple') {
     // Multiple installments: default to 2
     form.value.installment_count = 2;
@@ -1466,14 +1453,9 @@ const saveFeeStructure = async () => {
       return;
     }
 
-    // Validate due date for installment payments
+    // Validate explicit installment schedules; one-time dates may use the school policy.
     if (form.value.payment_model === 'installment') {
-      if (form.value.installment_type === 'one_time') {
-        if (!form.value.due_date) {
-          showError('Due date is required for one-time full fee payments.');
-          return;
-        }
-      } else if (form.value.installment_type === 'multiple') {
+      if (form.value.installment_type === 'multiple') {
         if (!form.value.installment_due_dates || form.value.installment_due_dates.length === 0) {
           showError('Due dates are required for multiple installments.');
           return;
@@ -1594,12 +1576,6 @@ watch(
         // For one-time full fee, amount is set directly by user
         // No auto-calculation needed - don't override user input
 
-        // Ensure due date is set for one-time full fee
-        if (!form.value.due_date) {
-          const defaultDate = new Date();
-          defaultDate.setMonth(defaultDate.getMonth() + 3);
-          form.value.due_date = defaultDate.toISOString().split('T')[0];
-        }
       } else if (form.value.installment_type === 'multiple') {
         // For multiple installments, sum up all installment amounts
         const total = form.value.installment_amounts.reduce(

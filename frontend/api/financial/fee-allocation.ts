@@ -11,6 +11,7 @@ export interface SaveAllocationPayload {
   class_id: string;
   section_id?: string;
   fee_group_id: string;
+  branch_id?: string;
   student_ids: string[];
 }
 

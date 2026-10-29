@@ -1,5 +1,5 @@
 const httpStatus = require('http-status');
-const { Op, sequelize } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
 const {
@@ -8,12 +8,63 @@ const {
   Student,
   Parent,
   Class,
-  Section
+  Section,
+  ClassTeacher,
+  SubjectTeacher
 } = require('~/models');
-const { sendSMS } = require('~/utils/communication/sms');
+const { sendSMS, formatPhoneNumber } = require('~/utils/communication/sms');
 const attendanceExportService = require('~/services/academic/attendance-export.service');
 const AttendanceValidationService = require('~/services/academic/attendance-validation.service');
 const { sendEmail } = require('~/utils/communication/email');
+
+const getTeacherAssignments = async (teacherId, schoolId) => {
+  const [classAssignments, subjectAssignments] = await Promise.all([
+    ClassTeacher.findAll({
+      where: { teacher_id: teacherId, school_id: schoolId, is_active: true },
+      attributes: ['class_id', 'section_id', 'stream_id', 'branch_id', 'academic_year']
+    }),
+    SubjectTeacher.findAll({
+      where: { teacher_id: teacherId, school_id: schoolId },
+      attributes: ['class_id', 'section_id', 'stream_id', 'branch_id', 'academic_year']
+    })
+  ]);
+
+  return [...classAssignments, ...subjectAssignments].filter(
+    assignment => assignment.class_id && assignment.branch_id && assignment.academic_year
+  );
+};
+
+const assertTeacherAssignment = async (req, target) => {
+  if (req.user.role !== 'teacher') return;
+
+  const assignments = await getTeacherAssignments(req.user.id, req.schoolId);
+  const assigned = assignments.some(
+    assignment =>
+      assignment.class_id === target.class_id &&
+      assignment.branch_id === target.branch_id &&
+      assignment.academic_year === target.academic_year &&
+      (!assignment.section_id || assignment.section_id === (target.section_id || null)) &&
+      (!assignment.stream_id || assignment.stream_id === (target.stream_id || null))
+  );
+
+  if (!assigned)
+    throw new ApiError(httpStatus.default.FORBIDDEN, 'Class is not assigned to this teacher');
+};
+
+const teacherAssignmentWhere = async req => {
+  if (req.user.role !== 'teacher') return null;
+
+  const assignments = await getTeacherAssignments(req.user.id, req.schoolId);
+  return assignments
+    .filter(assignment => !req.branchId || assignment.branch_id === req.branchId)
+    .map(({ class_id, section_id, stream_id, branch_id, academic_year }) => ({
+      class_id,
+      branch_id,
+      academic_year,
+      ...(section_id && { section_id }),
+      ...(stream_id && { stream_id })
+    }));
+};
 
 // Create or get an attendance session for a class/section/date/period
 const upsertSession = async (req, res, next) => {
@@ -40,6 +91,28 @@ const upsertSession = async (req, res, next) => {
         'branch_id is required in context or body'
       );
     }
+
+    const classRecord = await Class.findOne({
+      where: { id: class_id, school_id: req.schoolId, branch_id: branchId }
+    });
+    if (!classRecord)
+      throw new ApiError(httpStatus.default.NOT_FOUND, 'Class not found in this branch');
+
+    if (section_id) {
+      const sectionRecord = await Section.findOne({
+        where: { id: section_id, class_id, school_id: req.schoolId, branch_id: branchId }
+      });
+      if (!sectionRecord)
+        throw new ApiError(httpStatus.default.NOT_FOUND, 'Section not found in this class');
+    }
+
+    await assertTeacherAssignment(req, {
+      class_id,
+      section_id,
+      stream_id,
+      branch_id: branchId,
+      academic_year
+    });
 
     const [session, created] = await AttendanceSession.findOrCreate({
       where: {
@@ -79,10 +152,38 @@ const saveRecords = async (req, res, next) => {
       throw new ApiError(httpStatus.default.BAD_REQUEST, 'session_id and records[] are required');
     }
 
-    const session = await AttendanceSession.findOne({
-      where: { id: session_id, school_id: req.schoolId }
-    });
+    const sessionWhere = { id: session_id, school_id: req.schoolId };
+    if (req.branchId) sessionWhere.branch_id = req.branchId;
+    const session = await AttendanceSession.findOne({ where: sessionWhere });
     if (!session) throw new ApiError(httpStatus.default.NOT_FOUND, 'Attendance session not found');
+
+    await assertTeacherAssignment(req, session);
+
+    const studentIds = records.map(record => record.student_id);
+    const uniqueStudentIds = [...new Set(studentIds)];
+    if (uniqueStudentIds.length !== records.length || uniqueStudentIds.some(id => !id)) {
+      throw new ApiError(
+        httpStatus.default.BAD_REQUEST,
+        'Attendance records must contain unique student IDs'
+      );
+    }
+    const students = await Student.findAll({
+      where: {
+        id: { [Op.in]: uniqueStudentIds },
+        school_id: req.schoolId,
+        branch_id: session.branch_id,
+        class_id: session.class_id,
+        section_id: session.section_id,
+        stream_id: session.stream_id
+      },
+      attributes: ['id']
+    });
+    if (students.length !== uniqueStudentIds.length) {
+      throw new ApiError(
+        httpStatus.default.FORBIDDEN,
+        'Attendance includes a student outside this class'
+      );
+    }
 
     // Use comprehensive validation service with soft enforcement
     const settings = await AttendanceValidationService.validateAttendanceSubmission(
@@ -221,11 +322,14 @@ const saveRecords = async (req, res, next) => {
 const getSession = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const where = { id, school_id: req.schoolId };
+    if (req.branchId) where.branch_id = req.branchId;
     const session = await AttendanceSession.findOne({
-      where: { id, school_id: req.schoolId },
+      where,
       include: [{ model: AttendanceRecord, as: 'records' }]
     });
     if (!session) throw new ApiError(httpStatus.default.NOT_FOUND, 'Session not found');
+    await assertTeacherAssignment(req, session);
     return res.status(httpStatus.default.OK).json({ success: true, data: session });
   } catch (error) {
     logger.error('Error getting attendance session:', error);
@@ -244,6 +348,10 @@ const listSessions = async (req, res, next) => {
     if (section_id) where.section_id = section_id;
     if (status) where.status = status;
     if (date_from && date_to) where.date = { [Op.between]: [date_from, date_to] };
+    if (req.user.role === 'teacher') {
+      const assignments = await teacherAssignmentWhere(req);
+      where[Op.or] = assignments.length ? assignments : [{ id: { [Op.is]: null } }];
+    }
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const { count, rows } = await AttendanceSession.findAndCountAll({
@@ -322,10 +430,12 @@ const getReport = async (req, res, next) => {
       whereRec.date = { [Op.gte]: thirtyDaysAgo.toISOString().split('T')[0] };
     }
 
-    // Get total count for pagination
-    const totalRecords = await AttendanceRecord.count({
-      where: whereRec
-    });
+    // Aggregate across the full filter before applying the page limit.
+    const statusCounts = await AttendanceRecord.count({ where: whereRec, group: ['status'] });
+    const countsByStatus = Object.fromEntries(
+      statusCounts.map(({ status, count }) => [status, Number(count)])
+    );
+    const totalRecords = statusCounts.reduce((total, row) => total + Number(row.count), 0);
 
     // Calculate pagination
     const currentPage = parseInt(page);
@@ -368,13 +478,12 @@ const getReport = async (req, res, next) => {
     // Get records with proper includes
     const records = await AttendanceRecord.findAll(queryOptions);
 
-    // Basic aggregation - use totalRecords for total count
     const summary = {
       total: totalRecords,
-      present: records.filter(r => r.status === 'present').length,
-      absent: records.filter(r => r.status === 'absent').length,
-      late: records.filter(r => r.status === 'late').length,
-      excused: records.filter(r => r.status === 'excused').length
+      present: countsByStatus.present || 0,
+      absent: countsByStatus.absent || 0,
+      late: countsByStatus.late || 0,
+      excused: countsByStatus.excused || 0
     };
 
     // Prepare response data
@@ -524,13 +633,21 @@ const notifyAbsentees = async (req, res, next) => {
     const { session_id } = req.body;
     if (!session_id) throw new ApiError(httpStatus.default.BAD_REQUEST, 'session_id is required');
 
-    const session = await AttendanceSession.findOne({
-      where: { id: session_id, school_id: req.schoolId }
-    });
+    const sessionWhere = { id: session_id, school_id: req.schoolId };
+    if (req.branchId) sessionWhere.branch_id = req.branchId;
+    const session = await AttendanceSession.findOne({ where: sessionWhere });
     if (!session) throw new ApiError(httpStatus.default.NOT_FOUND, 'Attendance session not found');
+    if (session.status !== 'published') {
+      throw new ApiError(httpStatus.default.BAD_REQUEST, 'Attendance must be published before notifying parents');
+    }
 
     const absentRecords = await AttendanceRecord.findAll({
-      where: { session_id, status: 'absent' },
+      where: {
+        session_id,
+        school_id: req.schoolId,
+        branch_id: session.branch_id,
+        status: 'absent'
+      },
       include: [
         {
           model: Student,
@@ -558,10 +675,10 @@ const notifyAbsentees = async (req, res, next) => {
 
       // SMS
       for (const phone of contactPhones) {
-        await sendSMS(
-          phone,
-          `Absence Alert: ${student.first_name} ${student.last_name || ''} was absent on ${rec.date}.`
-        );
+        await sendSMS({
+          to: formatPhoneNumber(phone),
+          message: `Absence Alert: ${student.first_name} ${student.last_name || ''} was absent on ${rec.date}.`
+        });
         notified += 1;
       }
 
@@ -889,8 +1006,8 @@ const debugAttendanceData = async (req, res, next) => {
         branch_id: branch_id || req.branchId
       },
       attributes: [
-        [sequelize.fn('MIN', sequelize.col('date')), 'earliest_date'],
-        [sequelize.fn('MAX', sequelize.col('date')), 'latest_date']
+        [fn('MIN', col('date')), 'earliest_date'],
+        [fn('MAX', col('date')), 'latest_date']
       ],
       raw: true
     });

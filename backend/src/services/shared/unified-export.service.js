@@ -2,14 +2,180 @@ const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 const Papa = require('papaparse');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
-const { resolveUploadsPath } = require('~/utils/shared/pathHelper');
+const getPaymentMethodInvoiceIds = require('~/utils/financial/paymentMethodInvoiceIds');
+const parseMonthlyPeriods = require('~/utils/financial/parseMonthlyPeriods');
+const { applyEnrollmentFilter, applySiblingFilter } = require('~/utils/academic/studentFilters');
+const getStudentInvoiceTotals = require('~/utils/financial/studentInvoiceTotals');
+
+const REPORT_COLUMNS = {
+  receipts: [
+    { key: 'invoice_number', header: 'Invoice Number' },
+    { key: 'receipt_number', header: 'Receipt Number' },
+    { key: 'payment_date', header: 'Payment Date' },
+    { key: 'payment_amount', header: 'Amount' },
+    { key: 'payment_method', header: 'Payment Method' },
+    { key: 'status', header: 'Status' },
+    { key: 'student_name', header: 'Student Name' },
+    { key: 'admission_number', header: 'Admission No.' },
+    { key: 'class', header: 'Class' },
+    { key: 'section', header: 'Section' },
+    { key: 'fee_type', header: 'Fee Type' },
+    { key: 'branch', header: 'Branch' }
+  ],
+  fees: [
+    { key: 'invoice_number', header: 'Invoice Number' },
+    { key: 'invoice_date', header: 'Invoice Date' },
+    { key: 'due_date', header: 'Due Date' },
+    { key: 'total_amount', header: 'Total Amount' },
+    { key: 'paid_amount', header: 'Paid Amount' },
+    { key: 'balance_amount', header: 'Balance' },
+    { key: 'status', header: 'Status' },
+    { key: 'student_name', header: 'Student Name' },
+    { key: 'admission_number', header: 'Admission No.' },
+    { key: 'class', header: 'Class' },
+    { key: 'section', header: 'Section' },
+    { key: 'branch', header: 'Branch' },
+    { key: 'stream', header: 'Stream' },
+    { key: 'invoice_count', header: 'Invoice Count' },
+    { key: 'fee_type', header: 'Fee Type' }
+  ],
+  students: [
+    { key: 'admission_number', header: 'Admission No.' },
+    { key: 'roll_number', header: 'Roll Number' },
+    { key: 'student_name', header: 'Student Name' },
+    { key: 'gender', header: 'Gender' },
+    { key: 'date_of_birth', header: 'Date of Birth' },
+    { key: 'current_class', header: 'Class' },
+    { key: 'section', header: 'Section' },
+    { key: 'branch', header: 'Branch' },
+    { key: 'status', header: 'Status' },
+    { key: 'admission_date', header: 'Admission Date' },
+    { key: 'total_billed', header: 'Billed (All Years)' },
+    { key: 'total_due', header: 'Due (All Years)' },
+    { key: 'guardian_name', header: 'Parent / Guardian' },
+    { key: 'guardian_phone', header: 'Guardian Phone' },
+    { key: 'guardian_email', header: 'Guardian Email' }
+  ],
+  attendance: [
+    { key: 'date', header: 'Date' },
+    { key: 'class', header: 'Class' },
+    { key: 'section', header: 'Section' },
+    { key: 'status', header: 'Status' },
+    { key: 'remarks', header: 'Remarks' },
+    { key: 'admission_number', header: 'Admission No.' },
+    { key: 'student_name', header: 'Student Name' },
+    { key: 'time_in', header: 'Time In' },
+    { key: 'time_out', header: 'Time Out' }
+  ],
+  library: [
+    { key: 'title', header: 'Title' },
+    { key: 'author', header: 'Author' },
+    { key: 'isbn', header: 'ISBN' },
+    { key: 'category', header: 'Category' },
+    { key: 'publisher', header: 'Publisher' },
+    { key: 'edition', header: 'Edition' },
+    { key: 'quantity', header: 'Quantity' },
+    { key: 'available', header: 'Available' },
+    { key: 'purchase_date', header: 'Purchase Date' },
+    { key: 'purchase_price', header: 'Purchase Price' },
+    { key: 'sale_price', header: 'Sale Price' }
+  ],
+  homeworks: [
+    { key: 'title', header: 'Title' },
+    { key: 'class_name', header: 'Class' },
+    { key: 'section_name', header: 'Section' },
+    { key: 'subject_name', header: 'Subject' },
+    { key: 'academic_year', header: 'Academic Year' },
+    { key: 'due_date', header: 'Due Date' },
+    { key: 'branch_name', header: 'Branch' }
+  ],
+  classwork: [
+    { key: 'date', header: 'Date' },
+    { key: 'entry_type', header: 'Type' },
+    { key: 'title', header: 'Topic' },
+    { key: 'class_name', header: 'Class' },
+    { key: 'section_name', header: 'Section' },
+    { key: 'subject_name', header: 'Learning Area' },
+    { key: 'teacher_name', header: 'Teacher' },
+    { key: 'notes', header: 'Content / Notes' }
+  ],
+  gate_passes: [
+    { key: 'pass_no', header: 'Pass Number' },
+    { key: 'student_name', header: 'Student' },
+    { key: 'admission_number', header: 'Admission Number' },
+    { key: 'class_name', header: 'Class' },
+    { key: 'reason', header: 'Reason' },
+    { key: 'collector_name', header: 'Collector' },
+    { key: 'collector_relation', header: 'Relation' },
+    { key: 'leaving_at', header: 'Leaving At' },
+    { key: 'actual_out_at', header: 'Actual Departure' },
+    { key: 'expected_return_at', header: 'Expected Return' },
+    { key: 'returned_at', header: 'Returned At' },
+    { key: 'status', header: 'Status' },
+    { key: 'gate_name', header: 'Gate' },
+    { key: 'branch_name', header: 'Branch' }
+  ],
+  visitors: [
+    { key: 'visitor_name', header: 'Visitor Name' },
+    { key: 'phone', header: 'Phone' },
+    { key: 'purpose', header: 'Purpose' },
+    { key: 'in_time', header: 'In-Time' },
+    { key: 'out_time', header: 'Out-Time' },
+    { key: 'status', header: 'Status' }
+  ],
+  admission_enquiries: [
+    { key: 'student_name', header: 'Student Name' },
+    { key: 'parent_name', header: 'Parent Name' },
+    { key: 'phone', header: 'Phone' },
+    { key: 'enquiry_date', header: 'Enquiry Date' },
+    { key: 'interested_class', header: 'Interested Class' },
+    { key: 'follow_up', header: 'Follow-up' },
+    { key: 'status', header: 'Status' }
+  ],
+  transactions: [
+    { key: 'date', header: 'Date' },
+    { key: 'type', header: 'Type' },
+    { key: 'name', header: 'Name' },
+    { key: 'category', header: 'Category' },
+    { key: 'amount', header: 'Amount' },
+    { key: 'reference_number', header: 'Reference' },
+    { key: 'payment_method', header: 'Payment Method' },
+    { key: 'description', header: 'Description' },
+    { key: 'branch', header: 'Branch' }
+  ],
+  audit_events: [
+    { key: 'created_at', header: 'Date' },
+    { key: 'actor_name', header: 'User' },
+    { key: 'actor_role', header: 'Role' },
+    { key: 'action', header: 'Activity' },
+    { key: 'entity_name', header: 'Entity' },
+    { key: 'record_id', header: 'Record ID' },
+    { key: 'branch_id', header: 'Branch ID' },
+    { key: 'request', header: 'Request' },
+    { key: 'changes', header: 'Recorded Changes' }
+  ]
+};
 
 class UnifiedExportService {
   constructor() {
     this.supportedFormats = ['pdf', 'excel', 'csv', 'print'];
-    this.supportedReportTypes = ['receipts', 'fees', 'students', 'attendance'];
+    this.supportedReportTypes = [
+      'receipts',
+      'fees',
+      'students',
+      'attendance',
+      'library',
+      'transactions',
+      'homeworks',
+      'classwork',
+      'gate_passes',
+      'visitors',
+      'admission_enquiries',
+      'audit_events'
+    ];
   }
 
   // Helper function to parse amount values consistently
@@ -22,17 +188,25 @@ class UnifiedExportService {
     return `Rs. ${this.parseAmount(amount).toLocaleString('en-IN')}`;
   }
 
+  getColumnsForReport(reportType) {
+    return REPORT_COLUMNS[reportType] || [];
+  }
+
   // Helper function to build common where clause
   buildWhereClause(filters, user, schoolId) {
     const whereClause = {};
 
     // Add school_id filter
-    if (schoolId && user.role !== 'super_admin') {
+    if (schoolId) {
       whereClause.school_id = schoolId;
     }
 
-    // Add branch filter for branch admins
-    if (user.role === 'branch_admin') {
+    // Branch-scoped accounts cannot widen exports by omitting or changing branch_id.
+    if (
+      user.role === 'branch_admin' ||
+      user.role === 'receptionist' ||
+      (['accountant', 'librarian'].includes(user.role) && user.branch_id)
+    ) {
       whereClause.branch_id = user.branch_id;
     } else if (filters.branch_id) {
       whereClause.branch_id = filters.branch_id;
@@ -107,9 +281,424 @@ class UnifiedExportService {
       case 'attendance':
         return await this.getAttendanceData(filters, user, schoolId);
 
+      case 'library':
+        return await this.getLibraryData(filters, user, schoolId);
+
+      case 'transactions':
+        return await this.getTransactionsData(filters, user, schoolId);
+
+      case 'homeworks':
+        return await this.getHomeworksData(filters, user, schoolId);
+
+      case 'classwork':
+        return await this.getClassworkData(filters, user, schoolId);
+
+      case 'gate_passes':
+        return await this.getGatePassesData(filters, user, schoolId);
+
+      case 'visitors':
+        return await this.getVisitorsData(filters, user, schoolId);
+      case 'admission_enquiries':
+        return await this.getAdmissionEnquiriesData(filters, user, schoolId);
+
+      case 'audit_events':
+        return await this.getAuditEventsData(filters, schoolId);
+
       default:
         throw new Error(`Unsupported report type: ${reportType}`);
     }
+  }
+
+  async getAuditEventsData(filters, schoolId) {
+    const { AuditEvent, User } = require('~/models');
+    const { Op, Sequelize } = require('sequelize');
+    if (!schoolId) throw new Error('School ID is required to export audit events');
+    const retainedFrom = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const from = filters.from_date ? new Date(`${filters.from_date}T00:00:00.000Z`) : null;
+    const to = filters.to_date ? new Date(`${filters.to_date}T00:00:00.000Z`) : null;
+    const where = {
+      school_id: schoolId,
+      created_at: {
+        [Op.gte]: from && from > retainedFrom ? from : retainedFrom,
+        ...(to ? { [Op.lt]: new Date(to.getTime() + 86400000) } : {})
+      }
+    };
+    if (filters.branch_id) where.branch_id = filters.branch_id;
+    const action = String(filters.action || '').trim().slice(0, 24);
+    const entity = String(filters.entity || '').trim().slice(0, 120);
+    const search = String(filters.search || '').trim().slice(0, 120);
+    if (action) where.action = action;
+    if (entity) where.entity_name = { [Op.iLike]: `%${entity}%` };
+    if (search) {
+      const pattern = `%${search}%`;
+      where[Op.or] = [
+        { entity_name: { [Op.iLike]: pattern } },
+        { action: { [Op.iLike]: pattern } },
+        { request_path: { [Op.iLike]: pattern } },
+        { '$actor.first_name$': { [Op.iLike]: pattern } },
+        { '$actor.last_name$': { [Op.iLike]: pattern } },
+        Sequelize.where(Sequelize.cast(Sequelize.col('changes'), 'text'), { [Op.iLike]: pattern })
+      ];
+    }
+    const sortBy = ['user', 'activity'].includes(filters.sort_by) ? filters.sort_by : 'date';
+    const sortOrder = String(filters.sort_order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const events = await AuditEvent.findAll({
+      where,
+      include: [{ association: 'actor', attributes: ['first_name', 'last_name'] }],
+      order: sortBy === 'user'
+        ? [[{ model: User, as: 'actor' }, 'first_name', sortOrder], [{ model: User, as: 'actor' }, 'last_name', sortOrder], ['created_at', 'DESC']]
+        : [[sortBy === 'activity' ? 'action' : 'created_at', sortOrder], ...(sortBy === 'date' ? [] : [['created_at', 'DESC']])]
+    });
+    return events.map(event => {
+      const row = event.get({ plain: true });
+      return {
+        created_at: row.created_at,
+        actor_name: row.actor ? `${row.actor.first_name || ''} ${row.actor.last_name || ''}`.trim() : 'Former user',
+        actor_role: row.actor_role || '',
+        action: row.action,
+        entity_name: row.entity_name,
+        record_id: row.record_id || '',
+        branch_id: row.branch_id || '',
+        request: [row.request_method, row.request_path].filter(Boolean).join(' '),
+        changes: JSON.stringify(row.changes || {})
+      };
+    });
+  }
+
+  async getLibraryData(filters, user, schoolId) {
+    const { LibraryBook } = require('~/models');
+    const { Op } = require('sequelize');
+    const where = this.buildWhereClause(filters, user, schoolId);
+
+    if (filters.category) where.category = filters.category;
+    if (filters.search?.trim()) {
+      const search = `%${filters.search.trim()}%`;
+      where[Op.or] = ['title', 'author', 'isbn', 'category'].map(field => ({
+        [field]: { [Op.like]: search }
+      }));
+    }
+
+    return LibraryBook.findAll({
+      where,
+      attributes: [
+        'title',
+        'author',
+        'isbn',
+        'category',
+        'publisher',
+        'edition',
+        'quantity',
+        'available',
+        'purchase_date',
+        'purchase_price',
+        'sale_price'
+      ],
+      order: [['title', 'ASC']]
+    });
+  }
+
+  async getHomeworksData(filters, user, schoolId) {
+    const { Homework, Class, Section, Subject, Branch } = require('~/models');
+    const { Op } = require('sequelize');
+    const where = this.buildWhereClause(filters, user, schoolId);
+    if (!schoolId) throw new Error('School ID is required to export homework');
+    if (user.role === 'teacher') {
+      if (!user.branch_id)
+        throw new Error('Teacher must be assigned to a branch to export homework');
+      where.branch_id = user.branch_id;
+    }
+    if (filters.class_id) where.class_id = filters.class_id;
+    if (filters.academic_year && filters.academic_year !== 'all') {
+      where[Op.and] = [
+        ...(where[Op.and] || []),
+        { [Op.or]: [{ academic_year: filters.academic_year }, { academic_year: null }] }
+      ];
+    }
+    if (filters.search?.trim()) {
+      const search = `%${filters.search.trim()}%`;
+      where[Op.and] = [
+        ...(where[Op.and] || []),
+        {
+          [Op.or]: [
+            { title: { [Op.iLike]: search } },
+            { description: { [Op.iLike]: search } },
+            { '$class.name$': { [Op.iLike]: search } },
+            { '$section.name$': { [Op.iLike]: search } },
+            { '$subject.name$': { [Op.iLike]: search } }
+          ]
+        }
+      ];
+    }
+    const sortBy = ['title', 'due_date'].includes(filters.sort_by) ? filters.sort_by : 'due_date';
+    const sortOrder = String(filters.sort_order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const rows = await Homework.findAll({
+      where,
+      include: [
+        { model: Class, as: 'class', attributes: ['name'] },
+        { model: Section, as: 'section', attributes: ['name'], required: false },
+        { model: Subject, as: 'subject', attributes: ['name'], required: false }
+      ],
+      order: [
+        [sortBy, sortOrder],
+        ['id', 'ASC']
+      ]
+    });
+    const branchIds = [...new Set(rows.map(row => row.branch_id).filter(Boolean))];
+    const branches = branchIds.length
+      ? await Branch.findAll({
+          where: { id: { [Op.in]: branchIds }, school_id: schoolId },
+          attributes: ['id', 'name']
+        })
+      : [];
+    const branchNames = new Map(branches.map(branch => [branch.id, branch.name]));
+    return rows.map(row => {
+      const record = row.toJSON();
+      return {
+        title: record.title,
+        class_name: record.class?.name || '',
+        section_name: record.section?.name || '',
+        subject_name: record.subject?.name || '',
+        academic_year: record.academic_year || 'Legacy / unassigned',
+        due_date: record.due_date,
+        branch_name: branchNames.get(record.branch_id) || ''
+      };
+    });
+  }
+
+  async getClassworkData(filters, user, schoolId) {
+    const { DynamicEntityRecord } = require('~/models');
+    const { Op, Sequelize } = require('sequelize');
+    if (!schoolId) throw new Error('School ID is required to export classwork');
+    const where = { ...this.buildWhereClause(filters, user, schoolId), entity_type: 'classwork_entry' };
+    if (user.role === 'teacher') {
+      if (!user.branch_id) throw new Error('Teacher must be assigned to a branch to export classwork');
+      const year = await require('~/utils/academic/academicYearUtils').getCurrentAcademicYearForSchool(schoolId);
+      const assignmentScope = await require('~/utils/academic/teacherStudentScope').getTeacherStudentWhere({
+        teacherId: user.id, schoolId, academicYear: year?.code || year?.name
+      });
+      const assignments = (assignmentScope[Op.or] || [])
+        .filter(item => item.class_id && item.branch_id)
+        .map(({ class_id, branch_id }) => ({ class_id, branch_id }));
+      where.branch_id = user.branch_id;
+      where.created_by = user.id;
+      where[Op.and] = [{ [Op.or]: assignments.length ? assignments : [{ class_id: null }] }];
+    }
+    if (filters.class_id) where.class_id = filters.class_id;
+    if (filters.entry_type) {
+      if (!['Classwork', 'Logbook', 'Notes'].includes(filters.entry_type)) throw new Error('Invalid classwork entry type');
+      where[Op.and] = [...(where[Op.and] || []), Sequelize.where(Sequelize.json('payload.entry_type'), filters.entry_type)];
+    }
+    if (filters.section_id) where[Op.and] = [...(where[Op.and] || []), Sequelize.where(Sequelize.json('payload.section_id'), filters.section_id)];
+    if (filters.academic_year) where[Op.and] = [...(where[Op.and] || []), Sequelize.where(Sequelize.json('payload.academic_year'), filters.academic_year)];
+    this.addDateFilters(where, filters, 'date_value');
+    if (filters.search?.trim()) {
+      const search = `%${filters.search.trim().slice(0, 120)}%`;
+      where[Op.and] = [...(where[Op.and] || []), { [Op.or]: [
+        { title: { [Op.iLike]: search } },
+        { notes: { [Op.iLike]: search } },
+        Sequelize.where(Sequelize.cast(Sequelize.col('payload'), 'text'), { [Op.iLike]: search })
+      ] }];
+    }
+    const sortColumns = { date: 'date_value', title: 'title', type: Sequelize.json('payload.entry_type') };
+    const sortColumn = sortColumns[filters.sort_by] || sortColumns.date;
+    const sortOrder = String(filters.sort_order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const rows = await DynamicEntityRecord.findAll({ where, order: [[sortColumn, sortOrder], ['created_at', 'DESC']] });
+    return rows.map(row => {
+      const payload = row.payload || {};
+      return {
+        date: row.date_value, entry_type: payload.entry_type || '', title: row.title,
+        class_name: payload.class_name || '', section_name: payload.section_name || '',
+        subject_name: payload.subject_name || '', teacher_name: payload.teacher_name || '', notes: row.notes || ''
+      };
+    });
+  }
+
+  async getGatePassesData(filters, user, schoolId) {
+    const { GatePass, Student, Class, Branch } = require('~/models');
+    const { Op } = require('sequelize');
+    const where = this.buildWhereClause(filters, user, schoolId);
+    if (!schoolId) throw new Error('School ID is required to export gate passes');
+    if (user.role === 'receptionist') {
+      if (!user.branch_id)
+        throw new Error('Receptionist must be assigned to a branch to export gate passes');
+      where.branch_id = user.branch_id;
+    }
+    if (
+      filters.status &&
+      ['pending', 'approved', 'rejected', 'out', 'returned', 'cancelled'].includes(filters.status)
+    ) {
+      where.status = filters.status;
+    }
+    if (filters.search?.trim()) {
+      const search = `%${filters.search.trim()}%`;
+      where[Op.or] = [
+        { pass_no: { [Op.iLike]: search } },
+        { collector_name: { [Op.iLike]: search } },
+        { '$student.first_name$': { [Op.iLike]: search } },
+        { '$student.last_name$': { [Op.iLike]: search } },
+        { '$student.admission_number$': { [Op.iLike]: search } }
+      ];
+    }
+    const rows = await GatePass.findAll({
+      where,
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['first_name', 'middle_name', 'last_name', 'admission_number', 'class_id'],
+          include: [{ model: Class, as: 'class', attributes: ['name'], required: false }]
+        },
+        { model: Branch, as: 'branch', attributes: ['name'] }
+      ],
+      order: [
+        ['leaving_at', 'DESC'],
+        ['id', 'ASC']
+      ]
+    });
+    return rows.map(row => {
+      const pass = row.toJSON();
+      const student = pass.student || {};
+      return {
+        pass_no: pass.pass_no,
+        student_name: [student.first_name, student.middle_name, student.last_name]
+          .filter(Boolean)
+          .join(' '),
+        admission_number: student.admission_number || '',
+        class_name: student.class?.name || '',
+        reason: pass.reason,
+        collector_name: pass.collector_name,
+        collector_relation: pass.collector_relation,
+        leaving_at: pass.leaving_at,
+        actual_out_at: pass.actual_out_at,
+        expected_return_at: pass.expected_return_at,
+        returned_at: pass.returned_at,
+        status: pass.status,
+        gate_name: pass.gate_name,
+        branch_name: pass.branch?.name || ''
+      };
+    });
+  }
+
+  async getVisitorsData(filters, user, schoolId) {
+    const { DynamicEntityRecord } = require('~/models');
+    const { Op } = require('sequelize');
+    if (!schoolId) throw new Error('School ID is required to export visitors');
+    if (user.role === 'receptionist' && !user.branch_id) {
+      throw new Error('Receptionist must be assigned to a branch to export visitors');
+    }
+    const where = { ...this.buildWhereClause(filters, user, schoolId), entity_type: 'visitor' };
+    if (filters.status) where.status = filters.status;
+    if (filters.search?.trim()) {
+      const search = `%${filters.search.trim().slice(0, 100)}%`;
+      where[Op.or] = ['title', 'reference_no', 'notes'].map(field => ({
+        [field]: { [Op.iLike]: search }
+      }));
+    }
+    const rows = await DynamicEntityRecord.findAll({
+      where,
+      order: [
+        ['created_at', 'DESC'],
+        ['id', 'ASC']
+      ]
+    });
+    return rows.map(row => {
+      const record = row.toJSON();
+      return {
+        visitor_name: record.title,
+        phone: record.reference_no || '',
+        purpose: record.notes || '',
+        in_time: record.created_at,
+        out_time: record.payload?.exit_time || '',
+        status: record.status
+      };
+    });
+  }
+
+  async getAdmissionEnquiriesData(filters, user, schoolId) {
+    const { DynamicEntityRecord, Class, sequelize } = require('~/models');
+    const { Op } = require('sequelize');
+    if (!schoolId) throw new Error('School ID is required to export admission enquiries');
+    if (user.role === 'receptionist' && !user.branch_id) {
+      throw new Error('Receptionist must be assigned to a branch to export admission enquiries');
+    }
+    const where = {
+      ...this.buildWhereClause(filters, user, schoolId),
+      entity_type: 'enquiry'
+    };
+    if (filters.search?.trim()) {
+      const search = `%${filters.search.trim().slice(0, 100)}%`;
+      where[Op.or] = [
+        ...['title', 'reference_no', 'notes', 'status'].map(field => ({
+          [field]: { [Op.iLike]: search }
+        })),
+        sequelize.where(sequelize.cast(sequelize.col('payload'), 'text'), { [Op.iLike]: search })
+      ];
+    }
+    const rows = await DynamicEntityRecord.findAll({
+      where,
+      include: [{ model: Class, as: 'class', attributes: ['id', 'name'], required: false }],
+      order: [['created_at', 'DESC'], ['id', 'ASC']]
+    });
+    return rows.map(row => {
+      const record = row.toJSON();
+      return {
+        student_name: record.title,
+        parent_name: record.payload?.parent_name || '',
+        phone: record.reference_no || '',
+        enquiry_date: record.date_value || record.created_at,
+        interested_class: record.class?.name || record.payload?.class_id_label || '',
+        follow_up: record.notes || '',
+        status: record.status
+      };
+    });
+  }
+
+  async getTransactionsData(filters, user, schoolId) {
+    const { SchoolTransaction, AccountCategory, Branch } = require('~/models');
+    const { Op } = require('sequelize');
+    const where = this.buildWhereClause(filters, user, schoolId);
+
+    if (filters.transaction_type && ['income', 'expense'].includes(filters.transaction_type)) {
+      where.type = filters.transaction_type;
+    }
+    if (filters.category_id) where.category_id = filters.category_id;
+    this.addDateFilters(where, filters);
+    if (filters.search?.trim()) {
+      const search = `%${filters.search.trim()}%`;
+      where[Op.or] = ['name', 'reference_number'].map(field => ({
+        [field]: { [Op.iLike]: search }
+      }));
+    }
+
+    const sortableFields = ['name', 'category', 'amount', 'date'];
+    const validSort = sortableFields.includes(filters.sort_by);
+    const sortBy = validSort ? filters.sort_by : 'date';
+    const sortOrder =
+      validSort && String(filters.sort_order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const order =
+      sortBy === 'category'
+        ? [[{ model: AccountCategory, as: 'category' }, 'name', sortOrder]]
+        : [[sortBy, sortOrder]];
+    if (sortBy !== 'date') order.push(['date', 'DESC']);
+    order.push(['created_at', 'DESC']);
+
+    const rows = await SchoolTransaction.findAll({
+      where,
+      include: [
+        { model: AccountCategory, as: 'category', attributes: ['name'] },
+        { model: Branch, as: 'branch', attributes: ['name'] }
+      ],
+      order
+    });
+
+    return rows.map(row => {
+      const transaction = row.toJSON ? row.toJSON() : row;
+      return {
+        ...transaction,
+        category: transaction.category?.name || '',
+        branch: transaction.branch?.name || ''
+      };
+    });
   }
 
   /**
@@ -127,11 +716,6 @@ class UnifiedExportService {
     // Payment method filter
     if (filters.payment_method && filters.payment_method !== '') {
       whereClause.payment_method = filters.payment_method;
-    }
-
-    // Branch filter (override if provided in filters)
-    if (filters.branch_id && filters.branch_id !== '') {
-      whereClause.branch_id = filters.branch_id;
     }
 
     // Build student include with potential filters
@@ -160,7 +744,7 @@ class UnifiedExportService {
     }
 
     const payments = await FeePayment.findAll({
-      where: whereClause,
+      where: { ...whereClause, payment_status: 'completed' },
       include: [
         studentInclude,
         {
@@ -230,7 +814,7 @@ class UnifiedExportService {
    * Get fees data for export
    */
   async getFeesData(filters, user, schoolId) {
-    const { FeeInvoice, Student, FeeStructure, FeeType } = require('~/models');
+    const { FeeInvoice, Student, FeeStructure, FeeType, Branch, Stream } = require('~/models');
     const { Op } = require('sequelize');
 
     // Handle monthly payments differently
@@ -241,11 +825,32 @@ class UnifiedExportService {
     // Build where clause using helper
     const whereClause = this.buildWhereClause(filters, user, schoolId);
 
-    if (filters.status) whereClause.status = filters.status;
+    if (filters.status) {
+      const statuses = String(filters.status)
+        .split(',')
+        .map(status => status.trim())
+        .filter(Boolean);
+      if (statuses.length === 1) whereClause.status = statuses[0];
+      else if (statuses.length > 1) whereClause.status = { [Op.in]: statuses };
+    }
+    if (filters.academic_year) whereClause.academic_year = filters.academic_year;
 
     // Add payment model filter
     if (filters.payment_model) {
       whereClause.payment_model = filters.payment_model;
+    }
+    if (filters.payment_method) {
+      whereClause.id = {
+        [Op.in]: await getPaymentMethodInvoiceIds({
+          paymentMethod: filters.payment_method,
+          schoolId,
+          branchId:
+            user.role === 'branch_admin' || (user.role === 'accountant' && user.branch_id)
+              ? user.branch_id
+              : filters.branch_id,
+          academicYear: filters.academic_year
+        })
+      };
     }
 
     // Add date filters for invoice_date or due_date
@@ -254,6 +859,39 @@ class UnifiedExportService {
         { invoice_date: { [Op.between]: [filters.from_date, filters.to_date] } },
         { due_date: { [Op.between]: [filters.from_date, filters.to_date] } }
       ];
+    } else if (filters.from_date || filters.to_date) {
+      const dateOperator = filters.from_date ? Op.gte : Op.lte;
+      const date = filters.from_date || filters.to_date;
+      whereClause[Op.or] = [
+        { invoice_date: { [dateOperator]: date } },
+        { due_date: { [dateOperator]: date } }
+      ];
+    }
+
+    if (filters.due_from || filters.due_to) {
+      whereClause.due_date = {};
+      if (filters.due_from) whereClause.due_date[Op.gte] = filters.due_from;
+      if (filters.due_to) whereClause.due_date[Op.lte] = filters.due_to;
+    }
+
+    const studentWhereClause = {};
+    if (filters.search) {
+      studentWhereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${filters.search}%` } },
+        { last_name: { [Op.iLike]: `%${filters.search}%` } },
+        { admission_number: { [Op.iLike]: `%${filters.search}%` } }
+      ];
+    }
+    if (filters.class_id) studentWhereClause.class_id = filters.class_id;
+    if (filters.section_id) studentWhereClause.section_id = filters.section_id;
+    if (filters.stream_id) studentWhereClause.stream_id = filters.stream_id;
+    if (filters.class_name && !filters.class_id)
+      studentWhereClause.current_class = filters.class_name;
+    if (filters.section_name && !filters.section_id)
+      studentWhereClause.section = filters.section_name;
+    else if (filters.section && !filters.section_id) studentWhereClause.section = filters.section;
+    if (user.role === 'branch_admin' || (user.role === 'accountant' && user.branch_id)) {
+      studentWhereClause.branch_id = user.branch_id;
     }
 
     const invoices = await FeeInvoice.findAll({
@@ -262,7 +900,7 @@ class UnifiedExportService {
         {
           model: Student,
           as: 'student',
-          where: {}
+          where: studentWhereClause
         },
         {
           model: FeeStructure,
@@ -273,7 +911,9 @@ class UnifiedExportService {
               as: 'feeType'
             }
           ]
-        }
+        },
+        { model: Branch, as: 'branch', attributes: ['name'] },
+        { model: Stream, as: 'stream', attributes: ['name'] }
       ],
       order: [['invoice_date', 'DESC']]
     });
@@ -284,13 +924,24 @@ class UnifiedExportService {
       due_date: invoice.due_date,
       total_amount: invoice.total_amount,
       paid_amount: invoice.paid_amount,
-      remaining_amount: invoice.remaining_amount,
-      status: invoice.status,
+      discount_amount: invoice.discount_amount,
+      late_fee_amount: invoice.late_fee_amount,
+      balance_amount: invoice.balance_amount,
+      status:
+        invoice.status === 'sent'
+          ? 'Pending'
+          : invoice.status === 'partial_paid'
+            ? 'Partially paid'
+            : invoice.status
+              ? invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)
+              : 'Pending',
       student_name: `${invoice.student.first_name} ${invoice.student.last_name}`.trim(),
       admission_number: invoice.student.admission_number,
       class: invoice.student.current_class,
       section: invoice.student.section,
-      branch: invoice.student.branch?.name || '',
+      branch: invoice.branch?.name || '',
+      stream: invoice.stream?.name || '',
+      invoice_count: 1,
       fee_type: invoice.feeStructure.feeType.name
     }));
   }
@@ -299,12 +950,23 @@ class UnifiedExportService {
    * Get monthly fees data for export
    */
   async getMonthlyFeesData(filters, user, schoolId) {
-    const { FeeInvoice, Student, FeeStructure, FeeType, FeePayment } = require('~/models');
+    const {
+      FeeInvoice,
+      Student,
+      FeeStructure,
+      FeeType,
+      FeePayment,
+      Branch,
+      Stream
+    } = require('~/models');
     const { Op } = require('sequelize');
+    const selectedPeriods = parseMonthlyPeriods(filters.periods);
 
     // Parse months parameter - handle both array and comma-separated string formats
     let monthsArray = [];
-    if (filters.months) {
+    if (selectedPeriods.length) {
+      monthsArray = [...new Set(selectedPeriods.map(period => period.month))];
+    } else if (filters.months) {
       if (Array.isArray(filters.months)) {
         monthsArray = filters.months.map(m => parseInt(m));
       } else if (typeof filters.months === 'string') {
@@ -319,19 +981,27 @@ class UnifiedExportService {
     const currentYear = filters.year ? parseInt(filters.year) : new Date().getFullYear();
 
     const whereClause = {
-      school_id: schoolId,
-      payment_model: 'monthly',
-      month: {
-        [Op.in]: monthsArray
-      },
-      year: currentYear
+      ...this.buildWhereClause(filters, user, schoolId),
+      payment_model: 'monthly'
     };
-
-    // Handle branch filtering
-    if (user.role === 'branch_admin') {
-      whereClause.branch_id = user.branch_id;
-    } else if (filters.branch_id) {
-      whereClause.branch_id = filters.branch_id;
+    if (selectedPeriods.length) {
+      whereClause[Op.or] = selectedPeriods;
+    } else {
+      whereClause.month = { [Op.in]: monthsArray };
+      whereClause.year = currentYear;
+    }
+    if (filters.payment_method) {
+      whereClause.id = {
+        [Op.in]: await getPaymentMethodInvoiceIds({
+          paymentMethod: filters.payment_method,
+          schoolId,
+          branchId:
+            user.role === 'branch_admin' || (user.role === 'accountant' && user.branch_id)
+              ? user.branch_id
+              : filters.branch_id,
+          academicYear: filters.academic_year
+        })
+      };
     }
 
     // Add student filters
@@ -343,9 +1013,12 @@ class UnifiedExportService {
         { admission_number: { [Op.iLike]: `%${filters.search}%` } }
       ];
     }
-    if (filters.class_id) studentWhereClause.current_class = filters.class_id;
-    if (filters.section_id) studentWhereClause.section = filters.section_id;
-    if (filters.stream_id) studentWhereClause.stream = filters.stream_id;
+    if (filters.class_id) studentWhereClause.class_id = filters.class_id;
+    if (filters.section_id) studentWhereClause.section_id = filters.section_id;
+    if (filters.stream_id) studentWhereClause.stream_id = filters.stream_id;
+    if (user.role === 'branch_admin' || (user.role === 'accountant' && user.branch_id)) {
+      studentWhereClause.branch_id = user.branch_id;
+    }
 
     // Get all monthly invoices
     const monthlyInvoices = await FeeInvoice.findAll({
@@ -381,9 +1054,13 @@ class UnifiedExportService {
           model: FeePayment,
           as: 'payments',
           attributes: ['id', 'payment_amount', 'payment_date', 'payment_method', 'payment_status'],
+          where: { payment_status: 'completed' },
+          required: false,
           order: [['created_at', 'DESC']],
           limit: 5
-        }
+        },
+        { model: Branch, as: 'branch', attributes: ['name'] },
+        { model: Stream, as: 'stream', attributes: ['name'] }
       ],
       order: [
         ['student_id', 'ASC'],
@@ -456,7 +1133,7 @@ class UnifiedExportService {
             due_date: monthData.dueDate,
             total_amount: monthData.amount,
             paid_amount: monthData.paid,
-            remaining_amount: monthData.balance,
+            balance_amount: monthData.balance,
             status:
               monthData.status === 'paid'
                 ? 'paid'
@@ -468,7 +1145,9 @@ class UnifiedExportService {
             admission_number: studentData.student.admission_number,
             class: studentData.student.current_class,
             section: studentData.student.section,
-            branch: studentData.student.branch?.name || '',
+            branch: monthData.invoice.branch?.name || '',
+            stream: monthData.invoice.stream?.name || '',
+            invoice_count: 1,
             fee_type: monthData.invoice.feeStructure?.feeType?.name || 'Monthly Fee',
             month: month,
             month_name: monthData.monthName,
@@ -485,20 +1164,32 @@ class UnifiedExportService {
    * Get students data for export
    */
   async getStudentsData(filters, user, schoolId) {
-    const { Student, Parent } = require('~/models');
+    const { Student, Parent, Branch } = require('~/models');
+    const { Op } = require('sequelize');
 
     // Build where clause using helper
     const whereClause = this.buildWhereClause(filters, user, schoolId);
 
-    // Add school_id filter if provided in filters
-    if (filters.school_id) {
-      whereClause.school_id = filters.school_id;
-    }
-
+    whereClause.status = { [Op.ne]: 'deleted' };
     if (filters.academic_year) whereClause.academic_year = filters.academic_year;
     if (filters.class_name) whereClause.current_class = filters.class_name;
     if (filters.section_name) whereClause.section = filters.section_name;
-    if (filters.status) whereClause.status = filters.status;
+    if (filters.status && filters.status !== 'deleted') whereClause.status = filters.status;
+    if (filters.gender) whereClause.gender = filters.gender;
+    if (filters.class_id) whereClause.class_id = filters.class_id;
+    if (filters.section_id) whereClause.section_id = filters.section_id;
+    if (filters.stream_id) whereClause.stream_id = filters.stream_id;
+    if (filters.category_id) whereClause.category_id = filters.category_id;
+    if (filters.search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${filters.search}%` } },
+        { last_name: { [Op.iLike]: `%${filters.search}%` } },
+        { admission_number: { [Op.iLike]: `%${filters.search}%` } },
+        { email: { [Op.iLike]: `%${filters.search}%` } }
+      ];
+    }
+    await applyEnrollmentFilter(whereClause, filters.enrollment, filters.academic_year);
+    await applySiblingFilter(whereClause, filters.has_siblings);
 
     const students = await Student.findAll({
       where: whereClause,
@@ -508,10 +1199,12 @@ class UnifiedExportService {
           as: 'parents',
           through: { attributes: [] },
           attributes: ['guardian_name', 'guardian_phone', 'guardian_email', 'guardian_relation']
-        }
+        },
+        { model: Branch, as: 'branch', attributes: ['name'] }
       ],
       order: [['created_at', 'DESC']]
     });
+    const invoiceTotals = await getStudentInvoiceTotals(students);
 
     return students.map(student => ({
       admission_number: student.admission_number,
@@ -524,6 +1217,10 @@ class UnifiedExportService {
       branch: student.branch?.name || '',
       status: student.status,
       admission_date: student.admission_date,
+      ...(invoiceTotals.get(`${student.school_id}:${student.id}`) || {
+        total_billed: 0,
+        total_due: 0
+      }),
       guardian_name: student.parents?.[0]?.guardian_name || '',
       guardian_phone: student.parents?.[0]?.guardian_phone || '',
       guardian_email: student.parents?.[0]?.guardian_email || ''
@@ -576,34 +1273,50 @@ class UnifiedExportService {
   async generateExport(reportType, format, data, filters, user, schoolId, customColumns = null) {
     const fileName = this.generateFileName(reportType, format);
 
-    switch (format) {
-      case 'pdf':
-        return await this.generatePDF(reportType, data, filters, fileName, customColumns);
+    if (format === 'print') {
+      return this.generatePrint(reportType, data, filters, fileName, customColumns);
+    }
 
-      case 'excel':
-        return await this.generateExcel(reportType, data, filters, fileName, customColumns);
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'school-erp-export-'));
+    const filePath = path.join(tempDir, fileName);
 
-      case 'csv':
-        return await this.generateCSV(reportType, data, filters, fileName, customColumns);
+    try {
+      let result;
+      switch (format) {
+        case 'pdf':
+          result = await this.generatePDF(reportType, data, filters, filePath, customColumns);
+          break;
 
-      case 'print':
-        return await this.generatePrint(reportType, data, filters, fileName, customColumns);
+        case 'excel':
+          result = await this.generateExcel(reportType, data, filters, filePath, customColumns);
+          break;
 
-      default:
-        throw new Error(`Unsupported format: ${format}`);
+        case 'csv':
+          result = await this.generateCSV(reportType, data, filters, filePath, customColumns);
+          break;
+
+        default:
+          throw new Error(`Unsupported format: ${format}`);
+      }
+
+      return { ...result, tempDir };
+    } catch (error) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+      throw error;
     }
   }
 
   /**
    * Generate PDF export with professional styling
    */
-  async generatePDF(reportType, data, filters, fileName, customColumns = null) {
+  async generatePDF(reportType, data, filters, filePath, customColumns = null) {
+    const fileName = path.basename(filePath);
+    const layout = customColumns?.length > 8 ? 'landscape' : 'portrait';
     const doc = new PDFDocument({
       margin: 50,
       size: 'A4',
-      layout: 'portrait'
+      layout
     });
-    const filePath = path.join(resolveUploadsPath(), fileName);
     const stream = fs.createWriteStream(filePath);
 
     doc.pipe(stream);
@@ -825,7 +1538,7 @@ class UnifiedExportService {
 
       const tableTop = doc.y;
       let currentY = tableTop;
-      const tableWidth = 520; // Increased table width for better column distribution
+      const tableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
       // Calculate optimal column widths based on content type
       const getColumnWidth = columnKey => {
@@ -885,13 +1598,14 @@ class UnifiedExportService {
 
       // Draw data rows
       data.forEach((row, rowIndex) => {
-        if (currentY > 700) {
+        const rowHeight = 20;
+        if (currentY + rowHeight > doc.page.height - doc.page.margins.bottom) {
           doc.addPage();
-          currentY = 50;
+          currentY = doc.page.margins.top;
         }
 
         // Calculate row height based on content - use consistent height for better appearance
-        const rowHeight = 20; // Fixed row height for consistency
+        // Fixed row height for consistency.
 
         // Draw row background
         doc.rect(tableStartX, currentY, tableWidth, rowHeight).fillColor('#ffffff').fill();
@@ -991,6 +1705,7 @@ class UnifiedExportService {
         resolve({
           fileName,
           filePath,
+          tempDir: path.dirname(filePath),
           format: 'pdf',
           contentType: 'application/pdf'
         });
@@ -1005,7 +1720,8 @@ class UnifiedExportService {
   /**
    * Generate Excel export
    */
-  async generateExcel(reportType, data, filters, fileName, customColumns = null) {
+  async generateExcel(reportType, data, filters, filePath, customColumns = null) {
+    const fileName = path.basename(filePath);
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(this.getReportTitle(reportType));
 
@@ -1019,7 +1735,7 @@ class UnifiedExportService {
 
     // Add data rows
     data.forEach(row => {
-      const rowData = columns.map(col => row[col.key] || '');
+      const rowData = columns.map(col => row[col.key] ?? '');
       worksheet.addRow(rowData);
     });
 
@@ -1064,7 +1780,6 @@ class UnifiedExportService {
       column.width = 15;
     });
 
-    const filePath = path.join(resolveUploadsPath(), fileName);
     await workbook.xlsx.writeFile(filePath);
 
     // Validate file was created
@@ -1075,6 +1790,7 @@ class UnifiedExportService {
     return {
       fileName,
       filePath,
+      tempDir: path.dirname(filePath),
       format: 'excel',
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     };
@@ -1083,7 +1799,8 @@ class UnifiedExportService {
   /**
    * Generate CSV export
    */
-  async generateCSV(reportType, data, filters, fileName, customColumns = null) {
+  async generateCSV(reportType, data, filters, filePath, customColumns = null) {
+    const fileName = path.basename(filePath);
     const columns = customColumns;
 
     // Add metadata rows
@@ -1094,12 +1811,16 @@ class UnifiedExportService {
     metadataRows.push(columns.map(col => col.header));
 
     // Add data rows
-    const dataRows = data.map(row => columns.map(col => row[col.key] || ''));
+    const dataRows = data.map(row => columns.map(col => {
+      const value = row[col.key] ?? '';
+      return reportType === 'audit_events' && typeof value === 'string' && /^[=+@\t\r-]/.test(value)
+        ? `'${value}`
+        : value;
+    }));
 
     const allRows = [...metadataRows, ...dataRows];
     const csv = Papa.unparse(allRows, { header: true });
 
-    const filePath = path.join(resolveUploadsPath(), fileName);
     fs.writeFileSync(filePath, csv);
 
     // Validate file was created
@@ -1110,6 +1831,7 @@ class UnifiedExportService {
     return {
       fileName,
       filePath,
+      tempDir: path.dirname(filePath),
       format: 'csv',
       contentType: 'text/csv'
     };
@@ -1132,12 +1854,8 @@ class UnifiedExportService {
       totalRecords: data.length
     };
 
-    const filePath = path.join(resolveUploadsPath(), fileName);
-    fs.writeFileSync(filePath, JSON.stringify(printData, null, 2));
-
     return {
       fileName,
-      filePath,
       format: 'print',
       contentType: 'application/json',
       data: printData
@@ -1252,6 +1970,10 @@ class UnifiedExportService {
     } else if (reportType === 'attendance') {
       summaryLabel = 'TOTAL RECORDS';
       amountLabel = 'TOTAL RECORDS';
+    } else if (reportType === 'transactions') {
+      totalAmount = data.reduce((sum, row) => sum + this.parseAmount(row.amount), 0);
+      summaryLabel = 'TOTAL TRANSACTIONS';
+      amountLabel = 'TOTAL AMOUNT';
     }
 
     return {
@@ -1271,7 +1993,15 @@ class UnifiedExportService {
       receipts: 'Receipts',
       fees: 'Fee Invoices',
       students: 'Students',
-      attendance: 'Attendance'
+      attendance: 'Attendance',
+      library: 'Library Catalog',
+      transactions: 'Accounting Transactions',
+      homeworks: 'Homework Assignments',
+      classwork: 'Classwork & Logbook',
+      gate_passes: 'Gate Pass Register',
+      visitors: 'Visitor Register',
+      admission_enquiries: 'Admission Enquiries',
+      audit_events: 'Audit Trail'
     };
     return titles[reportType] || reportType;
   }

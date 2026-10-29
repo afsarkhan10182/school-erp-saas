@@ -445,9 +445,10 @@ const onClassChange = async () => {
   examsWithResults.value = [];
 
   if (selectedClassId.value) {
+    const selectedClass = classes.value.find(item => item.id === selectedClassId.value);
     await fetchSections({
       schoolId: user.value?.school_id,
-      branchId: selectedBranchId.value || user.value?.branch_id,
+      branchId: selectedBranchId.value || selectedClass?.branch?.id || user.value?.branch_id,
       classId: selectedClassId.value
     });
   }
@@ -541,7 +542,11 @@ const loadResults = async () => {
 
               // Get class name from first result's student (if available)
               const firstResult = results[0];
-              const classInfo = firstResult?.student?.class || exam.class || null;
+              const classInfo =
+                firstResult?.student?.class ||
+                classes.value.find(item => item.id === firstResult?.student?.class_id) ||
+                exam.class ||
+                null;
 
               return {
                 ...exam,
@@ -609,15 +614,12 @@ const handleExportSummary = async () => {
 onMounted(async () => {
   try {
     await loadTerms();
-
-    if (selectedBranchId.value) {
-      await Promise.all([
-        fetchClasses({ branchId: selectedBranchId.value }),
-        loadExams({ branch_id: selectedBranchId.value })
-      ]);
-    } else {
-      await loadExams();
-    }
+    const branchId = selectedBranchId.value;
+    await Promise.all([
+      fetchClasses(branchId ? { branchId } : {}),
+      loadExams(branchId ? { branch_id: branchId } : {})
+    ]);
+    await loadResults();
   } catch (error) {
     // Silent fail
   }

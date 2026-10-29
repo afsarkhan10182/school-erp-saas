@@ -1,29 +1,45 @@
 const { FeeFine } = require('~/models');
+const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
-const { schoolWhere, resolveSchoolBranchScope } = require('~/utils/shared/requestScope');
+const { resolveSchoolBranchScope } = require('~/utils/shared/requestScope');
 
-const list = async (req, res) => {
+const getScope = req => {
+  const isBranchAdmin = req.user?.role === 'branch_admin';
+  if (isBranchAdmin && !req.user.branch_id) {
+    throw new ApiError(403, 'Branch access is not configured for this account');
+  }
+  return resolveSchoolBranchScope(req, {
+    branchRequired: isBranchAdmin,
+    allowSchoolWide: !isBranchAdmin
+  });
+};
+
+const scopedWhere = (scope, extra = {}) => ({
+  ...extra,
+  school_id: scope.school_id,
+  ...(scope.branch_id ? { branch_id: scope.branch_id } : {})
+});
+
+const list = async (req, res, next) => {
   try {
-    const scope = await resolveSchoolBranchScope(req, { allowSchoolWide: true });
-    const where = { school_id: scope.school_id };
-    if (scope.branch_id) where.branch_id = scope.branch_id;
+    const scope = await getScope(req);
     const fines = await FeeFine.findAll({
-      where,
+      where: scopedWhere(scope),
       order: [['name', 'ASC']]
     });
     return res.json({ success: true, data: { fines } });
   } catch (error) {
     logger.error('fee fines list', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return next(error);
   }
 };
 
-const create = async (req, res) => {
+const create = async (req, res, next) => {
   try {
     if (!req.body.name) {
       return res.status(400).json({ success: false, message: 'Name is required' });
     }
-    const scope = await resolveSchoolBranchScope(req, { branchRequired: true });
+    const scope = await getScope(req);
     const fine = await FeeFine.create({
       name: req.body.name,
       fine_type: req.body.fine_type || 'fixed',
@@ -37,14 +53,15 @@ const create = async (req, res) => {
     return res.status(201).json({ success: true, data: { fine } });
   } catch (error) {
     logger.error('fee fines create', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return next(error);
   }
 };
 
-const update = async (req, res) => {
+const update = async (req, res, next) => {
   try {
+    const scope = await getScope(req);
     const fine = await FeeFine.findOne({
-      where: { id: req.params.id, ...schoolWhere(req) }
+      where: scopedWhere(scope, { id: req.params.id })
     });
     if (!fine) return res.status(404).json({ success: false, message: 'Not found' });
     const changes = { ...req.body, updated_by: req.user.id };
@@ -54,21 +71,22 @@ const update = async (req, res) => {
     return res.json({ success: true, data: { fine } });
   } catch (error) {
     logger.error('fee fines update', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return next(error);
   }
 };
 
-const remove = async (req, res) => {
+const remove = async (req, res, next) => {
   try {
+    const scope = await getScope(req);
     const fine = await FeeFine.findOne({
-      where: { id: req.params.id, ...schoolWhere(req) }
+      where: scopedWhere(scope, { id: req.params.id })
     });
     if (!fine) return res.status(404).json({ success: false, message: 'Not found' });
     await fine.destroy();
     return res.json({ success: true, message: 'Deleted' });
   } catch (error) {
     logger.error('fee fines delete', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return next(error);
   }
 };
 

@@ -139,6 +139,10 @@ const ReportTemplate = sequelize => {
       foreignKey: 'template_id',
       as: 'examReports'
     });
+    ReportTemplate.hasMany(models.ReportCardSetup, {
+      foreignKey: 'template_id',
+      as: 'reportCardSetups'
+    });
   };
 
   return ReportTemplate;

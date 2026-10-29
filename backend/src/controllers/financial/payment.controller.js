@@ -11,12 +11,14 @@ const {
 } = require('~/models');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
+const { sequelize } = require('~/config/database');
 const { Op } = require('sequelize');
 const {
   validatePaymentSequence,
   getEarliestPendingMonth
 } = require('~/utils/academic/academicYearUtils');
 const { generateUniqueReceiptNumber, getClassCode } = require('./core.controller');
+const { getPaymentIdempotency, replayPayment } = require('~/utils/financial/paymentIdempotency');
 
 // Calculate late fees based on due date
 const calculateLateFees = async invoice => {
@@ -39,15 +41,24 @@ const calculateLateFees = async invoice => {
 
 // Apply late fees to overdue invoices
 const applyLateFees = async (req, res, next) => {
+  let transaction;
   try {
     const { id } = req.params;
+    const where = {
+      id,
+      school_id: req.schoolId,
+      status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] }
+    };
+    if (req.user.role === 'branch_admin') {
+      if (!req.user.branch_id) throw new ApiError(403, 'Branch access is not configured for this account');
+      where.branch_id = req.user.branch_id;
+    }
 
+    transaction = await sequelize.transaction();
     const invoice = await FeeInvoice.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-        status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] }
-      }
+      where,
+      transaction,
+      lock: { level: transaction.LOCK.UPDATE, of: FeeInvoice }
     });
 
     if (!invoice) {
@@ -72,9 +83,10 @@ const applyLateFees = async (req, res, next) => {
         late_fee_applied_date: new Date(),
         status: 'overdue',
         updated_by: req.user.id
-      });
+      }, { transaction });
+      await transaction.commit();
 
-      logger.info(`Late fee applied: $${lateFeeAmount} to invoice ${invoice.invoice_number}`);
+      logger.info(`Late fee applied: ${lateFeeAmount} to invoice ${invoice.invoice_number}`);
 
       return res.status(200).json({
         success: true,
@@ -89,6 +101,7 @@ const applyLateFees = async (req, res, next) => {
       throw new ApiError(400, 'No late fees applicable for this invoice');
     }
   } catch (error) {
+    if (transaction && !transaction.finished) await transaction.rollback();
     logger.error('Error applying late fees:', error);
     return next(error);
   }
@@ -96,6 +109,7 @@ const applyLateFees = async (req, res, next) => {
 
 // Record payment for an invoice
 const recordPayment = async (req, res, next) => {
+  let transaction;
   try {
     const { id } = req.params;
     const {
@@ -112,10 +126,12 @@ const recordPayment = async (req, res, next) => {
 
     // Support both 'amount' and 'payment_amount' for backward compatibility
     const paymentAmount = amount || payment_amount;
+    const idempotency = getPaymentIdempotency(req);
 
     if (!paymentAmount || paymentAmount <= 0) {
       throw new ApiError(400, 'Valid payment amount is required');
     }
+    transaction = await sequelize.transaction();
 
     // Build where clause based on user role
     const whereClause = {
@@ -130,6 +146,16 @@ const recordPayment = async (req, res, next) => {
 
     const invoice = await FeeInvoice.findOne({
       where: whereClause,
+      transaction,
+      lock: { level: transaction.LOCK.UPDATE, of: FeeInvoice }
+    });
+
+    if (!invoice) {
+      throw new ApiError(404, 'Invoice not found');
+    }
+
+    await invoice.reload({
+      transaction,
       include: [
         {
           model: Student,
@@ -153,8 +179,13 @@ const recordPayment = async (req, res, next) => {
       ]
     });
 
-    if (!invoice) {
-      throw new ApiError(404, 'Invoice not found');
+    if (idempotency) {
+      const existingPayment = await FeePayment.findOne({
+        where: { school_id: req.schoolId, invoice_id: invoice.id, idempotency_key: idempotency.key },
+        transaction
+      });
+      const replay = await replayPayment(existingPayment, idempotency, transaction, res);
+      if (replay) return replay;
     }
 
     if (invoice.status === 'paid') {
@@ -168,7 +199,7 @@ const recordPayment = async (req, res, next) => {
     // Validate payment sequence for monthly payments
     if (invoice.payment_model === 'monthly') {
       // Get school to determine starting month
-      const school = await School.findByPk(req.schoolId);
+      const school = await School.findByPk(req.schoolId, { transaction });
       const startingMonth = school.starting_month || 6; // Default to June
 
       // Get all student invoices for this fee structure and academic year
@@ -183,7 +214,8 @@ const recordPayment = async (req, res, next) => {
         order: [
           ['month', 'ASC'],
           ['year', 'ASC']
-        ]
+        ],
+        transaction
       });
 
       // Validate payment sequence
@@ -232,7 +264,7 @@ const recordPayment = async (req, res, next) => {
     }
 
     // Get school data for receipt generation
-    const school = await School.findByPk(req.schoolId);
+    const school = await School.findByPk(req.schoolId, { transaction });
 
     // Generate unique receipt number for each payment
     // Use the same class code logic as invoice generation to ensure consistency
@@ -255,35 +287,18 @@ const recordPayment = async (req, res, next) => {
         invoiceId: invoice.id,
         schoolId: req.schoolId
       });
-      return res.status(400).json({
-        success: false,
-        message: 'Branch ID is required for receipt generation'
-      });
+      throw new ApiError(400, 'Branch ID is required for receipt generation');
     }
 
-    // Get current academic year (no fallbacks - must be set by super admin)
-    const { getCurrentAcademicYearForSchool } = require('~/utils/academic/academicYearUtils');
-    const currentAcademicYear = await getCurrentAcademicYearForSchool();
-
-    if (!currentAcademicYear) {
-      throw new ApiError(400, 'No current academic year is set. Please contact the administrator.');
-    }
-
-    const academicYear = currentAcademicYear.name;
-
-    // Debug logging
-    logger.info('Payment academic year debug:', {
-      currentAcademicYear: currentAcademicYear.name,
-      invoiceAcademicYear: invoice.academic_year,
-      finalAcademicYear: academicYear,
-      schoolId: req.schoolId
-    });
+    const academicYear = invoice.academic_year;
+    if (!academicYear) throw new ApiError(400, 'Invoice academic year is required for receipt generation');
 
     // Generate unique receipt number for this payment
     const tempReceipt = await generateUniqueReceiptNumber(classCode, {
       school_id: req.schoolId,
       branch_id: branchId,
-      academic_year: academicYear
+      academic_year: academicYear,
+      transaction
     });
     const receiptNumber = tempReceipt.receipt_number;
 
@@ -297,6 +312,10 @@ const recordPayment = async (req, res, next) => {
       payment_method,
       payment_date: payment_date || new Date(),
       transaction_id,
+      ...(idempotency && {
+        idempotency_key: idempotency.key,
+        idempotency_request_hash: idempotency.fingerprint
+      }),
       cheque_number,
       bank_name,
       reference_number,
@@ -308,7 +327,7 @@ const recordPayment = async (req, res, next) => {
       created_by: req.user.id
     };
 
-    const payment = await FeePayment.create(paymentData);
+    const payment = await FeePayment.create(paymentData, { transaction });
 
     // Update invoice with payment FIRST
     const updateData = {
@@ -339,11 +358,26 @@ const recordPayment = async (req, res, next) => {
       }
     }
 
-    await invoice.update(updateData);
+    await invoice.update(updateData, { transaction });
 
     // Generate receipt data AFTER invoice update to get correct remaining balance
     const { generateReceiptData } = require('~/services/financial/receipt.service');
-    const receiptData = await generateReceiptData(payment.id);
+    const receiptData = await generateReceiptData(payment.id, { transaction });
+    const responseData = {
+      payment_id: payment.id,
+      payment_number: payment.payment_number,
+      receipt_number: payment.receipt_number,
+      invoice_id: invoice.id,
+      payment_amount: parseFloat(paymentAmount),
+      new_paid_amount: newPaidAmount,
+      remaining_balance: Math.max(0, parseFloat(invoice.total_amount) - newPaidAmount),
+      status: invoice.status,
+      receipt: receiptData
+    };
+    if (idempotency) {
+      await payment.update({ idempotency_response: responseData }, { transaction });
+    }
+    await transaction.commit();
 
     logger.info(
       `Payment recorded: ${paymentAmount} for invoice ${invoice.invoice_number} (Payment: ${payment.payment_number})`
@@ -352,20 +386,126 @@ const recordPayment = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Payment recorded successfully',
+      data: responseData
+    });
+  } catch (error) {
+    if (transaction && !transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        logger.error('Error rolling back payment transaction:', rollbackError);
+      }
+    }
+    logger.error('Error recording payment:', error);
+    return next(error);
+  }
+};
+
+const reversePayment = async (req, res, next) => {
+  let transaction;
+  try {
+    if (!['super_admin', 'admin'].includes(req.user.role)) {
+      throw new ApiError(403, 'Only a school administrator can reverse a payment');
+    }
+
+    const reason = typeof req.body.reason === 'string' ? req.body.reason.trim() : '';
+    if (!reason) throw new ApiError(400, 'A reason is required to reverse a payment');
+    if (reason.length > 500) throw new ApiError(400, 'Reversal reason must be 500 characters or fewer');
+
+    transaction = await sequelize.transaction();
+    const payment = await FeePayment.findOne({
+      where: { id: req.params.paymentId, school_id: req.schoolId },
+      transaction,
+      lock: { level: transaction.LOCK.UPDATE, of: FeePayment }
+    });
+    if (!payment) throw new ApiError(404, 'Payment not found');
+    if (payment.payment_status !== 'completed') {
+      throw new ApiError(409, 'Only completed payments can be reversed');
+    }
+    if (!payment.invoice_id) throw new ApiError(409, 'This payment is not linked to an invoice');
+
+    const invoice = await FeeInvoice.findOne({
+      where: { id: payment.invoice_id, school_id: req.schoolId },
+      transaction,
+      lock: { level: transaction.LOCK.UPDATE, of: FeeInvoice }
+    });
+    if (!invoice) throw new ApiError(404, 'Payment invoice not found');
+
+    const paidBefore = Number(invoice.paid_amount || 0);
+    const paymentAmount = Number(payment.payment_amount);
+    if (paymentAmount > paidBefore + 0.001) {
+      throw new ApiError(409, 'Invoice balance does not match this payment; reversal was not applied');
+    }
+
+    const paidAfter = Math.max(0, Math.round((paidBefore - paymentAmount) * 100) / 100);
+    const total = Number(invoice.total_amount || 0);
+    const balanceAfter = Math.max(0, Math.round((total - paidAfter) * 100) / 100);
+    const lastPayment = await FeePayment.findOne({
+      where: {
+        invoice_id: invoice.id,
+        school_id: req.schoolId,
+        payment_status: 'completed',
+        id: { [Op.ne]: payment.id }
+      },
+      attributes: ['payment_date', 'payment_method', 'transaction_id', 'receipt_number'],
+      order: [['payment_date', 'DESC'], ['created_at', 'DESC']],
+      transaction
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = invoice.due_date ? new Date(`${invoice.due_date}T00:00:00`) : null;
+    const overdue = dueDate && dueDate < today;
+    const nextInvoiceStatus = invoice.status === 'cancelled'
+      ? 'cancelled'
+      : paidAfter > 0
+        ? 'partial_paid'
+        : overdue
+          ? 'overdue'
+          : 'sent';
+
+    await payment.update({
+      payment_status: 'reversed',
+      reversed_at: new Date(),
+      reversal_reason: reason,
+      reversed_by: req.user.id,
+      updated_by: req.user.id
+    }, { transaction });
+    await invoice.update({
+      paid_amount: paidAfter,
+      balance_amount: balanceAfter,
+      status: nextInvoiceStatus,
+      payment_status: paidAfter > 0 ? 'partial' : overdue ? 'overdue' : 'pending',
+      last_payment_date: lastPayment?.payment_date || null,
+      payment_method: lastPayment?.payment_method || null,
+      transaction_id: lastPayment?.transaction_id || null,
+      receipt_number: lastPayment?.receipt_number || (invoice.receipt_number === payment.receipt_number ? null : invoice.receipt_number),
+      updated_by: req.user.id
+    }, { transaction });
+
+    await transaction.commit();
+    return res.status(200).json({
+      success: true,
+      message: 'Payment reversed; its original receipt remains in the audit history',
       data: {
         payment_id: payment.id,
-        payment_number: payment.payment_number,
-        receipt_number: payment.receipt_number,
+        payment_status: 'reversed',
+        reversed_at: payment.reversed_at,
+        reversal_reason: reason,
         invoice_id: invoice.id,
-        payment_amount: parseFloat(paymentAmount),
-        new_paid_amount: newPaidAmount,
-        remaining_balance: Math.max(0, parseFloat(invoice.total_amount) - newPaidAmount),
-        status: invoice.status,
-        receipt: receiptData
+        paid_amount: paidAfter,
+        balance_amount: balanceAfter,
+        invoice_status: nextInvoiceStatus
       }
     });
   } catch (error) {
-    logger.error('Error recording payment:', error);
+    if (transaction && !transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        logger.error('Error rolling back payment reversal:', rollbackError);
+      }
+    }
     return next(error);
   }
 };
@@ -515,7 +655,10 @@ const getPaymentReceipt = async (req, res, next) => {
       success: true,
       data: {
         receipt_number: payment.receipt_number,
-        receipt_data: payment.receipt_data
+        receipt_data: payment.receipt_data,
+        payment_status: payment.payment_status,
+        reversal_reason: payment.reversal_reason,
+        reversed_at: payment.reversed_at
       }
     });
   } catch (error) {
@@ -703,6 +846,7 @@ module.exports = {
   calculateLateFees,
   applyLateFees,
   recordPayment,
+  reversePayment,
   getInvoicePayments,
   getPaymentById,
   getPaymentReceipt,

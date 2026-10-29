@@ -1,12 +1,17 @@
 import { ref, computed } from 'vue';
-import { examPositionsApi } from '~/api/academic/exam-positions';
+import {
+  examPositionsApi,
+  type CalculatePositionsData,
+  type SavePositionsData,
+  type StudentForPosition
+} from '~/api/academic/exam-positions';
 
 export const useExamPositions = () => {
-  const examPositions = ref([]);
+  const examPositions = ref<StudentForPosition[]>([]);
   const loading = ref(false);
   const calculating = ref(false);
   const saving = ref(false);
-  const error = ref(null);
+  const error = ref<string | null>(null);
 
   // Get students for positions
   const getStudentsForPositions = async (params: {
@@ -30,14 +35,7 @@ export const useExamPositions = () => {
   };
 
   // Calculate positions for an exam
-  const calculatePositions = async (data: {
-    exam_id: string;
-    class_id: string;
-    calculation_method: string;
-    tie_breaking_method: string;
-    include_absent: boolean;
-    section_id?: string;
-  }) => {
+  const calculatePositions = async (data: CalculatePositionsData) => {
     try {
       calculating.value = true;
       error.value = null;
@@ -52,16 +50,7 @@ export const useExamPositions = () => {
   };
 
   // Save positions
-  const savePositions = async (data: {
-    exam_id: string;
-    class_id: string;
-    positions: Array<{
-      student_id: string;
-      position: number;
-      teacher_comment?: string;
-      principal_comment?: string;
-    }>;
-  }) => {
+  const savePositions = async (data: SavePositionsData) => {
     try {
       saving.value = true;
       error.value = null;
@@ -76,14 +65,14 @@ export const useExamPositions = () => {
   };
 
   // Get position statistics
-  const getPositionStats = async (examId, classId) => {
+  const getPositionStats = async (examId: string, classId: string) => {
     try {
       loading.value = true;
       error.value = null;
       const response = await examPositionsApi.getStats(examId, classId);
       return response;
-    } catch (err) {
-      error.value = err.message;
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : String(err);
       throw err;
     } finally {
       loading.value = false;

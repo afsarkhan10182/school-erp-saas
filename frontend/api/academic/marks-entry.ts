@@ -32,7 +32,7 @@ export interface MarksEntryFilters {
   exam_id: string;
   class_id: string;
   section_id?: string;
-  subject_id?: string;
+  subject_id: string;
   school_id?: string;
   branch_id?: string;
 }
@@ -48,6 +48,10 @@ export interface StudentMarksData {
 
 export interface SaveMarksData {
   exam_id: string;
+  class_id: string;
+  section_id?: string;
+  subject_id: string;
+  branch_id: string;
   marks_data: StudentMarksData[];
 }
 
@@ -56,6 +60,15 @@ export interface MarksEntrySummary {
   marks_entered: number;
   absent_students: number;
   pending: number;
+}
+
+export interface SubjectMarksImportRecord {
+  student_id: string;
+  theory_marks_obtained: number;
+  practical_marks_obtained: number;
+  viva_marks_obtained: number;
+  assignment_marks_obtained: number;
+  is_absent: boolean;
 }
 
 export const marksEntryApi = {
@@ -72,5 +85,20 @@ export const marksEntryApi = {
   // Get marks entry summary
   getSummary: async (filters: MarksEntryFilters) => {
     return apiCall('get', '/marks-entry/summary', { params: filters });
+  },
+
+  previewImport: async (filters: MarksEntryFilters, file: File) => {
+    const formData = new FormData();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) formData.append(key, value);
+    });
+    formData.append('file', file);
+    const api = createApiInstance();
+    return api.post('/marks-entry/import-preview', formData);
+  },
+
+  downloadImportTemplate: async (filters: MarksEntryFilters) => {
+    const api = createApiInstance();
+    return api.get('/marks-entry/import-template', { params: filters, responseType: 'blob' });
   }
 };

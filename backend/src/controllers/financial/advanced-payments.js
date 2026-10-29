@@ -7,12 +7,14 @@ const {
   School,
   FeePayment,
   Branch,
-  Class
+  Class,
+  sequelize
 } = require('~/models');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
 const { generateUniqueReceiptNumber, getClassCode } = require('./core.controller');
+const { getPaymentIdempotency, replayPayment } = require('~/utils/financial/paymentIdempotency');
 
 // Helper function to get student full name
 const getStudentFullName = student => {
@@ -142,8 +144,9 @@ const getBreakdown = async (req, res, next) => {
 
 // Record flexible installment payment
 const recordFlexibleInstallmentPayment = async (req, res, next) => {
+  let transaction;
   try {
-    const { id } = req.params;
+    const id = req.params.id || req.body.invoice_id;
     const {
       payment_amount,
       payment_method = 'cash',
@@ -152,16 +155,18 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       installment_number,
       notes
     } = req.body;
+    const idempotency = getPaymentIdempotency(req);
 
     if (!payment_amount || payment_amount <= 0) {
       throw new ApiError(400, 'Valid payment amount is required');
     }
 
+    transaction = await sequelize.transaction();
+    const where = { id, school_id: req.schoolId };
+    if (req.user.role === 'branch_admin') where.branch_id = req.user.branch_id;
+
     const invoice = await FeeInvoice.findOne({
-      where: {
-        id,
-        school_id: req.schoolId
-      },
+      where,
       include: [
         {
           model: Student,
@@ -182,11 +187,22 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
             }
           ]
         }
-      ]
+      ],
+      transaction,
+      lock: { level: transaction.LOCK.UPDATE, of: FeeInvoice }
     });
 
     if (!invoice) {
       throw new ApiError(404, 'Invoice not found');
+    }
+
+    if (idempotency) {
+      const existingPayment = await FeePayment.findOne({
+        where: { school_id: req.schoolId, invoice_id: invoice.id, idempotency_key: idempotency.key },
+        transaction
+      });
+      const replay = await replayPayment(existingPayment, idempotency, transaction, res);
+      if (replay) return replay;
     }
 
     if (invoice.status === 'paid') {
@@ -205,7 +221,7 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
     }
 
     // Get school data for receipt generation
-    const school = await School.findByPk(req.schoolId);
+    const school = await School.findByPk(req.schoolId, { transaction });
 
     // Generate unique receipt number for this payment
     // Use the same class code logic as invoice generation to ensure consistency
@@ -238,7 +254,8 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
     const tempReceipt = await generateUniqueReceiptNumber(classCode, {
       school_id: req.schoolId,
       branch_id: branchId,
-      academic_year: academicYear
+      academic_year: academicYear,
+      transaction
     });
     const receiptNumber = tempReceipt.receipt_number;
 
@@ -252,6 +269,10 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       payment_method,
       payment_date: payment_date || new Date(),
       transaction_id,
+      ...(idempotency && {
+        idempotency_key: idempotency.key,
+        idempotency_request_hash: idempotency.fingerprint
+      }),
       payment_status: 'completed',
       receipt_data: {
         receipt_number: receiptNumber,
@@ -275,7 +296,7 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       created_by: req.user.id
     };
 
-    const payment = await FeePayment.create(paymentData);
+    const payment = await FeePayment.create(paymentData, { transaction });
 
     // Update invoice
     const newStatus = newPaidAmount >= totalAmount ? 'paid' : 'partial_paid';
@@ -285,7 +306,22 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       last_payment_date: payment_date || new Date(),
       status: newStatus,
       updated_by: req.user.id
-    });
+    }, { transaction });
+
+    const responseData = {
+      payment_id: payment.id,
+      payment_number: payment.payment_number,
+      receipt_number: payment.receipt_number,
+      invoice_id: invoice.id,
+      payment_amount: parseFloat(payment_amount),
+      new_paid_amount: newPaidAmount,
+      remaining_balance: Math.max(0, totalAmount - newPaidAmount),
+      status: newStatus,
+      installment_number: installment_number || 'Flexible',
+      receipt: { receipt_number: payment.receipt_number }
+    };
+    if (idempotency) await payment.update({ idempotency_response: responseData }, { transaction });
+    await transaction.commit();
 
     logger.info(
       `Flexible installment payment recorded: ${payment_amount} for invoice ${invoice.invoice_number} (Payment: ${payment.payment_number})`
@@ -294,22 +330,16 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Flexible installment payment recorded successfully',
-      data: {
-        payment_id: payment.id,
-        payment_number: payment.payment_number,
-        receipt_number: payment.receipt_number,
-        invoice_id: invoice.id,
-        payment_amount: parseFloat(payment_amount),
-        new_paid_amount: newPaidAmount,
-        remaining_balance: Math.max(0, totalAmount - newPaidAmount),
-        status: newStatus,
-        installment_number: installment_number || 'Flexible',
-        receipt: {
-          receipt_number: payment.receipt_number
-        }
-      }
+      data: responseData
     });
   } catch (error) {
+    if (transaction && !transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        logger.error('Error rolling back flexible installment payment:', rollbackError);
+      }
+    }
     logger.error('Error recording flexible installment payment:', error);
     return next(error);
   }

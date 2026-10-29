@@ -1,4 +1,12 @@
 import { createApiInstance, apiCall } from '~/utils/api';
+import { useAuthStore } from '~/stores/auth';
+
+const systemSettingsParams = () => {
+  const authStore = useAuthStore();
+  return authStore.isSuperAdmin && authStore.currentSchool?.id
+    ? { school_id: authStore.currentSchool.id }
+    : {};
+};
 
 export interface SchoolSettings {
   schoolInfo: any;
@@ -46,7 +54,11 @@ export const Settings = {
 
   // Fee settings
   getFeeSettings: async () => {
-    return apiCall('get', '/settings/fee');
+    return apiCall('get', '/settings/fee', { params: systemSettingsParams() });
+  },
+
+  updateFeeSettings: async (feeSettings: any) => {
+    return apiCall('put', '/settings/fee', { feeSettings, ...systemSettingsParams() });
   },
 
   // Branding settings
@@ -66,12 +78,24 @@ export const Settings = {
 
   // System settings
   getSystemSettings: async () => {
-    return apiCall('get', '/settings/system');
+    return apiCall('get', '/settings/system', { params: systemSettingsParams() });
   },
 
   updateSystemSettings: async (data: any) => {
-    return apiCall('put', '/settings/system', data);
+    return apiCall('put', '/settings/system', { ...data, ...systemSettingsParams() });
   },
+
+  getSystemSettingsHistory: (params: Record<string, string | number> = {}) =>
+    apiCall('get', '/settings/history', { params: { ...systemSettingsParams(), ...params } }),
+
+  getSystemSettingsHistoryEntry: (id: string) =>
+    apiCall('get', `/settings/history/${encodeURIComponent(id)}`, { params: systemSettingsParams() }),
+
+  restoreSystemSettingsHistory: (id: string, fields: string[]) =>
+    apiCall('post', `/settings/history/${encodeURIComponent(id)}/undo`, {
+      fields,
+      ...systemSettingsParams()
+    }),
 
   // Config export
   exportConfig: async () => {

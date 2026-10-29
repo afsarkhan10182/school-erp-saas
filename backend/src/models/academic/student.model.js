@@ -3,6 +3,37 @@ const { sequelize } = require('~/config/database');
 const { logger } = require('~/utils/shared/logger');
 const ApiError = require('~/utils/shared/ApiError');
 
+const validateStudentSubscriptionCapacity = async (schoolId, pendingStudents = 0) => {
+  const School = require('../administration/school.model');
+  const SubscriptionPlan = require('../administration/subscription-plan.model');
+  const school = await School.findByPk(schoolId);
+  if (!school) return;
+
+  const plan = school.subscription_plan
+    ? await SubscriptionPlan.findOne({
+        where: { code: school.subscription_plan, is_active: true }
+      })
+    : null;
+  if (!plan) {
+    throw new Error('Invalid subscription plan configuration. Please contact support.');
+  }
+
+  const maxStudents = plan.max_students || plan.maxStudents || 50;
+  if (maxStudents !== -1) {
+    const studentCount = await Student.count({
+      where: {
+        school_id: schoolId,
+        status: { [require('sequelize').Op.ne]: 'deleted' }
+      }
+    });
+    if (studentCount + pendingStudents >= maxStudents) {
+      throw new Error(
+        `Student limit reached. Maximum ${maxStudents} students allowed in your current plan. Please upgrade to add more students.`
+      );
+    }
+  }
+};
+
 const Student = sequelize.define(
   'Student',
   {
@@ -148,14 +179,14 @@ const Student = sequelize.define(
       defaultValue: DataTypes.NOW
     },
     admission_class: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.STRING(50),
       allowNull: false,
       validate: {
         notEmpty: { msg: 'Admission class is required' }
       }
     },
     current_class: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.STRING(50),
       allowNull: false,
       validate: {
         notEmpty: { msg: 'Current class is required' }
@@ -295,41 +326,7 @@ const Student = sequelize.define(
     ],
     hooks: {
       beforeCreate: async student => {
-        // Check subscription limits
-        const School = require('../administration/school.model');
-        const SubscriptionPlan = require('../administration/subscription-plan.model');
-        const school = await School.findByPk(student.school_id);
-        if (school) {
-          // Plans and limits must come from DB; in dev, allow a temporary fallback for local testing
-          let plan = null;
-          if (school.subscription_plan) {
-            plan = await SubscriptionPlan.findOne({
-              where: { code: school.subscription_plan, is_active: true }
-            });
-          }
-
-          if (!plan) {
-            throw new Error('Invalid subscription plan configuration. Please contact support.');
-          }
-
-          if (plan) {
-            const maxStudents = plan.max_students || plan.maxStudents || 50;
-            if (maxStudents !== -1) {
-              const studentCount = await Student.count({
-                where: {
-                  school_id: student.school_id,
-                  status: { [require('sequelize').Op.ne]: 'deleted' }
-                }
-              });
-
-              if (studentCount >= maxStudents) {
-                throw new Error(
-                  `Student limit reached. Maximum ${maxStudents} students allowed in your current plan. Please upgrade to add more students.`
-                );
-              }
-            }
-          }
-        }
+        await validateStudentSubscriptionCapacity(student.school_id);
 
         // Generate admission number if not provided
         if (!student.admission_number) {
@@ -346,6 +343,8 @@ const Student = sequelize.define(
     }
   }
 );
+
+Student.validateSubscriptionCapacity = validateStudentSubscriptionCapacity;
 
 // Define associations
 Student.associate = models => {

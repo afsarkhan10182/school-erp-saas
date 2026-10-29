@@ -24,7 +24,7 @@
 
         <div class="flex flex-wrap items-end gap-3">
           <!-- Class Selector -->
-          <div class="flex-1 min-w-[150px]">
+          <div v-if="hasClassFilter" class="flex-1 min-w-[150px]">
             <label
               class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5"
             >
@@ -40,7 +40,7 @@
           </div>
 
           <!-- Section Selector -->
-          <div v-if="selectedClassId" class="flex-1 min-w-[140px]">
+          <div v-if="hasClassFilter && selectedClassId" class="flex-1 min-w-[140px]">
             <label
               class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5"
             >
@@ -67,7 +67,114 @@
           </div>
         </div>
       </div>
+    </div>
 
+    <div v-if="['visitor', 'enquiry'].includes(props.entityKey)" class="max-w-md">
+      <label :for="`${props.entityKey}-search`" class="sr-only">Search {{ entity.title }}</label>
+      <input
+        :id="`${props.entityKey}-search`"
+        v-model="searchTerm"
+        type="search"
+        :placeholder="props.entityKey === 'visitor' ? 'Search visitor name, phone, or purpose' : 'Search student, parent, phone, or follow-up'"
+        class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+      />
+    </div>
+
+    <div v-if="props.entityKey === 'visitor'" class="flex flex-wrap items-center gap-2">
+      <div class="relative">
+        <button
+          type="button"
+          aria-label="Visitor list columns"
+          :aria-expanded="showVisitorColumns"
+          class="rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 dark:border-gray-600 dark:text-gray-200"
+          @click="showVisitorColumns = !showVisitorColumns"
+        >
+          Columns
+        </button>
+        <div
+          v-if="showVisitorColumns"
+          class="absolute left-0 z-20 mt-2 max-h-72 w-56 overflow-y-auto rounded-md border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-600 dark:bg-gray-800"
+        >
+          <div class="mb-2 flex justify-between text-xs">
+            <button
+              type="button"
+              class="text-indigo-600 hover:underline"
+              @click="setVisitorColumns(true)"
+            >
+              Select all
+            </button>
+            <button
+              type="button"
+              class="text-indigo-600 hover:underline"
+              @click="setVisitorColumns(false)"
+            >
+              Reset
+            </button>
+          </div>
+          <label
+            v-for="column in visitorColumns"
+            :key="column.key"
+            class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-200"
+          >
+            <input
+              v-model="column.visible"
+              type="checkbox"
+              :disabled="column.visible && visibleColumns.length === 1"
+            />
+            {{ column.label }}
+          </label>
+        </div>
+      </div>
+      <button
+        v-for="format in ['csv', 'excel', 'pdf']"
+        :key="format"
+        type="button"
+        class="rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200"
+        :disabled="!pagination.total || isGenerating"
+        @click="exportVisitors(format)"
+      >
+        {{ isGenerating ? 'Preparing…' : format.toUpperCase() }}
+      </button>
+      <button
+        type="button"
+        class="rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200"
+        :disabled="!pagination.total || isPrinting"
+        @click="printVisitors"
+      >
+        {{ isPrinting ? 'Preparing…' : 'Print' }}
+      </button>
+    </div>
+
+    <div v-if="props.entityKey === 'enquiry'" class="flex flex-wrap items-center gap-2">
+      <div class="relative">
+        <button
+          type="button"
+          aria-label="Admission enquiry list columns"
+          :aria-expanded="showEnquiryColumns"
+          class="rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 dark:border-gray-600 dark:text-gray-200"
+          @click="showEnquiryColumns = !showEnquiryColumns"
+        >Columns</button>
+        <div v-if="showEnquiryColumns" class="absolute left-0 z-20 mt-2 max-h-72 w-56 overflow-y-auto rounded-md border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-600 dark:bg-gray-800">
+          <label v-for="column in enquiryColumns" :key="column.key" class="flex items-center gap-2 py-1 text-sm text-gray-700 dark:text-gray-200">
+            <input v-model="column.visible" type="checkbox" :disabled="column.visible && visibleColumns.length === 1" />
+            {{ column.label }}
+          </label>
+        </div>
+      </div>
+      <button
+        v-for="format in ['csv', 'excel', 'pdf']"
+        :key="format"
+        type="button"
+        class="rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200"
+        :disabled="!pagination.total || isGenerating"
+        @click="exportEnquiries(format)"
+      >{{ isGenerating ? 'Preparing…' : format.toUpperCase() }}</button>
+      <button
+        type="button"
+        class="rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200"
+        :disabled="!pagination.total || isPrinting"
+        @click="printEnquiries"
+      >{{ isPrinting ? 'Preparing…' : 'Print' }}</button>
     </div>
 
     <!-- Error Alert -->
@@ -89,6 +196,12 @@
     <div
       class="bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 shadow-sm rounded-2xl overflow-hidden"
     >
+      <p
+        v-if="!loading && items.length > 0"
+        class="px-4 pt-3 pb-1 text-xs text-gray-500 dark:text-gray-400 sm:hidden"
+      >
+        Swipe the table horizontally to review every field and its actions.
+      </p>
       <div
         v-if="loading"
         class="p-12 text-center text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-3"
@@ -102,7 +215,7 @@
           <thead class="bg-gray-50/80 dark:bg-gray-800">
             <tr>
               <th
-                v-for="col in entity.columns"
+                v-for="col in visibleColumns"
                 :key="col.key"
                 class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 min-w-[140px]"
               >
@@ -122,7 +235,7 @@
               class="hover:bg-gray-50/60 dark:hover:bg-gray-700/40 transition-colors"
             >
               <td
-                v-for="col in entity.columns"
+                v-for="col in visibleColumns"
                 :key="col.key"
                 class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100"
               >
@@ -138,15 +251,20 @@
                   <Pencil class="w-3.5 h-3.5" />
                   Edit
                 </button>
-                <button
-                  v-for="action in entity.actions || []"
-                  :key="action.id"
-                  v-if="props.entityKey !== 'admission_application' || !item.status || item.status === 'pending'"
-                  class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors border border-indigo-200 dark:border-indigo-900/50"
-                  @click="runAction(item.id, action.id)"
-                >
-                  {{ action.label }}
-                </button>
+                <template v-for="action in entity.actions || []" :key="action.id">
+                  <button
+                    v-if="
+                      (props.entityKey !== 'admission_application' ||
+                        !item.status ||
+                        item.status === 'pending') &&
+                      (action.id !== 'checkout' || item.status !== 'exited')
+                    "
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors border border-indigo-200 dark:border-indigo-900/50"
+                    @click="runAction(item.id, action.id)"
+                  >
+                    {{ action.label }}
+                  </button>
+                </template>
                 <button
                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition-colors border border-red-200 dark:border-red-900/50"
                   @click="openDelete(item.id)"
@@ -165,8 +283,21 @@
           >
             <Layers class="w-6 h-6" />
           </div>
-          <p class="text-sm font-medium text-gray-600 dark:text-gray-400">No records found</p>
-          <p class="text-xs text-gray-500 dark:text-gray-500">
+          <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {{ searchTerm.trim() ? 'No records match your search' : 'No records found' }}
+          </p>
+          <p v-if="searchTerm.trim()" class="text-xs text-gray-500 dark:text-gray-500">
+            Try a different search or clear the current filter.
+          </p>
+          <button
+            v-if="searchTerm.trim()"
+            type="button"
+            class="text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
+            @click="searchTerm = ''"
+          >
+            Clear search
+          </button>
+          <p v-else class="text-xs text-gray-500 dark:text-gray-500">
             Click the button above to add your first record.
           </p>
         </div>
@@ -202,18 +333,23 @@
           </button>
         </div>
 
-        <div v-for="field in entity.fields" :key="field.key" class="mb-4">
+        <div
+          v-for="field in entity.fields"
+          v-show="fieldVisible(field)"
+          :key="field.key"
+          class="mb-4"
+        >
           <label
             class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
           >
-            {{ field.label }} <span v-if="field.required" class="text-red-500">*</span>
+            {{ field.label }} <span v-if="fieldRequired(field)" class="text-red-500">*</span>
           </label>
 
           <!-- Textarea Field -->
           <textarea
             v-if="field.type === 'textarea'"
             v-model="form[field.key]"
-            :required="field.required"
+            :required="fieldRequired(field)"
             rows="3"
             class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
           />
@@ -224,7 +360,7 @@
             v-model="form[field.key]"
             :options="fieldOptions(field)"
             :placeholder="`Select ${field.label}`"
-            :required="field.required"
+            :required="fieldRequired(field)"
             :id="`${props.entityKey}-${field.key}`"
             class="w-full"
           />
@@ -245,7 +381,7 @@
             v-else
             v-model="form[field.key]"
             :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'"
-            :required="field.required"
+            :required="fieldRequired(field)"
             class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
           />
         </div>
@@ -269,7 +405,9 @@
 
     <Modal :show="Boolean(pendingDeleteId)" size="sm" @close="pendingDeleteId = null">
       <template #header>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Delete {{ entity.title }}?</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Delete {{ entity.title }}?
+        </h2>
       </template>
       <template #body>
         <p class="text-sm text-gray-600 dark:text-gray-300">
@@ -300,7 +438,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { MODULE_ENTITY_DEFINITIONS, type EntityField } from '~/config/entity-definitions';
+import { hasClassLookup } from '~/utils/hasClassLookup';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { Students } from '~/api/students';
 import { Classes } from '~/api/academic/classes';
@@ -313,12 +453,18 @@ import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 import { Plus, Pencil, Trash2, RefreshCw, Layers } from 'lucide-vue-next';
+import { useExportService } from '~/composables/useExportService';
+import { usePrintReport } from '~/composables/usePrintReport';
+import { Export } from '~/api/shared/export';
 
 const props = defineProps<{ entityKey: string }>();
 const { showToast } = useToast();
+const { generateReport, isGenerating } = useExportService();
+const { printReport, openPrintWindow } = usePrintReport();
 const { user } = useAuth();
 const { selectedBranchId, currentSchool, isSuperAdmin } = useGlobalBranch();
 const entity = computed(() => MODULE_ENTITY_DEFINITIONS[props.entityKey]);
+const hasClassFilter = computed(() => hasClassLookup(entity.value));
 const items = ref<any[]>([]);
 const loading = ref(false);
 const errorMessage = ref('');
@@ -327,8 +473,41 @@ const editingId = ref<string | null>(null);
 const pendingDeleteId = ref<string | null>(null);
 const page = ref(1);
 const pageSize = ref(10);
+const searchTerm = ref('');
+const showVisitorColumns = ref(false);
+const showEnquiryColumns = ref(false);
+const isPrinting = ref(false);
+const visitorColumns = ref([
+  { key: 'visitor_name', label: 'Visitor Name', visible: true },
+  { key: 'phone', label: 'Phone', visible: true },
+  { key: 'purpose', label: 'Purpose', visible: true },
+  { key: 'in_time', label: 'In-Time', visible: true },
+  { key: 'out_time', label: 'Out-Time', visible: true },
+  { key: 'status', label: 'Status', visible: true }
+]);
+const enquiryColumns = ref([
+  { key: 'student_name', label: 'Student Name', visible: true },
+  { key: 'parent_name', label: 'Parent Name', visible: true },
+  { key: 'phone', label: 'Phone', visible: true },
+  { key: 'enquiry_date', label: 'Enquiry Date', visible: true },
+  { key: 'interested_class', label: 'Interested Class', visible: true },
+  { key: 'follow_up', label: 'Follow-up', visible: true },
+  { key: 'status', label: 'Status', visible: true }
+]);
+const visibleColumns = computed(() =>
+  props.entityKey === 'visitor'
+    ? visitorColumns.value.filter(column => column.visible)
+    : props.entityKey === 'enquiry'
+      ? enquiryColumns.value.filter(column => column.visible)
+      : entity.value?.columns || []
+);
 const pagination = reactive({ page: 1, limit: 10, total: 0, totalPages: 1 });
 const form = reactive<Record<string, any>>({});
+const fieldVisible = (field: EntityField) =>
+  !field.visibleWhen || form[field.visibleWhen.key] === field.visibleWhen.value;
+const fieldRequired = (field: EntityField) =>
+  !!field.required ||
+  (!!field.requiredWhen && form[field.requiredWhen.key] === field.requiredWhen.value);
 const classOptions = ref<Array<{ label: string; value: string }>>([]);
 const sectionOptions = ref<Array<{ label: string; value: string }>>([]);
 const selectedClassId = ref('');
@@ -346,7 +525,39 @@ const display = (item: any, key: string) => {
     return `${item.student.first_name} ${item.student.last_name || ''}`.trim();
   }
   if (key === 'class' && item.class) return item.class.name;
-  const value = item[key];
+  const visitorValues: Record<string, string> = {
+    visitor_name: 'title',
+    phone: 'reference_no',
+    purpose: 'notes',
+    in_time: 'createdAt',
+    out_time: 'exit_time'
+  };
+  const enquiryValues: Record<string, unknown> = {
+    student_name: item.title,
+    parent_name: item.parent_name,
+    phone: item.reference_no,
+    enquiry_date: item.date_value || item.created_at || item.createdAt,
+    interested_class: item.class?.name || item.class_id_label || '',
+    follow_up: item.notes
+  };
+  const value =
+    props.entityKey === 'visitor' && key === 'in_time'
+      ? item.createdAt || item.created_at
+      : props.entityKey === 'enquiry'
+        ? enquiryValues[key] ?? item[key]
+        : item[props.entityKey === 'visitor' ? visitorValues[key] || key : key];
+  if (
+    props.entityKey === 'visitor' &&
+    ['createdAt', 'exit_time', 'in_time', 'out_time'].includes(key) &&
+    value
+  ) {
+    const timestamp = new Date(value);
+    return Number.isNaN(timestamp.getTime()) ? '—' : timestamp.toLocaleString();
+  }
+  if (props.entityKey === 'enquiry' && key === 'enquiry_date' && value) {
+    const timestamp = new Date(String(value));
+    return Number.isNaN(timestamp.getTime()) ? '—' : timestamp.toLocaleDateString();
+  }
   if (value && typeof value === 'object') return value.name || value.email || '';
   return value ?? '—';
 };
@@ -377,8 +588,7 @@ const loadLookups = async () => {
       })
     );
 
-    // Fetch class list for header filter and field options (scoped to selected branch/school)
-    await loadClassesForBranch();
+    if (hasClassFilter.value) await loadClassesForBranch();
 
     if (needs.includes('students')) {
       const res: any = await Students.getAll({ limit: 200 });
@@ -413,6 +623,10 @@ const loadLookups = async () => {
 };
 
 const loadClassesForBranch = async () => {
+  if (!hasClassFilter.value) {
+    classOptions.value = [];
+    return;
+  }
   try {
     const params = new URLSearchParams();
     if (selectedSchoolId.value) params.set('school_id', selectedSchoolId.value);
@@ -457,16 +671,22 @@ const load = async () => {
   try {
     const res: any = await DynamicEntities.list(props.entityKey, {
       ...scopeParams.value,
+      ...(['visitor', 'enquiry'].includes(props.entityKey) && searchTerm.value.trim()
+        ? { search: searchTerm.value.trim() }
+        : {}),
       page: page.value,
       limit: pageSize.value
     });
     items.value = extractList(res, ['records']);
-    Object.assign(pagination, res?.data?.pagination || {
-      page: page.value,
-      limit: pageSize.value,
-      total: items.value.length,
-      totalPages: 1
-    });
+    Object.assign(
+      pagination,
+      res?.data?.pagination || {
+        page: page.value,
+        limit: pageSize.value,
+        total: items.value.length,
+        totalPages: 1
+      }
+    );
   } catch (error: any) {
     errorMessage.value = errText(error);
     items.value = [];
@@ -478,11 +698,139 @@ const load = async () => {
 const scopeParams = computed(() => ({
   ...(isSuperAdmin.value && selectedSchoolId.value ? { school_id: selectedSchoolId.value } : {}),
   ...(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {}),
-  ...(selectedClassId.value ? { class_id: selectedClassId.value } : {}),
-  ...(selectedSectionId.value ? { section_id: selectedSectionId.value } : {})
+  ...(hasClassFilter.value && selectedClassId.value ? { class_id: selectedClassId.value } : {}),
+  ...(hasClassFilter.value && selectedSectionId.value
+    ? { section_id: selectedSectionId.value }
+    : {})
 }));
 
 watch([page, pageSize], () => load());
+const searchVisitors = useDebounceFn(() => {
+  page.value = 1;
+  load();
+}, 300);
+watch(searchTerm, () => {
+  if (['visitor', 'enquiry'].includes(props.entityKey)) searchVisitors();
+});
+
+const visitorExportOptions = (format: string) => ({
+  report_type: 'visitors',
+  format,
+  filters: { ...scopeParams.value, search: searchTerm.value.trim() },
+  columns: visibleColumns.value.map(({ key, label }) => ({ key, header: label }))
+});
+const enquiryExportOptions = (format: string) => ({
+  report_type: 'admission_enquiries',
+  format,
+  filters: { ...scopeParams.value, search: searchTerm.value.trim() },
+  columns: visibleColumns.value.map(({ key, label }) => ({ key, header: label }))
+});
+const exportVisitors = async (format: string) => {
+  try {
+    await generateReport(visitorExportOptions(format));
+  } catch {
+    // useExportService already reports export failures.
+  }
+};
+const printVisitors = async () => {
+  const printWindow = openPrintWindow();
+  if (!printWindow) return showToast('Please allow popups to print the visitor register', 'error');
+  isPrinting.value = true;
+  try {
+    const options = visitorExportOptions('print');
+    const response = await Export.exportData({
+      report_type: options.report_type,
+      format: 'print',
+      ...options.filters,
+      columns: JSON.stringify(options.columns)
+    });
+    const responseData = JSON.parse(await response.data.text());
+    const report = responseData.data?.data || responseData.data || responseData;
+    const escapeHtml = (value: unknown) =>
+      String(value ?? '').replace(
+        /[&<>"']/g,
+        character =>
+          ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+          })[character] || character
+      );
+    const data = report.data.map((row: Record<string, unknown>) =>
+      Object.fromEntries(visibleColumns.value.map(({ key }) => [key, escapeHtml(row[key])]))
+    );
+    await printReport(
+      {
+        title: report.title,
+        data,
+        columns: options.columns,
+        filters: { Search: escapeHtml(searchTerm.value.trim() || 'All visitors') },
+        reportType: 'visitors'
+      },
+      { autoPrint: true, printWindow, showSummary: false }
+    );
+  } catch (error) {
+    printWindow.close();
+    showToast('Unable to prepare the visitor register printout', 'error');
+    console.error('Failed to print visitor register:', error);
+  } finally {
+    isPrinting.value = false;
+  }
+};
+const exportEnquiries = async (format: string) => {
+  try {
+    await generateReport(enquiryExportOptions(format));
+  } catch {
+    // useExportService already reports export failures.
+  }
+};
+const printEnquiries = async () => {
+  const printWindow = openPrintWindow();
+  if (!printWindow) return showToast('Please allow popups to print admission enquiries', 'error');
+  isPrinting.value = true;
+  try {
+    const options = enquiryExportOptions('print');
+    const response = await Export.exportData({
+      report_type: options.report_type,
+      format: 'print',
+      ...options.filters,
+      columns: JSON.stringify(options.columns)
+    });
+    const responseData = JSON.parse(await response.data.text());
+    const report = responseData.data?.data || responseData.data || responseData;
+    const escapeHtml = (value: unknown) =>
+      String(value ?? '').replace(/[&<>"']/g, character =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] || character
+      );
+    const data = report.data.map((row: Record<string, unknown>) =>
+      Object.fromEntries(visibleColumns.value.map(({ key }) => [key, escapeHtml(row[key])]))
+    );
+    await printReport(
+      {
+        title: report.title,
+        data,
+        columns: options.columns,
+        filters: { Search: escapeHtml(searchTerm.value.trim() || 'All enquiries') },
+        reportType: 'admission_enquiries'
+      },
+      { autoPrint: true, printWindow, showSummary: false }
+    );
+  } catch (error) {
+    printWindow.close();
+    showToast('Unable to prepare the admission enquiry printout', 'error');
+    console.error('Failed to print admission enquiries:', error);
+  } finally {
+    isPrinting.value = false;
+  }
+};
+const setVisitorColumns = (visible: boolean) => {
+  visitorColumns.value.forEach(column => {
+    column.visible = visible;
+  });
+  if (!visible) visitorColumns.value[0].visible = true;
+};
 
 const reload = async () => {
   page.value = 1;
@@ -504,9 +852,18 @@ const openEdit = (item: any) => {
 
 const save = async () => {
   try {
-    const missing = entity.value?.fields.find(field => field.required && !form[field.key]);
+    const missing = entity.value?.fields.find(
+      field => fieldVisible(field) && fieldRequired(field) && !String(form[field.key] || '').trim()
+    );
     if (missing) return showToast(`${missing.label} is required`, 'error');
-    const payload = { ...form };
+    const payload = Object.fromEntries(
+      (entity.value?.fields || []).map(({ key }) => [key, form[key]])
+    );
+    if (props.entityKey === 'account' && form.account_type === 'cash') {
+      payload.bank_name = '';
+      payload.bank_branch = '';
+      payload.reference_no = '';
+    }
     if (selectedSchoolId.value) payload.school_id = selectedSchoolId.value;
     if (selectedBranchId.value) payload.branch_id = selectedBranchId.value;
     entity.value?.fields
@@ -562,6 +919,9 @@ const runAction = async (id: string, action: string) => {
 watch(
   () => props.entityKey,
   () => {
+    selectedClassId.value = '';
+    selectedSectionId.value = '';
+    sectionOptions.value = [];
     reload();
   }
 );

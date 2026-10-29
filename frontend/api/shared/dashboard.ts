@@ -1,6 +1,7 @@
 import { apiCall } from '~/utils/api';
 
 export interface DashboardParams {
+  school_id?: string;
   branch_id?: string;
   new_students_days?: number;
   academic_year?: string;
@@ -19,6 +20,18 @@ export const Dashboard = {
 
   getRecentActivities: async (params?: DashboardParams) => {
     return apiCall('get', '/dashboard/recent-activities', { params });
+  },
+
+  getNotices: async (params?: DashboardParams) => {
+    return apiCall('get', '/dashboard/notices', { params });
+  },
+
+  getTodayAttendance: async (params?: DashboardParams) => {
+    return apiCall('get', '/dashboard/attendance-today', { params });
+  },
+
+  getOverdueFees: async (params?: DashboardParams) => {
+    return apiCall('get', '/dashboard/overdue-fees', { params });
   },
 
   getStudentsChartData: async (params?: DashboardParams) => {
@@ -51,5 +64,9 @@ export const Dashboard = {
 
   getAcademicYearMonths: async () => {
     return apiCall('get', '/dashboard/academic-year-months');
+  },
+
+  getOverviewReport: async () => {
+    return apiCall('get', '/dashboard/overview-report');
   }
 };

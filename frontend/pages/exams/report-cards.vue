@@ -4,7 +4,7 @@
     <div class="bg-white dark:bg-gray-800 shadow">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="py-6">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Report Cards</h1>
               <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -26,6 +26,17 @@
       </div>
     </div>
 
+    <div
+      v-if="isSuperAdmin && !resolvedSchoolId"
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6"
+    >
+      <div
+        class="rounded-md bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
+      >
+        Select a school from the global school selector to load its exams and report-card templates.
+      </div>
+    </div>
+
     <!-- Filters -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -33,14 +44,26 @@
           <h3
             class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
           >
-            Select Ground
+            Select Exam and Class
           </h3>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+          <div v-if="canManageSetups && resolvedBranchId">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Report-card setup
+            </label>
+            <EnhancedDropdown
+              v-model="selectedSetupId"
+              :options="setupOptions"
+              placeholder="Use one exam"
+              :loading="setupsLoading"
+              @change="onSetupChange"
+            />
+          </div>
           <!-- Exam Selection -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Exam
+              {{ selectedSetupId ? 'Roster anchor exam' : 'Select Exam' }}
             </label>
             <EnhancedDropdown
               v-model="selectedExamId"
@@ -79,6 +102,21 @@
             />
           </div>
 
+          <div>
+            <label for="report-card-enrollment-scope" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Student register
+            </label>
+            <select
+              id="report-card-enrollment-scope"
+              v-model="enrollmentScope"
+              class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              @change="onEnrollmentScopeChange"
+            >
+              <option value="currently_studying">Currently studying only</option>
+              <option value="full_register">Full register (incl. promoted)</option>
+            </select>
+          </div>
+
           <!-- Load Students Button -->
           <div class="flex items-end">
             <button
@@ -95,16 +133,18 @@
     </div>
 
     <!-- Template Selection -->
-    <div v-if="students.length > 0" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+    <div v-if="students.length > 0 && !selectedSetupId" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Report Card Template</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div
+          <button
+            type="button"
             v-for="template in templates"
             :key="template.id"
             @click="selectedTemplateId = template.id"
+            :aria-pressed="selectedTemplateId === template.id"
             :class="[
-              'border-2 rounded-lg p-4 cursor-pointer transition-all',
+              'w-full text-left border-2 rounded-lg p-4 cursor-pointer transition-all',
               selectedTemplateId === template.id
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
@@ -123,9 +163,15 @@
                 </p>
               </div>
             </div>
-          </div>
+          </button>
         </div>
       </div>
+    </div>
+
+    <div v-if="students.length > 0 && selectedSetupId" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+      <p class="rounded-md bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
+        {{ selectedSetupSummary }}
+      </p>
     </div>
 
     <!-- Students Selection -->
@@ -136,7 +182,7 @@
             <h3 class="text-lg font-medium text-gray-900 dark:text-white">
               Select Students for Report Cards
             </h3>
-            <div class="flex space-x-2">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
               <button @click="selectAllStudents" class="text-sm text-blue-600 hover:text-blue-800">
                 Select All
               </button>
@@ -150,6 +196,9 @@
           </div>
         </div>
 
+        <p class="px-4 pt-3 pb-1 text-xs text-gray-500 dark:text-gray-400 sm:hidden">
+          Swipe the table horizontally to reach each student’s report-card action.
+        </p>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
@@ -189,6 +238,9 @@
                 >
                   Status
                 </th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -208,6 +260,9 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900 dark:text-white">
                     {{ student.name }}
+                  </div>
+                  <div v-if="student.is_promoted_since_exam" class="text-xs text-blue-600 dark:text-blue-300">
+                    Included from the exam-year register
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -240,11 +295,29 @@
                     {{ student.is_absent ? 'Absent' : 'Present' }}
                   </span>
                 </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <button
+                    type="button"
+                    :disabled="!canGenerateSingle || generating"
+                    :aria-label="`Generate report card for ${student.name}`"
+                    class="text-sm font-medium text-blue-600 hover:text-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    @click="generateSingleReportCard(student.id)"
+                  >
+                    Generate Report Card
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
+    </div>
+
+    <div v-if="students.length && canArchiveReportCards" class="max-w-7xl mx-auto px-4 pb-4">
+      <label class="flex items-start gap-2 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        <input v-model="archiveReportCards" type="checkbox" class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600" />
+        <span>Save an individual PDF copy in each generated student’s Student 360 archive.</span>
+      </label>
     </div>
 
     <!-- Generation Options -->
@@ -273,7 +346,7 @@
                   type="radio"
                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                 />
-                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Print Directly</span>
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">PDF for printing</span>
               </label>
             </div>
           </div>
@@ -305,8 +378,20 @@
               </label>
             </div>
           </div>
+
         </div>
       </div>
+    </div>
+
+    <div v-if="generatedReportUrl" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+      <a
+        :href="generatedReportUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+      >
+        Open generated PDF
+      </a>
     </div>
 
     <!-- No Students Message -->
@@ -326,7 +411,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { FileText, Users } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
@@ -335,6 +420,7 @@ import { useExams } from '~/composables/useExams';
 import { useExamReports } from '~/composables/useExamReports';
 import { useAuth } from '~/composables/useAuth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import { reportCardSetupApi } from '~/api/academic/report-card-setups';
 
 // Types
 interface Student {
@@ -346,6 +432,7 @@ interface Student {
   total_marks?: number;
   grade?: string;
   is_absent?: boolean;
+  is_promoted_since_exam?: boolean;
 }
 
 interface Template {
@@ -357,7 +444,10 @@ interface Template {
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
-const { selectedBranchId } = useGlobalBranch();
+const {
+  public: { apiBase }
+} = useRuntimeConfig();
+const { selectedBranchId, currentBranch, currentSchool, isSuperAdmin } = useGlobalBranch();
 const {
   classes,
   sections,
@@ -368,7 +458,7 @@ const {
   loading: classesLoading,
   sectionsLoading
 } = useAcademics();
-const { exams, loadExams, loading: examsLoading } = useExams();
+const { exams, loadExams, resetState: resetExams, loading: examsLoading } = useExams();
 const {
   fetchStudents: getStudentsForReportCards,
   fetchTemplates: getReportCardTemplates,
@@ -383,36 +473,67 @@ const generating = computed(() => reportCardsLoading.value);
 const selectedExamId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
+const enrollmentScope = ref<'currently_studying' | 'full_register'>('currently_studying');
 const students = ref<Student[]>([]);
 const selectedStudents = ref<string[]>([]);
 const selectedTemplateId = ref('');
 const outputFormat = ref('pdf');
 const emailToParents = ref(false);
 const emailToStudents = ref(false);
+const archiveReportCards = ref(false);
 const templates = ref<Template[]>([]);
+const generatedReportUrl = ref('');
+const selectedSetupId = ref('');
+const reportCardSetups = ref<any[]>([]);
+const setupsLoading = ref(false);
 
-watch(selectedBranchId, async newBranchId => {
-  selectedExamId.value = '';
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  students.value = [];
-  selectedStudents.value = [];
-  if (newBranchId) {
-    await Promise.all([
-      fetchClasses({ branchId: newBranchId }),
-      loadExams({ branch_id: newBranchId, school_id: user.value?.school_id }),
-      loadTemplates()
-    ]);
-  } else {
-    await Promise.all([loadExams({ school_id: user.value?.school_id }), loadTemplates()]);
-  }
+const resolvedSchoolId = computed(() => currentSchool.value?.id || user.value?.school_id);
+const resolvedBranchId = computed(() => currentBranch.value?.id || selectedBranchId.value || user.value?.branch_id || undefined);
+const canManageSetups = computed(() => ['admin', 'branch_admin', 'super_admin'].includes(user.value?.role || ''));
+const canArchiveReportCards = canManageSetups;
+const setupOptions = computed(() => reportCardSetups.value.map(setup => ({ value: setup.id, label: setup.name })));
+const selectedSetup = computed(() => reportCardSetups.value.find(setup => setup.id === selectedSetupId.value));
+const selectedSetupSummary = computed(() => {
+  const setup = selectedSetup.value;
+  const exams = (setup?.examEntries || []).map((entry: any) => `${entry.exam?.name || 'Exam'} ${entry.weightage}%`).join(', ');
+  return `Using “${setup?.name}” with ${setup?.template?.name}: ${exams}.`;
 });
+
+watch(
+  [selectedBranchId, currentSchool],
+  async ([newBranchId]) => {
+    selectedExamId.value = '';
+    selectedClassId.value = '';
+    selectedSectionId.value = '';
+    students.value = [];
+    selectedStudents.value = [];
+    selectedTemplateId.value = '';
+    selectedSetupId.value = '';
+    generatedReportUrl.value = '';
+    classes.value = [];
+    sections.value = [];
+    templates.value = [];
+    reportCardSetups.value = [];
+    resetExams();
+
+    if (!resolvedSchoolId.value) {
+      return;
+    }
+
+    await Promise.all([
+      fetchClasses({ schoolId: resolvedSchoolId.value, branchId: newBranchId || undefined }),
+      loadExams({
+        school_id: resolvedSchoolId.value,
+        ...(newBranchId && { branch_id: newBranchId })
+      }),
+      loadTemplates(),
+      loadReportCardSetups(newBranchId)
+    ]);
+  },
+  { immediate: true }
+);
 
 // Computed properties
-const resolvedBranchId = computed(() => {
-  return selectedBranchId.value || user.value?.branch_id;
-});
-
 const examOptions = computed(() =>
   exams.value.map(exam => ({
     value: exam.id,
@@ -428,7 +549,7 @@ const showSectionField = computed(() => {
 
 const canLoadStudents = computed(() => {
   return !!(
-    resolvedBranchId.value &&
+    resolvedSchoolId.value &&
     selectedExamId.value &&
     selectedClassId.value &&
     (!showSectionField.value || selectedSectionId.value)
@@ -447,11 +568,15 @@ const selectAll = computed({
 });
 
 const canGenerate = computed(() => {
-  return selectedStudents.value.length > 0 && selectedTemplateId.value && selectedExamId.value;
+  return selectedStudents.value.length > 0 && (selectedSetupId.value || selectedTemplateId.value) && selectedExamId.value;
 });
+const canGenerateSingle = computed(() =>
+  !!(selectedExamId.value && (selectedSetupId.value || selectedTemplateId.value))
+);
 
 // Methods
 const onExamChange = () => {
+  generatedReportUrl.value = '';
   // Exam is independent of class, so don't clear class selection
   // Only clear students since exam changed
   students.value = [];
@@ -459,7 +584,19 @@ const onExamChange = () => {
   selectedTemplateId.value = '';
 };
 
+const onSetupChange = () => {
+  const setup = selectedSetup.value;
+  selectedExamId.value = setup?.examEntries?.[0]?.exam_id || '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  students.value = [];
+  selectedStudents.value = [];
+  selectedTemplateId.value = '';
+  generatedReportUrl.value = '';
+};
+
 const onClassChange = async () => {
+  generatedReportUrl.value = '';
   selectedSectionId.value = '';
   students.value = [];
   selectedStudents.value = [];
@@ -467,7 +604,7 @@ const onClassChange = async () => {
 
   if (selectedClassId.value) {
     await fetchSections({
-      schoolId: user.value?.school_id,
+      schoolId: resolvedSchoolId.value,
       branchId: resolvedBranchId.value,
       classId: selectedClassId.value
     });
@@ -475,9 +612,16 @@ const onClassChange = async () => {
 };
 
 const onSectionChange = () => {
+  generatedReportUrl.value = '';
   students.value = [];
   selectedStudents.value = [];
   selectedTemplateId.value = '';
+};
+
+const onEnrollmentScopeChange = () => {
+  generatedReportUrl.value = '';
+  students.value = [];
+  selectedStudents.value = [];
 };
 
 const loadStudents = async () => {
@@ -485,8 +629,9 @@ const loadStudents = async () => {
     const params: any = {
       exam_id: selectedExamId.value,
       class_id: selectedClassId.value,
-      school_id: user.value?.school_id,
-      branch_id: resolvedBranchId.value
+      school_id: resolvedSchoolId.value,
+      branch_id: resolvedBranchId.value,
+      enrollment_scope: enrollmentScope.value
     };
 
     if (selectedSectionId.value) {
@@ -532,27 +677,54 @@ const getGradeClass = (grade: string | undefined) => {
   return 'bg-red-100 text-red-800';
 };
 
-const generateReportCardsHandler = async () => {
+const generateReportCardsFor = async ({
+  studentIds = selectedStudents.value,
+  format = outputFormat.value,
+  sendEmail = true
+}: {
+  studentIds?: string[];
+  format?: 'pdf' | 'print';
+  sendEmail?: boolean;
+} = {}) => {
   try {
+    generatedReportUrl.value = '';
     const requestData = {
-      exam_id: selectedExamId.value,
-      student_ids: selectedStudents.value,
-      template_id: selectedTemplateId.value,
-      output_format: outputFormat.value,
+      ...(selectedSetupId.value
+        ? { setup_id: selectedSetupId.value }
+        : { exam_id: selectedExamId.value, template_id: selectedTemplateId.value }),
+      student_ids: studentIds,
+      class_id: selectedClassId.value,
+      ...(selectedSectionId.value && { section_id: selectedSectionId.value }),
+      enrollment_scope: enrollmentScope.value,
+      archive_report_cards: archiveReportCards.value,
+      school_id: resolvedSchoolId.value,
+      branch_id: resolvedBranchId.value,
+      output_format: format,
       email_options: {
-        to_parents: emailToParents.value,
-        to_students: emailToStudents.value
+        to_parents: sendEmail && emailToParents.value,
+        to_students: sendEmail && emailToStudents.value
       }
     };
 
     const response = (await generateReportCards(requestData)) as any;
 
     if (response.success) {
-      showToast(`Report cards generated for ${selectedStudents.value.length} students`, 'success');
+      const delivery = response.data.email_delivery;
+      const emailRequested = sendEmail && (emailToParents.value || emailToStudents.value);
+      const archivedCount = response.data.archived_students || 0;
+      const message =
+        emailRequested
+          ? `Generated ${studentIds.length} report cards; ${delivery?.sent || 0} emails sent, ${delivery?.failed || 0} failed, ${delivery?.skipped_students || 0} students had no recipient email.${archivedCount ? ` Archived ${archivedCount} individual PDFs.` : ''}`
+          : `Report cards generated for ${studentIds.length} students${archivedCount ? `; ${archivedCount} saved to Student 360.` : ''}`;
+      showToast(message, delivery?.failed ? 'error' : 'success');
 
-      // If PDF, trigger download
-      if (outputFormat.value === 'pdf' && response.data.download_url) {
-        window.open(response.data.download_url, '_blank');
+      // Open the generated PDF for download or printing.
+      if (response.data.download_url) {
+        generatedReportUrl.value = new URL(
+          response.data.download_url,
+          new URL(apiBase, window.location.origin)
+        ).toString();
+        window.open(generatedReportUrl.value, '_blank');
       }
     }
   } catch (error) {
@@ -560,42 +732,35 @@ const generateReportCardsHandler = async () => {
   }
 };
 
-const loadTemplates = async () => {
+const generateReportCardsHandler = () => generateReportCardsFor();
+const generateSingleReportCard = (studentId: string) =>
+  generateReportCardsFor({ studentIds: [studentId], format: 'pdf', sendEmail: false });
+
+async function loadTemplates() {
   try {
     const response = (await getReportCardTemplates({
-      school_id: user.value?.school_id,
-      branch_id: user.value?.branch_id
+      school_id: resolvedSchoolId.value,
+      branch_id: resolvedBranchId.value
     })) as any;
 
     if (response.success) {
       templates.value = response.data;
     }
-  } catch (error) {
-    showToast('Failed to load templates', 'error');
+  } catch (error: any) {
+    showToast(error?.message || 'Failed to load templates', 'error');
   }
-};
+}
 
-// Load initial data
-onMounted(async () => {
-  if (selectedBranchId.value) {
-    await Promise.all([
-      fetchClasses({
-        branchId: selectedBranchId.value
-      }),
-      loadExams({
-        branch_id: selectedBranchId.value,
-        school_id: user.value?.school_id
-      }),
-      loadTemplates()
-    ]);
-  } else {
-    // Load all exams if no branch (for super admin)
-    await Promise.all([
-      loadExams({
-        school_id: user.value?.school_id
-      }),
-      loadTemplates()
-    ]);
+async function loadReportCardSetups(branchId: string) {
+  if (!branchId || !canManageSetups.value) return;
+  setupsLoading.value = true;
+  try {
+    const response = (await reportCardSetupApi.getAll(branchId)) as any;
+    reportCardSetups.value = (response.data || []).filter((setup: any) => setup.is_published);
+  } catch {
+    reportCardSetups.value = [];
+  } finally {
+    setupsLoading.value = false;
   }
-});
+}
 </script>

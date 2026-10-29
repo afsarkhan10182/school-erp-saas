@@ -287,7 +287,7 @@ const sendLateArrivalEmailNotification = async (parentEmail, notificationData, p
  * @param {Object} sessionData - Attendance session data
  * @returns {Promise<Object>} - Notification results
  */
-const sendAttendanceSummaryNotifications = async (classData, sessionData) => {
+const sendAttendanceSummaryNotifications = async (classData, sessionData, studentScope = {}) => {
   try {
     const results = {
       totalParents: 0,
@@ -298,9 +298,13 @@ const sendAttendanceSummaryNotifications = async (classData, sessionData) => {
     // Get all students in the class with their parents
     const students = await Student.findAll({
       where: {
+        school_id: classData.school_id,
+        branch_id: classData.branch_id,
         class_id: sessionData.class_id,
         ...(sessionData.section_id && { section_id: sessionData.section_id }),
-        is_active: true
+        ...(sessionData.stream_id && { stream_id: sessionData.stream_id }),
+        is_active: true,
+        ...studentScope
       },
       include: [
         {

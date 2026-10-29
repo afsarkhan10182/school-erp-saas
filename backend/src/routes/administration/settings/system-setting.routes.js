@@ -5,6 +5,7 @@ const AcademicSettingsController = require('~/controllers/administration/setting
 const ReceiptSettingsController = require('~/controllers/administration/settings/receipt-settings.controller');
 const FeeSettingsController = require('~/controllers/administration/settings/fee-settings.controller');
 const SystemSettingsController = require('~/controllers/administration/settings/system-settings.controller');
+const SettingsHistoryController = require('~/controllers/administration/settings/settings-history.controller');
 const { verifyToken, authorize, setSchoolContext } = require('~/middleware/core/auth');
 const { uploadFields } = require('~/middleware/shared/upload');
 
@@ -71,6 +72,10 @@ router.put(
 );
 
 // System Preferences
+router.get('/history', authorize(['admin', 'super_admin']), SettingsHistoryController.list);
+router.get('/history/:id', authorize(['admin', 'super_admin']), SettingsHistoryController.detail);
+router.post('/history/:id/undo', authorize(['admin', 'super_admin']), SettingsHistoryController.undo);
+
 router.get(
   '/system',
   authorize(['admin', 'super_admin']),

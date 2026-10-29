@@ -14,7 +14,7 @@
     </div>
 
     <section class="card">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 items-end">
         <EnhancedDropdown
           v-model="fromClassId"
           :options="classOptions"
@@ -30,10 +30,16 @@
         />
         <EnhancedDropdown
           v-model="toClassId"
-          :options="classOptions"
+          :options="targetClassOptions"
           label="To class"
           placeholder="Select class"
           @change="onToClass"
+        />
+        <EnhancedDropdown
+          v-model="toSectionId"
+          :options="toSectionOptions"
+          label="To section (optional)"
+          placeholder="Unassigned"
         />
         <EnhancedDropdown
           v-model="toYear"
@@ -132,15 +138,19 @@ import { useAuth } from '~/composables/useAuth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { Promotions } from '~/api/students/academic-services';
 import { AcademicYears } from '~/api/academic/academic-years';
+import { Sections } from '~/api/academic/sections';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 const { showToast } = useToast();
 const { user } = useAuth();
-const { selectedBranchId, branchScopeParams: scopeParams } = useGlobalBranch();
-const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
+const { selectedBranchId, currentSchool, branchScopeParams: scopeParams } = useGlobalBranch();
+const { classOptions, classes, fetchClasses } = useAcademics();
 const fromClassId = ref('');
 const fromSectionId = ref('');
 const toClassId = ref('');
+const toSectionId = ref('');
+const fromSectionOptions = ref<any[]>([]);
+const toSectionOptions = ref<any[]>([]);
 const toYear = ref('');
 const loading = ref(false);
 const saving = ref(false);
@@ -155,8 +165,24 @@ const toggleAll = () => {
   selected.value = allSelected.value ? [] : students.value.map(student => student.id);
 };
 const years = ref<any[]>([]);
-const fromSectionOptions = computed(() => sectionOptions.value);
 const yearOptions = computed(() => years.value.map((y: any) => ({ value: y.name, label: y.name })));
+const targetClassOptions = computed(() => {
+  const sourceClass = classes.value.find((item: any) => item.id === fromClassId.value);
+  const sourceBranchId = sourceClass?.branch_id || sourceClass?.branch?.id;
+  return classOptions.value.filter((option: any) => {
+    const candidate = classes.value.find((item: any) => item.id === option.value);
+    const branchId = candidate?.branch_id || candidate?.branch?.id;
+    return !sourceBranchId || branchId === sourceBranchId;
+  });
+});
+
+const loadSectionOptions = async (classId: string) => {
+  const params = new URLSearchParams({ ...scopeParams.value, class_id: classId });
+  const schoolId = params.get('school_id') || user.value?.school_id || currentSchool.value?.id;
+  if (schoolId) params.set('school_id', schoolId);
+  const response: any = await Sections.getDropdown(params.toString());
+  return (response.data || []).map((section: any) => ({ value: section.id, label: section.name }));
+};
 const resetLoaded = () => {
   fromSectionId.value = '';
   students.value = [];
@@ -166,7 +192,10 @@ const resetLoaded = () => {
 
 const onBranchChange = async () => {
   fromClassId.value = '';
+  fromSectionOptions.value = [];
   toClassId.value = '';
+  toSectionId.value = '';
+  toSectionOptions.value = [];
   resetLoaded();
   await fetchClasses({
     schoolId: user.value?.school_id,
@@ -175,17 +204,37 @@ const onBranchChange = async () => {
 };
 const onFromClass = async () => {
   resetLoaded();
+  fromSectionId.value = '';
+  fromSectionOptions.value = [];
+  toSectionId.value = '';
+  toSectionOptions.value = [];
+  const selectedTarget = classes.value.find((item: any) => item.id === toClassId.value);
+  const source = classes.value.find((item: any) => item.id === fromClassId.value);
+  if (
+    selectedTarget &&
+    source &&
+    (selectedTarget.branch_id || selectedTarget.branch?.id) !==
+      (source.branch_id || source.branch?.id)
+  ) {
+    toClassId.value = '';
+  }
   if (fromClassId.value) {
-    await fetchSections({
-      schoolId: user.value?.school_id,
-      branchId: selectedBranchId.value || user.value?.branch_id,
-      classId: fromClassId.value
-    });
+    try {
+      fromSectionOptions.value = await loadSectionOptions(fromClassId.value);
+    } catch (error: any) {
+      showToast(apiErrorMessage(error), 'error');
+    }
   }
 };
 const onToClass = async () => {
+  toSectionId.value = '';
+  toSectionOptions.value = [];
   if (toClassId.value) {
-    await fetchSections({ schoolId: user.value?.school_id, classId: toClassId.value });
+    try {
+      toSectionOptions.value = await loadSectionOptions(toClassId.value);
+    } catch (error: any) {
+      showToast(apiErrorMessage(error), 'error');
+    }
   }
 };
 
@@ -230,6 +279,7 @@ const confirmSave = async () => {
       from_class_id: fromClassId.value,
       from_section_id: fromSectionId.value || undefined,
       to_class_id: toClassId.value,
+      to_section_id: toSectionId.value || undefined,
       to_academic_year: toYear.value,
       ...scopeParams.value,
       students: students.value

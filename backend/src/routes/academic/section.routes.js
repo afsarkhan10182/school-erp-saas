@@ -20,12 +20,12 @@ const router = express.Router();
 router.use(verifyToken);
 
 // GET /api/sections - Get all sections with role-based access control
-router.get('/', authorize(['super_admin', 'admin', 'branch_admin']), getAllSections);
+router.get('/', authorize(['super_admin', 'admin', 'branch_admin', 'accountant']), getAllSections);
 
 // GET /api/sections/dropdown - Get all sections for dropdown
 router.get(
   '/dropdown',
-  authorize(['super_admin', 'admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin', 'teacher', 'accountant']),
   getSectionsForDropdown
 );
 

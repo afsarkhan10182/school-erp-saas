@@ -1,6 +1,7 @@
 const { Op, Sequelize } = require('sequelize');
 const {
   ExamSchedule,
+  ExamSubjectMark,
   Exam,
   ExamHall,
   User,
@@ -584,6 +585,13 @@ class ExamScheduleService extends BaseService {
 
       if (!schedule) {
         throw new ApiError(404, 'Exam schedule not found');
+      }
+
+      const marks = await ExamSubjectMark.count({
+        where: { exam_schedule_id: id, school_id: schedule.school_id, branch_id: schedule.branch_id }
+      });
+      if (marks) {
+        throw new ApiError(409, 'Cannot delete an exam schedule after marks have been entered');
       }
 
       await schedule.destroy();

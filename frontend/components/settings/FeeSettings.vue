@@ -1,9 +1,14 @@
 <template>
   <div class="space-y-6">
     <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center py-12">
+    <div v-if="loading || isLoadingSettings" class="flex justify-center items-center py-12">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       <span class="ml-3 text-gray-600 dark:text-gray-400">Loading fee configuration...</span>
+    </div>
+
+    <div v-else-if="loadError" class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <p>{{ loadError }}</p>
+      <button type="button" class="mt-2 underline" @click="loadFeeSettings">Retry</button>
     </div>
 
     <!-- Content -->
@@ -174,6 +179,9 @@
                 <label for="online" class="ml-2 text-sm text-gray-700 dark:text-gray-300"
                   >Online Payment</label
                 >
+                <p class="ml-6 text-xs text-gray-500 dark:text-gray-400">
+                  Adds Online to staff payment entry; gateway checkout and verification are not connected.
+                </p>
               </div>
             </div>
           </div>
@@ -403,6 +411,9 @@
               <option value="next_month">Next month same date</option>
               <option value="custom">Custom calculation</option>
             </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Explicit fee-structure dates take precedence. Custom requires a date on the fee structure.
+            </p>
           </div>
         </div>
       </div>
@@ -430,9 +441,10 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useFormValidation } from '~/composables/useFormValidation';
 import { validationRules, validateForm } from '~/utils/validators';
+import { Settings } from '~/api/administration/settings';
 
 // Props
 const props = defineProps({
@@ -488,6 +500,37 @@ const feeSettings = reactive({
 });
 
 const isSaving = ref(false);
+const isLoadingSettings = ref(true);
+const loadError = ref('');
+
+const loadFeeSettings = async () => {
+  isLoadingSettings.value = true;
+  loadError.value = '';
+  try {
+    const response = await Settings.getFeeSettings();
+    const saved = response?.data?.feeSettings;
+    if (!response?.success || !saved) throw new Error('Fee settings could not be loaded.');
+    const nestedKeys = [
+      'paymentMethods',
+      'paymentValidation',
+      'defaultCategories',
+      'feeTypeOptions',
+      'invoiceSettings'
+    ];
+    for (const [key, value] of Object.entries(saved)) {
+      if (!nestedKeys.includes(key)) feeSettings[key] = value;
+    }
+    for (const key of nestedKeys) {
+      if (saved[key]) feeSettings[key] = { ...feeSettings[key], ...saved[key] };
+    }
+  } catch (error) {
+    loadError.value = error?.message || 'Fee settings could not be loaded.';
+  } finally {
+    isLoadingSettings.value = false;
+  }
+};
+
+onMounted(loadFeeSettings);
 
 // Validation schema
 const validationSchema = {

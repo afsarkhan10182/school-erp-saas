@@ -14,6 +14,7 @@ const {
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
+const { resolveSchoolBranchScope } = require('~/utils/shared/requestScope');
 const { generateCombinedReceipt } = require('./receipts');
 const {
   getAvailablePaymentMonths,
@@ -25,6 +26,7 @@ const {
   getClassCode,
   generateUniqueReceiptNumber
 } = require('./core.controller');
+const { getPaymentIdempotency, replayPayment } = require('~/utils/financial/paymentIdempotency');
 
 // Helper function to get student full name
 const getStudentFullName = student => {
@@ -50,7 +52,8 @@ const getStudentInvoices = async (studentId, schoolId, options = {}) => {
     status = ['sent', 'partial_paid', 'overdue'],
     includeFeeStructure = true,
     includeStudent = false,
-    branchId = null // Add branch filter option
+    branchId = null,
+    transaction = null
   } = options;
 
   const invoiceFilter = {
@@ -102,7 +105,9 @@ const getStudentInvoices = async (studentId, schoolId, options = {}) => {
   return await FeeInvoice.findAll({
     where: invoiceFilter,
     include: includeClause,
-    order: [['due_date', 'ASC']]
+    order: [['due_date', 'ASC']],
+    transaction,
+    ...(transaction && { lock: { level: transaction.LOCK.UPDATE, of: FeeInvoice } })
   });
 };
 
@@ -115,11 +120,17 @@ const getStudentDues = async (req, res, next) => {
       throw new ApiError(400, 'Student ID is required');
     }
 
+    if (req.user.role === 'branch_admin' && !req.user.branch_id) {
+      throw new ApiError(403, 'An assigned branch is required');
+    }
+    const scope = await resolveSchoolBranchScope(req, { allowSchoolWide: true, lockAssignedBranch: true });
+
     // Get student with basic info
     const student = await Student.findOne({
       where: {
         id: student_id,
-        school_id: req.schoolId
+        school_id: scope.school_id,
+        ...(scope.branch_id && { branch_id: scope.branch_id })
       },
       attributes: ['id', 'first_name', 'last_name', 'admission_number', 'current_class', 'section']
     });
@@ -131,13 +142,9 @@ const getStudentDues = async (req, res, next) => {
     // Build filter for all invoices (including paid ones)
     const invoiceFilter = {
       student_id: student_id,
-      school_id: req.schoolId
+      school_id: scope.school_id,
+      ...(scope.branch_id && { branch_id: scope.branch_id })
     };
-
-    // Add branch filter for branch admins
-    if (req.user.role === 'branch_admin') {
-      invoiceFilter.branch_id = req.user.branch_id;
-    }
 
     if (academic_year) {
       invoiceFilter.academic_year = academic_year;
@@ -164,6 +171,8 @@ const getStudentDues = async (req, res, next) => {
         {
           model: FeePayment,
           as: 'payments',
+          where: { payment_status: 'completed' },
+          required: false,
           order: [['created_at', 'DESC']]
         }
       ],
@@ -233,7 +242,9 @@ const getStudentDues = async (req, res, next) => {
         academic_year: group.invoices[0]?.academic_year,
         month: months[0],
         year: years[0],
-        months_covered: group.invoices.length,
+        months_covered: group.invoices.filter(
+          invoice => invoice.status === 'paid' || parseFloat(invoice.balance_amount || 0) <= 0
+        ).length,
         month_range: months.length > 1 ? `${months[0]} - ${months[months.length - 1]}` : months[0],
         month_names: group.invoices
           .map(inv => {
@@ -291,11 +302,10 @@ const getStudentDues = async (req, res, next) => {
     });
 
     // Filter ungrouped payments to only include truly pending invoices
-    const pendingMonthlyPayments = ungroupedMonthlyPayments.filter(
+    const pendingMonthlyPayments = monthlyPayments.filter(
       invoice =>
-        invoice.status === 'sent' ||
-        invoice.status === 'overdue' ||
-        (invoice.status === 'partial_paid' && invoice.balance_amount > 0)
+        ['sent', 'overdue', 'partial_paid'].includes(invoice.status) &&
+        parseFloat(invoice.balance_amount || 0) > 0
     );
 
     // Calculate totals correctly - ONLY for unpaid/partial_paid invoices
@@ -407,6 +417,21 @@ const getStudentDues = async (req, res, next) => {
           payment_model: invoice.feeStructure?.payment_model || 'installment',
           feeStructure: invoice.feeStructure
         })),
+        selectable_invoices: unpaidInvoices.map(invoice => ({
+          id: invoice.id,
+          invoice_number: invoice.invoice_number,
+          fee_type: invoice.feeStructure?.feeType?.name || 'Unknown',
+          fee_structure_name: invoice.feeStructure?.name,
+          total_amount: parseFloat(invoice.total_amount || 0),
+          paid_amount: parseFloat(invoice.paid_amount || 0),
+          balance_amount: parseFloat(invoice.balance_amount || 0),
+          due_date: invoice.due_date,
+          status: invoice.status,
+          academic_year: invoice.academic_year,
+          payment_model: invoice.feeStructure?.payment_model || 'installment',
+          month: invoice.month,
+          year: invoice.year
+        })),
         monthly_payments: [
           // Add grouped payments first (paid/partial_paid)
           ...groupedMonthlyPayments,
@@ -438,6 +463,54 @@ const getStudentDues = async (req, res, next) => {
   }
 };
 
+const searchStudentsForFees = async (req, res, next) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    if (req.user.role === 'branch_admin' && !req.user.branch_id) {
+      throw new ApiError(403, 'An assigned branch is required');
+    }
+    const scope = await resolveSchoolBranchScope(req, { allowSchoolWide: true, lockAssignedBranch: true });
+    const where = {
+      school_id: scope.school_id,
+      ...(scope.branch_id && { branch_id: scope.branch_id })
+    };
+
+    if (req.query.class_name) {
+      const classRecord = await Class.findOne({
+        where: { ...where, name: String(req.query.class_name).trim() },
+        attributes: ['id']
+      });
+      if (!classRecord) return res.json({ success: true, data: [] });
+
+      Object.assign(where, {
+        class_id: classRecord.id,
+        status: 'active',
+        ...(req.query.academic_year && { academic_year: req.query.academic_year }),
+        ...(req.query.section && { section: req.query.section }),
+        ...(req.query.stream_id && { stream_id: req.query.stream_id })
+      });
+    } else if (search) {
+      where[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { admission_number: { [Op.iLike]: `%${search}%` } }
+      ];
+    } else {
+      return res.json({ success: true, data: [] });
+    }
+
+    const students = await Student.findAll({
+      where,
+      attributes: ['id', 'first_name', 'last_name', 'admission_number', 'current_class'],
+      order: [['first_name', 'ASC'], ['last_name', 'ASC']],
+      limit: req.query.class_name ? 1000 : 10
+    });
+    return res.json({ success: true, data: students });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 // Get student fee ledger
 const getStudentFeeLedger = async (req, res, next) => {
   try {
@@ -448,19 +521,26 @@ const getStudentFeeLedger = async (req, res, next) => {
       throw new ApiError(400, 'Student ID is required');
     }
 
-    // Verify student exists and belongs to school
+    const branchScoped =
+      ['branch_admin', 'accountant'].includes(req.user.role) && req.user.branch_id;
+
+    // Verify the student exists inside the caller's school and assigned branch scope.
     const student = await Student.findOne({
       where: {
         id: student_id,
-        school_id: req.schoolId
+        school_id: req.schoolId,
+        ...(branchScoped && { branch_id: req.user.branch_id })
       },
-      include: [
-        {
-          model: Parent,
-          as: 'parents',
-          through: { attributes: [] }
-        }
-      ]
+      include:
+        req.user.role === 'accountant'
+          ? []
+          : [
+              {
+                model: Parent,
+                as: 'parents',
+                through: { attributes: [] }
+              }
+            ]
     });
 
     if (!student) {
@@ -470,13 +550,9 @@ const getStudentFeeLedger = async (req, res, next) => {
     // Build invoice filter
     const invoiceFilter = {
       student_id: student_id,
-      school_id: req.schoolId
+      school_id: req.schoolId,
+      ...(branchScoped && { branch_id: req.user.branch_id })
     };
-
-    // Add branch filter for branch admins
-    if (req.user.role === 'branch_admin') {
-      invoiceFilter.branch_id = req.user.branch_id;
-    }
 
     if (academic_year) {
       invoiceFilter.academic_year = academic_year;
@@ -503,6 +579,8 @@ const getStudentFeeLedger = async (req, res, next) => {
         {
           model: FeePayment,
           as: 'payments',
+          where: { payment_status: { [Op.in]: ['completed', 'reversed'] } },
+          required: false,
           order: [['created_at', 'DESC']]
         }
       ],
@@ -639,7 +717,9 @@ const getStudentFeeLedger = async (req, res, next) => {
           admission_number: student.admission_number,
           class: student.current_class,
           section: student.section,
-          parents: student.parents
+          academic_year: student.academic_year,
+          status: student.status,
+          ...(req.user.role !== 'accountant' && { parents: student.parents })
         },
         summary: {
           total_invoices: totalInvoices,
@@ -699,7 +779,11 @@ const getStudentFeeLedger = async (req, res, next) => {
                   payment_amount: parseFloat(payment.payment_amount || 0),
                   payment_method: payment.payment_method,
                   payment_date: payment.payment_date,
-                  created_at: payment.created_at
+                  created_at: payment.created_at,
+                  payment_status: payment.payment_status,
+                  reversed_at: payment.reversed_at,
+                  reversal_reason: payment.reversal_reason,
+                  reversed_by: payment.reversed_by
                 })) || []
             };
           }
@@ -720,6 +804,7 @@ const getStudentFeeLedger = async (req, res, next) => {
 
 // Enhanced Smart Payment System - supports multiple payment modes
 const recordSmartPayment = async (req, res, next) => {
+  let transaction;
   try {
     const {
       student_id,
@@ -732,77 +817,56 @@ const recordSmartPayment = async (req, res, next) => {
       payment_mode = 'auto', // 'auto' or 'manual'
       selected_invoice_ids = [] // For manual mode
     } = req.body;
+    const idempotency = getPaymentIdempotency(req);
 
-    if (!student_id || !payment_amount || payment_amount <= 0) {
+    const amountReceived = Number(payment_amount);
+    if (!student_id || !Number.isFinite(amountReceived) || amountReceived <= 0) {
       throw new ApiError(400, 'Student ID and valid payment amount are required');
     }
-
-    // Validate payment amount for monthly payments
-    if (payment_mode === 'auto') {
-      // Build where clause based on user role
-      const whereClause = {
-        student_id,
-        school_id: req.schoolId,
-        status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] }
-      };
-
-      // Add branch filter for branch admins
-      if (req.user.role === 'branch_admin') {
-        whereClause.branch_id = req.user.branch_id;
-      }
-
-      // Get the first pending invoice to determine monthly fee amount
-      const firstPendingInvoice = await FeeInvoice.findOne({
-        where: whereClause,
-        include: [
-          {
-            model: FeeStructure,
-            as: 'feeStructure'
-          }
-        ],
-        order: [['due_date', 'ASC']]
-      });
-
-      if (firstPendingInvoice && firstPendingInvoice.feeStructure?.payment_model === 'monthly') {
-        const monthlyFee = parseFloat(firstPendingInvoice.total_amount || 0);
-        if (monthlyFee > 0) {
-          const monthsCovered = Math.floor(payment_amount / monthlyFee);
-          const remainder = payment_amount % monthlyFee;
-
-          if (remainder > 0) {
-            throw new ApiError(
-              400,
-              `Payment amount ₹${payment_amount} must be a multiple of monthly fee ₹${monthlyFee}. Please enter an amount that covers complete months only.`
-            );
-          }
-
-          if (monthsCovered === 0) {
-            throw new ApiError(
-              400,
-              `Payment amount ₹${payment_amount} is less than monthly fee ₹${monthlyFee}. Please enter at least ₹${monthlyFee} to cover one month.`
-            );
-          }
-        }
-      }
+    if (req.user.role === 'branch_admin' && !req.user.branch_id) {
+      throw new ApiError(403, 'An assigned branch is required');
     }
+    const scope = await resolveSchoolBranchScope(req, { allowSchoolWide: true, lockAssignedBranch: true });
+    transaction = await sequelize.transaction();
 
     // Get student
     const student = await Student.findOne({
       where: {
         id: student_id,
-        school_id: req.schoolId
-      }
+        school_id: scope.school_id,
+        ...(scope.branch_id && { branch_id: scope.branch_id })
+      },
+      transaction,
+      ...(idempotency && { lock: transaction.LOCK.UPDATE })
     });
 
     if (!student) {
       throw new ApiError(404, 'Student not found');
     }
 
+    if (idempotency) {
+      const existingPayments = await FeePayment.findAll({
+        where: { school_id: scope.school_id, student_id, idempotency_key: idempotency.key },
+        order: [['created_at', 'ASC']],
+        transaction
+      });
+      if (existingPayments.length) {
+        if (existingPayments.some(payment =>
+          payment.idempotency_request_hash !== idempotency.fingerprint
+        )) {
+          throw new ApiError(409, 'This payment retry key was already used with different payment details');
+        }
+        const replay = await replayPayment(existingPayments[0], idempotency, transaction, res);
+        if (replay) return replay;
+      }
+    }
+
     // Get pending invoices using shared utility
-    let pendingInvoices = await getStudentInvoices(student_id, req.schoolId, {
+    let pendingInvoices = await getStudentInvoices(student_id, scope.school_id, {
       academic_year,
       includeStudent: false,
-      branchId: req.user.role === 'branch_admin' ? req.user.branch_id : null
+      branchId: scope.branch_id,
+      transaction
     });
 
     if (pendingInvoices.length === 0) {
@@ -810,20 +874,28 @@ const recordSmartPayment = async (req, res, next) => {
     }
 
     // Handle manual mode - filter by selected invoice IDs
-    if (payment_mode === 'manual' && selected_invoice_ids && selected_invoice_ids.length > 0) {
-      pendingInvoices = pendingInvoices.filter(invoice =>
-        selected_invoice_ids.includes(invoice.id)
-      );
-
-      if (pendingInvoices.length === 0) {
-        throw new ApiError(400, 'No valid invoices found from selected list');
+    if (payment_mode === 'manual') {
+      if (!Array.isArray(selected_invoice_ids) || selected_invoice_ids.length === 0) {
+        throw new ApiError(400, 'Select at least one invoice for manual payment');
       }
+      const selectedIds = new Set(selected_invoice_ids.map(String));
+      const selectedInvoices = pendingInvoices.filter(invoice => selectedIds.has(String(invoice.id)));
+      if (selectedInvoices.length !== selectedIds.size) {
+        throw new ApiError(400, 'One or more selected invoices are invalid or no longer outstanding');
+      }
+      pendingInvoices = selectedInvoices;
     }
 
-    let remainingAmount = parseFloat(payment_amount);
+    const totalOutstanding = pendingInvoices.reduce(
+      (sum, invoice) => sum + parseFloat(invoice.balance_amount || 0),
+      0
+    );
+    if (amountReceived > totalOutstanding) {
+      throw new ApiError(400, `Payment amount exceeds outstanding dues of ₹${totalOutstanding.toLocaleString()}`);
+    }
+
+    let remainingAmount = amountReceived;
     const appliedPayments = [];
-    const errors = [];
-    const processedInvoices = [];
 
     // Generate a simple receipt number for this payment
     // Use the same class code logic as invoice generation to ensure consistency
@@ -833,17 +905,17 @@ const recordSmartPayment = async (req, res, next) => {
       classCode,
       feeStructureId: pendingInvoices[0].feeStructure?.id,
       studentClass: student.current_class,
-      schoolId: req.schoolId
+      schoolId: scope.school_id
     });
 
     // Get branch_id from first invoice if not provided in request
-    const branchId = req.branchId || pendingInvoices[0].branch_id;
+    const branchId = scope.branch_id || pendingInvoices[0].branch_id;
 
     if (!branchId) {
       logger.error('No branch_id available for smart payment receipt generation', {
         reqBranchId: req.branchId,
         invoiceBranchId: pendingInvoices[0].branch_id,
-        schoolId: req.schoolId
+        schoolId: scope.school_id
       });
       throw new ApiError(400, 'Branch ID is required for smart payment receipt generation');
     }
@@ -860,9 +932,10 @@ const recordSmartPayment = async (req, res, next) => {
 
     // Generate a single receipt number for this payment (no groups)
     const tempReceipt = await generateUniqueReceiptNumber(classCode, {
-      school_id: req.schoolId,
+      school_id: scope.school_id,
       branch_id: branchId,
-      academic_year: academicYear
+      academic_year: academicYear,
+      transaction
     });
     const receiptNumber = tempReceipt.receipt_number;
 
@@ -881,22 +954,11 @@ const recordSmartPayment = async (req, res, next) => {
     let invoicesToProcess = [];
 
     if (isMonthlyPayment && monthlyFee && monthlyFee > 0) {
-      // Calculate how many complete months can be covered
-      monthsToCover = Math.floor(remainingAmount / monthlyFee);
-
-      if (monthsToCover >= 1) {
-        // Take first N months that can be fully paid
-        invoicesToProcess = pendingInvoices.slice(0, monthsToCover);
-        logger.info(
-          `Smart payment: ₹${payment_amount} can cover ${monthsToCover} months at ₹${monthlyFee} each`
-        );
-      } else {
-        // Partial month payment - process only the first invoice
-        invoicesToProcess = [pendingInvoices[0]];
-        logger.info(
-          `Smart payment: ₹${payment_amount} is insufficient for complete month (₹${monthlyFee} required)`
-        );
-      }
+      monthsToCover = Math.ceil(remainingAmount / monthlyFee);
+      invoicesToProcess = pendingInvoices;
+      logger.info(
+        `Smart payment: ₹${amountReceived} will be allocated across up to ${monthsToCover} monthly invoices at ₹${monthlyFee} each`
+      );
     } else {
       // For installment payments, process invoices one by one
       invoicesToProcess = pendingInvoices;
@@ -924,14 +986,14 @@ const recordSmartPayment = async (req, res, next) => {
 
       try {
         // Get branch_id from invoice if not provided in request
-        const branchId = req.branchId || invoice.branch_id;
+        const branchId = scope.branch_id || invoice.branch_id;
 
         if (!branchId) {
           logger.error('No branch_id available for smart payment creation', {
             reqBranchId: req.branchId,
             invoiceBranchId: invoice.branch_id,
             invoiceId: invoice.id,
-            schoolId: req.schoolId
+            schoolId: scope.school_id
           });
           throw new ApiError(400, 'Branch ID is required for smart payment creation');
         }
@@ -946,9 +1008,13 @@ const recordSmartPayment = async (req, res, next) => {
           payment_method,
           payment_date: payment_date || new Date(),
           transaction_id,
+          ...(idempotency && {
+            idempotency_key: idempotency.key,
+            idempotency_request_hash: idempotency.fingerprint
+          }),
           payment_status: 'completed',
           notes: `Smart payment allocation - ${notes || ''}`,
-          school_id: req.schoolId,
+          school_id: scope.school_id,
           branch_id: branchId,
           academic_year: academicYear,
           created_by: req.user.id
@@ -961,7 +1027,7 @@ const recordSmartPayment = async (req, res, next) => {
           paymentMethod: payment_method
         });
 
-        const payment = await FeePayment.create(paymentData);
+        const payment = await FeePayment.create(paymentData, { transaction });
 
         // Update invoice with receipt_number for grouping
         logger.info('Smart payment - Updating invoice:', {
@@ -982,9 +1048,7 @@ const recordSmartPayment = async (req, res, next) => {
           transaction_id: transaction_id,
           notes: `${invoice.notes || ''}\nSmart payment: ₹${amountToApply} on ${new Date().toLocaleDateString()} - ${notes || ''}`,
           updated_by: req.user.id
-        });
-
-        processedInvoices.push(invoice);
+        }, { transaction });
 
         appliedPayments.push({
           invoice_id: invoice.id,
@@ -1003,9 +1067,7 @@ const recordSmartPayment = async (req, res, next) => {
         remainingAmount -= amountToApply;
       } catch (error) {
         logger.error(`Error applying payment to invoice ${invoice.id}:`, error);
-        errors.push(
-          `Failed to apply payment to invoice ${invoice.invoice_number}: ${error.message}`
-        );
+        throw error;
       }
     }
 
@@ -1013,7 +1075,7 @@ const recordSmartPayment = async (req, res, next) => {
       throw new ApiError(400, 'Failed to apply payment to any invoices');
     }
 
-    const totalApplied = parseFloat(payment_amount) - remainingAmount;
+    const totalApplied = amountReceived - remainingAmount;
 
     // Calculate payment summary
     const paidMonths = appliedPayments
@@ -1026,7 +1088,8 @@ const recordSmartPayment = async (req, res, next) => {
         student_id,
         school_id: req.schoolId,
         status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] }
-      }
+      },
+      transaction
     });
 
     const totalRemainingAmount = await FeeInvoice.sum('balance_amount', {
@@ -1034,7 +1097,8 @@ const recordSmartPayment = async (req, res, next) => {
         student_id,
         school_id: req.schoolId,
         status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] }
-      }
+      },
+      transaction
     });
 
     logger.info(
@@ -1044,7 +1108,8 @@ const recordSmartPayment = async (req, res, next) => {
     // Generate combined receipt for all grouped invoices
     const groupedInvoices = await getStudentInvoices(student_id, req.schoolId, {
       includeStudent: true,
-      status: ['paid', 'partial_paid'] // Include paid invoices for receipt generation
+      status: ['paid', 'partial_paid'], // Include paid invoices for receipt generation
+      transaction
     }).then(invoices => invoices.filter(invoice => invoice.receipt_number === receiptNumber));
 
     // Get school data with receipt settings for receipt generation
@@ -1059,14 +1124,16 @@ const recordSmartPayment = async (req, res, next) => {
         'email',
         'website',
         'receipt_settings'
-      ]
+      ],
+      transaction
     });
 
     // Get branch data if student has a branch
     let branch = null;
     if (student.branch_id) {
       branch = await Branch.findByPk(student.branch_id, {
-        attributes: ['id', 'name', 'code', 'receipt_logo']
+        attributes: ['id', 'name', 'code', 'receipt_logo'],
+        transaction
       });
     }
 
@@ -1079,29 +1146,48 @@ const recordSmartPayment = async (req, res, next) => {
       schoolForReceipt,
       student,
       receiptNumber, // Pass the receipt number to preserve historical state
-      branch // Pass branch data for receipt customization
+      branch, // Pass branch data for receipt customization
+      null,
+      transaction
     );
 
     // Store receipt data in the first payment for future reference
     if (appliedPayments.length > 0) {
       const firstPaymentId = appliedPayments[0].payment_id;
-      const firstPayment = await FeePayment.findByPk(firstPaymentId);
+      const firstPayment = await FeePayment.findByPk(firstPaymentId, { transaction });
       if (firstPayment) {
         // Always store the receipt data to ensure historical state is preserved
-        await firstPayment.update({ receipt_data: combinedReceipt.receipt_data });
+        await firstPayment.update({
+          receipt_data: combinedReceipt.receipt_data,
+          ...(idempotency && { idempotency_response: {
+            student_id,
+            student_name: getStudentFullName(student),
+            total_payment_amount: amountReceived,
+            total_applied_amount: totalApplied,
+            remaining_amount: remainingAmount,
+            invoices_processed: appliedPayments.length,
+            applied_payments: appliedPayments,
+            receipt_number: receiptNumber,
+            combined_receipt: combinedReceipt,
+            summary: {
+              paid_months: paidMonths,
+              months_covered: appliedPayments.filter(p => p.is_monthly && p.status === 'paid').length,
+              remaining_invoices: remainingInvoices,
+              remaining_balance: parseFloat(totalRemainingAmount || 0),
+              payment_mode
+            }
+          } })
+        }, { transaction });
         logger.info(
           `Stored combined receipt data for receipt ${receiptNumber} in payment ${firstPaymentId}`
         );
       }
     }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Smart payment recorded successfully',
-      data: {
+    const responseData = {
         student_id,
         student_name: getStudentFullName(student),
-        total_payment_amount: parseFloat(payment_amount),
+        total_payment_amount: amountReceived,
         total_applied_amount: totalApplied,
         remaining_amount: remainingAmount,
         invoices_processed: appliedPayments.length,
@@ -1116,12 +1202,24 @@ const recordSmartPayment = async (req, res, next) => {
           remaining_invoices: remainingInvoices,
           remaining_balance: parseFloat(totalRemainingAmount || 0),
           payment_mode: payment_mode
-        },
+        }
+    };
 
-        errors: errors.length > 0 ? errors : undefined
-      }
+    await transaction.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Smart payment recorded successfully',
+      data: responseData
     });
   } catch (error) {
+    if (transaction && !transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        logger.error('Error rolling back smart payment transaction:', rollbackError);
+      }
+    }
     logger.error('Error recording smart payment:', error);
     return next(error);
   }
@@ -1926,6 +2024,7 @@ const getStudentFeeInvoiceSummary = async (req, res, next) => {
 };
 
 module.exports = {
+  searchStudentsForFees,
   getStudentDues,
   getStudentFeeLedger,
   recordSmartPayment,

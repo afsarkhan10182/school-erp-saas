@@ -178,6 +178,13 @@ Exam.associate = models => {
     foreignKey: 'exam_id',
     as: 'schedules'
   });
+
+  Exam.belongsToMany(models.ReportCardSetup, {
+    through: models.ReportCardSetupExam,
+    foreignKey: 'exam_id',
+    otherKey: 'setup_id',
+    as: 'reportCardSetups'
+  });
 };
 
 module.exports = Exam;

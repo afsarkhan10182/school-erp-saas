@@ -8,12 +8,13 @@ const {
   getClassCode
 } = require('~/controllers/financial/core.controller');
 const { getFileUrlPath, getCurrentYear } = require('~/utils/shared/storage');
+const ApiError = require('~/utils/shared/ApiError');
 
 /**
  * Generate receipt data on-demand from payment ID
  * This is the new approach - no HTML/JSON storage in DB
  */
-const generateReceiptData = async paymentId => {
+const generateReceiptData = async (paymentId, { transaction } = {}) => {
   try {
     const {
       FeePayment,
@@ -65,7 +66,8 @@ const generateReceiptData = async paymentId => {
           model: School,
           as: 'school'
         }
-      ]
+      ],
+      transaction
     });
 
     if (!payment) {
@@ -74,7 +76,12 @@ const generateReceiptData = async paymentId => {
 
     // If receipt data already exists, return it (preserves historical state)
     if (payment.receipt_data) {
-      return payment.receipt_data;
+      return {
+        ...payment.receipt_data,
+        payment_status: payment.payment_status,
+        reversal_reason: payment.reversal_reason,
+        reversed_at: payment.reversed_at
+      };
     }
 
     const invoice = payment.invoice;
@@ -98,12 +105,21 @@ const generateReceiptData = async paymentId => {
         student.id,
         invoice.fee_structure_id,
         invoice.academic_year,
-        invoice
-        // Don't pass payment.payment_date as asOfDate for current payments
+        invoice,
+        null,
+        transaction
       );
 
       remainingMonths = Math.max(0, totalMonths - paidMonths);
-      remainingBalance = remainingMonths * monthlyAmount;
+      remainingBalance = await calculateMonthlyOutstandingBalance(
+        student.id,
+        invoice.fee_structure_id,
+        invoice.academic_year,
+        totalMonths,
+        monthlyAmount,
+        student.school_id,
+        transaction
+      );
     } else {
       // For installment payments
       remainingBalance = Math.max(
@@ -120,12 +136,15 @@ const generateReceiptData = async paymentId => {
       const classCode = await getClassCode(invoice.feeStructure, invoice.student);
 
       const tempReceipt = await generateUniqueReceiptNumber(classCode, {
-        school_id: payment.school_id
+        school_id: payment.school_id,
+        branch_id: payment.branch_id,
+        academic_year: invoice.academic_year,
+        transaction
       });
       receiptNumber = tempReceipt.receipt_number;
 
       // Update payment with receipt number
-      await payment.update({ receipt_number: receiptNumber });
+      await payment.update({ receipt_number: receiptNumber }, { transaction });
     }
 
     // Get receipt customization settings
@@ -175,6 +194,9 @@ const generateReceiptData = async paymentId => {
       payment_method: payment.payment_method,
       transaction_id: payment.transaction_id,
       payment_date: payment.payment_date,
+      payment_status: payment.payment_status,
+      reversal_reason: payment.reversal_reason,
+      reversed_at: payment.reversed_at,
       remaining_balance: remainingBalance,
       remaining_months: remainingMonths,
       // School information with customization
@@ -260,7 +282,7 @@ const generateReceiptData = async paymentId => {
 /**
  * Generate receipt data for multiple payments (combined receipt)
  */
-const generateCombinedReceiptData = async paymentIds => {
+const generateCombinedReceiptData = async (paymentIds, { ignoreSnapshot = false } = {}) => {
   try {
     const {
       FeePayment,
@@ -275,7 +297,7 @@ const generateCombinedReceiptData = async paymentIds => {
 
     // Fetch all payments with related data
     const payments = await FeePayment.findAll({
-      where: { id: paymentIds },
+      where: { id: paymentIds, payment_status: 'completed' },
       include: [
         {
           model: FeeInvoice,
@@ -320,11 +342,14 @@ const generateCombinedReceiptData = async paymentIds => {
     if (payments.length === 0) {
       throw new Error('No payments found');
     }
+    if (payments.length !== new Set(paymentIds).size) {
+      throw new ApiError(409, 'Only completed payments can be combined into a receipt');
+    }
 
     const firstPayment = payments[0];
 
     // If receipt data already exists in the first payment, return it (preserves historical state)
-    if (firstPayment.receipt_data) {
+    if (firstPayment.receipt_data && !ignoreSnapshot) {
       return firstPayment.receipt_data;
     }
     const student = firstPayment.invoice.student;
@@ -499,13 +524,15 @@ const getMonthName = month => {
  * @param {string} academicYear - Academic year
  * @param {Array|Object} currentInvoices - Current invoices being paid (optional)
  * @param {Date} asOfDate - Calculate paid months as of this date (optional, defaults to current date)
+ * @param {Transaction} transaction - Optional transaction for atomic payment/receipt generation
  */
 const calculatePaidMonths = async (
   studentId,
   feeStructureId,
   academicYear,
   currentInvoices = null,
-  asOfDate = null
+  asOfDate = null,
+  transaction
 ) => {
   try {
     const { FeePayment, FeeInvoice } = require('~/models');
@@ -516,7 +543,7 @@ const calculatePaidMonths = async (
       fee_structure_id: feeStructureId,
       academic_year: academicYear,
       payment_model: 'monthly',
-      status: ['paid', 'partial_paid']
+      status: 'paid'
     };
 
     // If asOfDate is provided, only count payments made on or before that date
@@ -544,6 +571,7 @@ const calculatePaidMonths = async (
           required: true
         }
       ],
+      transaction,
       attributes: ['month', 'year']
     });
 
@@ -558,7 +586,10 @@ const calculatePaidMonths = async (
       if (Array.isArray(currentInvoices)) {
         // Handle array of invoices (for combined receipts)
         currentInvoices.forEach(invoice => {
-          if (invoice.payment_model === 'monthly' && invoice.month && invoice.year) {
+          if (
+            invoice.payment_model === 'monthly' && invoice.month && invoice.year &&
+            (invoice.status === 'paid' || parseFloat(invoice.balance_amount || 0) <= 0)
+          ) {
             uniqueMonths.add(`${invoice.month}-${invoice.year}`);
           }
         });
@@ -567,7 +598,8 @@ const calculatePaidMonths = async (
         if (
           currentInvoices.payment_model === 'monthly' &&
           currentInvoices.month &&
-          currentInvoices.year
+          currentInvoices.year &&
+          (currentInvoices.status === 'paid' || parseFloat(currentInvoices.balance_amount || 0) <= 0)
         ) {
           uniqueMonths.add(`${currentInvoices.month}-${currentInvoices.year}`);
         }
@@ -599,9 +631,34 @@ const calculatePaidMonths = async (
   }
 };
 
+const calculateMonthlyOutstandingBalance = async (
+  studentId,
+  feeStructureId,
+  academicYear,
+  totalMonths,
+  monthlyAmount,
+  schoolId,
+  transaction
+) => {
+  const { FeeInvoice } = require('~/models');
+  const totalPaid = await FeeInvoice.sum('paid_amount', {
+    where: {
+      student_id: studentId,
+      fee_structure_id: feeStructureId,
+      academic_year: academicYear,
+      ...(schoolId && { school_id: schoolId }),
+      payment_model: 'monthly'
+    },
+    transaction
+  });
+
+  return Math.max(0, totalMonths * monthlyAmount - parseFloat(totalPaid || 0));
+};
+
 module.exports = {
   // On-demand functions
   generateReceiptData,
   generateCombinedReceiptData,
-  calculatePaidMonths
+  calculatePaidMonths,
+  calculateMonthlyOutstandingBalance
 };

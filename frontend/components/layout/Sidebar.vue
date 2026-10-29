@@ -106,22 +106,89 @@
             @click="handleMenuClick(homePath, $event)"
           >
             <Home class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
-            <span v-if="open || isMobile">{{
-              homePath === '/portal' ? 'My Portal' : 'Dashboard'
-            }}</span>
+            <span v-if="open || isMobile">{{ homeLabel }}</span>
           </NuxtLink>
           <!-- Hover Menu for Collapsed State -->
           <div
             v-if="!open && !isMobile"
             class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700"
           >
-            <span class="text-sm font-medium text-gray-900 dark:text-white">{{
-              homePath === '/portal' ? 'My Portal' : 'Dashboard'
-            }}</span>
+            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ homeLabel }}</span>
           </div>
         </div>
 
+        <!-- Super Admin Workspace Switcher -->
+        <div v-if="isSuperAdmin && (open || isMobile)" class="px-1 py-1">
+          <div class="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex items-center text-xs font-medium">
+            <button
+              type="button"
+              @click="setWorkspaceMode('platform')"
+              class="flex-1 py-1 px-2 rounded-lg text-center transition-all"
+              :class="workspaceMode === 'platform' ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'"
+            >
+              SaaS Platform
+            </button>
+            <button
+              type="button"
+              @click="setWorkspaceMode('school')"
+              class="flex-1 py-1 px-2 rounded-lg text-center transition-all"
+              :class="workspaceMode === 'school' && currentSchool?.id ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'"
+              :title="currentSchool?.id ? `Inspecting ${currentSchool.name}` : 'Select an institution to inspect'"
+            >
+              {{ currentSchool?.id ? 'School Ops' : 'Inspect School' }}
+            </button>
+          </div>
+          <div
+            v-if="workspaceMode === 'school' && currentSchool?.id"
+            class="mt-2 px-2.5 py-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/60 rounded-lg text-[11px] text-amber-800 dark:text-amber-300 flex items-start justify-between gap-2"
+          >
+            <span class="min-w-0">
+              <span class="block truncate font-medium">{{ currentSchool.name }} (Inspecting)</span>
+              <span class="block text-[10px] leading-4">Super Admin actions can change school data.</span>
+            </span>
+            <button
+              type="button"
+              @click="setWorkspaceMode('platform')"
+              class="shrink-0 text-xs font-bold underline hover:text-amber-950 dark:hover:text-amber-100"
+            >
+              Exit
+            </button>
+          </div>
+        </div>
+
+        <!-- Search the already role- and module-filtered navigation tree. -->
+        <div v-if="open || isMobile" class="px-1 py-2">
+          <label class="relative block">
+            <span class="sr-only">Search menu pages</span>
+            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              v-model="menuSearch"
+              type="search"
+              aria-label="Search menu pages"
+              placeholder="Search menu pages..."
+              class="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:ring-indigo-900/40"
+            />
+          </label>
+        </div>
+
         <!-- Navigation Menu Items -->
+        <div v-if="menuSearch.trim() && (open || isMobile)" class="space-y-1">
+          <NuxtLink
+            v-for="item in menuSearchResults"
+            :key="item.id"
+            :to="item.path"
+            :class="navClass(item.path)"
+            class="flex-col items-start gap-0.5"
+            @click="menuSearch = ''"
+          >
+            <span class="font-medium">{{ item.title }}</span>
+            <span class="w-full truncate text-[11px] text-gray-400">{{ item.section }}</span>
+          </NuxtLink>
+          <p v-if="menuSearchResults.length === 0" class="px-3 py-4 text-center text-xs text-gray-500 dark:text-gray-400">
+            No pages found for “{{ menuSearch }}”.
+          </p>
+        </div>
+        <template v-else>
         <template v-for="menuGroup in visibleMenuGroups" :key="menuGroup.id">
           <!-- Menu Group Header -->
           <div
@@ -338,6 +405,7 @@
             </div>
           </template>
         </template>
+        </template>
       </nav>
     </div>
   </div>
@@ -347,6 +415,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
 import { useRuntimeConfig } from '#app';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
@@ -354,8 +423,10 @@ import { useModuleAccess } from '~/composables/useModuleAccess';
 import { useAcademicSettings } from '~/utils/settings';
 import { getLogoUrl } from '~/utils/image';
 import { buildSchoolSidebar } from '~/config/school-sidebar';
+import { homePathForRole } from '~/utils/home-path';
 import {
   Home,
+  Search,
   School,
   Building2,
   Users,
@@ -444,6 +515,7 @@ const saveSidebarState = isOpen => {
 const { isSuperAdmin, isAdmin, isBranchAdmin, user, currentSchool } = useAuth();
 const menuOpen = ref('');
 const subMenuOpen = ref('');
+const menuSearch = ref('');
 const logoError = ref(false);
 
 // School logo and name
@@ -493,11 +565,61 @@ const isReceptionist = computed(() => user.value?.role === 'receptionist');
 
 // Load streams setting
 const loadStreamsSetting = async () => {
+  if (!['admin', 'super_admin'].includes(user.value?.role)) return;
+
   try {
     const result = await isStreamsEnabled();
     streamsEnabled.value = result;
   } catch (error) {
     streamsEnabled.value = false;
+  }
+};
+
+// Super admin workspace mode (Platform vs School Ops)
+const workspaceMode = ref('platform');
+const router = useRouter();
+const route = useRoute();
+
+watch(
+  [() => route.path, () => currentSchool.value?.id],
+  ([newPath, schoolId], [oldPath]) => {
+    if (isSuperAdmin.value) {
+      if (newPath.startsWith('/saas') || newPath.startsWith('/admin/config') || newPath === '/branches') {
+        workspaceMode.value = 'platform';
+        if (schoolId && oldPath !== newPath) {
+          const authStore = useAuthStore();
+          authStore.setCurrentSchool(null);
+          authStore.setCurrentBranch(null);
+        }
+      } else if (schoolId) {
+        workspaceMode.value = 'school';
+      } else {
+        workspaceMode.value = 'platform';
+      }
+    }
+  },
+  { immediate: true }
+);
+
+const setWorkspaceMode = mode => {
+  if (mode === 'platform') {
+    workspaceMode.value = 'platform';
+    const authStore = useAuthStore();
+    authStore.setCurrentSchool(null);
+    authStore.setCurrentBranch(null);
+    if (!route.path.startsWith('/saas')) {
+      router.push('/saas');
+    }
+  } else if (mode === 'school') {
+    if (currentSchool.value?.id) {
+      workspaceMode.value = 'school';
+      if (route.path.startsWith('/saas')) {
+        router.push('/dashboard');
+      }
+    } else {
+      // Direct user to select an institution to inspect
+      router.push('/saas');
+    }
   }
 };
 
@@ -514,6 +636,9 @@ const menuGroups = computed(() =>
     isStudent: user.value?.role === 'student',
     isParent: user.value?.role === 'parent',
     streamsEnabled: streamsEnabled.value,
+    workspaceMode: workspaceMode.value,
+    currentSchoolId: currentSchool.value?.id,
+    currentSchoolName: currentSchool.value?.name,
     icons: {
       Home,
       School,
@@ -576,9 +701,41 @@ const visibleMenuGroups = computed(() =>
     .filter(group => (group.items || []).length > 0)
 );
 
-const homePath = computed(() =>
-  user.value?.role === 'student' || user.value?.role === 'parent' ? '/portal' : '/dashboard'
-);
+const menuSearchResults = computed(() => {
+  const query = menuSearch.value.trim().toLowerCase();
+  if (!query) return [];
+
+  const flatten = (items, parents = []) => items.flatMap(item => {
+    const trail = [...parents, item.title];
+    const current = item.path ? [{ id: item.id, path: item.path, title: item.title, section: trail.join(' / ') }] : [];
+    return [...current, ...flatten(item.children || [], trail)];
+  });
+
+  return visibleMenuGroups.value
+    .flatMap(group => flatten(group.items, [group.title]))
+    .filter(item => `${item.title} ${item.section} ${item.path}`.toLowerCase().includes(query));
+});
+
+const homePath = computed(() => {
+  if (isSuperAdmin.value) {
+    return workspaceMode.value === 'school' && currentSchool.value?.id ? '/dashboard' : '/saas';
+  }
+  return homePathForRole(user.value?.role);
+});
+
+const homeLabel = computed(() => {
+  const role = user.value?.role;
+  if (role === 'super_admin') {
+    return workspaceMode.value === 'school' && currentSchool.value?.id ? 'School Operations' : 'SaaS Platform';
+  }
+  if (role === 'student') return 'Student Portal';
+  if (role === 'parent') return 'Family Portal';
+  if (role === 'teacher') return 'Teaching Workspace';
+  if (role === 'accountant') return 'Finance Workspace';
+  if (role === 'receptionist') return 'Front Desk';
+  if (role === 'librarian') return 'Library Desk';
+  return 'Dashboard';
+});
 
 const toggleMenu = menu => {
   menuOpen.value = menuOpen.value === menu ? '' : menu;

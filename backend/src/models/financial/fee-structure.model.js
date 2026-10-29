@@ -31,10 +31,7 @@ const normalizeFeeStructure = feeStructure => {
 
     // Handle due_date based on installment type
     if (feeStructure.installment_type === 'one_time') {
-      // One-time installments need a due_date
-      if (!feeStructure.due_date) {
-        feeStructure.due_date = '2025-10-24'; // Default due date
-      }
+      // Invoice generation applies the school's due-date policy when no date is configured.
       feeStructure.installment_amounts = [];
       feeStructure.installment_due_dates = [];
     } else if (feeStructure.installment_type === 'multiple') {
@@ -113,9 +110,7 @@ const validateFeeStructure = feeStructure => {
         }
       }
     } else if (feeStructure.installment_type === 'one_time') {
-      if (!feeStructure.due_date) {
-        throw new Error('One-time installments require a due date');
-      }
+      // A missing date is resolved from school fee settings during invoice generation.
     }
   } else if (feeStructure.payment_model === 'monthly') {
     if (!feeStructure.monthly_payment_amount || feeStructure.monthly_payment_amount <= 0) {

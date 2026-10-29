@@ -9,6 +9,7 @@ const { requireModuleAccess } = require('~/middleware/administration/moduleAcces
 const { validate } = require('~/middleware/shared/validate');
 const { upload } = require('~/middleware/shared/upload');
 const ExamController = require('~/controllers/academic/exams/exam.controller');
+const ExamResultController = require('~/controllers/academic/exams/exam-result.controller');
 const { createExamValidator, updateExamValidator } = require('~/validations/academic/exam');
 const { EXAM_ROLES, EXAM_ADMIN_ROLES } = require('~/constants/roles');
 
@@ -44,7 +45,7 @@ router.post(
  * @access Private (EXAM_ROLES)
  * @query {number} page, {number} limit, {string} search, {string} exam_type, {string} status
  */
-router.get('/', ExamController.getAllExams);
+router.get('/', setBranchContext, ExamController.getAllExams);
 
 /**
  * @route GET /api/exams/stats
@@ -118,7 +119,10 @@ router.get('/:id/results', ExamController.getExamResults);
  * @param {string} id - Exam ID
  * @query {string} format - Export format (json, pdf, excel)
  */
-router.get('/:id/results/export', ExamController.exportExamResults);
+router.get('/:id/results/export', requireRole(...EXAM_ROLES), (req, res, next) => {
+  req.params.examId = req.params.id;
+  return ExamResultController.exportResults(req, res, next);
+});
 
 // ===== STUDENT EXAM ROUTES =====
 
@@ -140,7 +144,12 @@ router.get('/student/:studentId/history', ExamController.getStudentExamHistory);
  * @param {string} studentId - Student ID
  * @query {string} academic_year, {string} exam_types, {string} format, {boolean} auto_print
  */
-router.get('/student/:studentId/report-card', ExamController.generateReportCard);
+router.get(
+  '/student/:studentId/report-card',
+  requireRole(...EXAM_ROLES),
+  setBranchContext,
+  ExamController.generateReportCard
+);
 
 // ===== BULK MARKS ENTRY ROUTES =====
 

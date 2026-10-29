@@ -8,12 +8,15 @@ const PlanModule = require('./administration/plan-module.model');
 const Transaction = require('./financial/transaction.model');
 const SubscriptionRenewalRequest = require('./administration/subscription-renewal-request.model');
 const Student = require('./academic/student.model');
+const StudentImportBatch = require('./academic/student-import-batch.model');
+const StudentImportBatchRow = require('./academic/student-import-batch-row.model');
 const Parent = require('./academic/parent.model');
 const StudentParent = require('./academic/student-parent.model');
 const FeeType = require('./financial/fee-type.model');
 const FeeStructure = require('./financial/fee-structure.model');
 const FeeInvoice = require('./financial/fee-invoice.model');
 const FeePayment = require('./financial/fee-payment.model');
+const FeeInvoiceAdjustment = require('./financial/fee-invoice-adjustment.model');
 const AcademicYear = require('./academic/academic-year.model');
 
 // Academic models
@@ -34,13 +37,23 @@ const AttendanceSession = require('./academic/attendance/attendance-session.mode
 const AttendanceRecord = require('./academic/attendance/attendance-record.model');
 const Timetable = require('./academic/timetable/timetable.model');
 const TimetableSlot = require('./academic/timetable/timetable-slot.model');
-const { Exam, ExamResult, ExamSchedule, ExamHall, ExamPosition } = require('./academic/exams');
+const { Exam, ExamResult, ExamSchedule, ExamSubjectMark, ExamHall, ExamPosition } = require('./academic/exams');
 const MarkDistribution = require('./academic/mark-distribution.model');
 const StudentPromotion = require('./academic/student-promotion.model');
 const StudentCategory = require('./academic/student-category.model');
 const Homework = require('./academic/homework.model');
+const HomeworkSubmission = require('./academic/homework-submission.model');
+const LiveClass = require('./academic/live-class.model');
+const LiveClassAttendance = require('./academic/live-class-attendance.model');
+const SyllabusUnit = require('./academic/syllabus-unit.model');
+const ParentTeacherMeeting = require('./academic/parent-teacher-meeting.model');
+const ParentTeacherMeetingStudent = require('./academic/parent-teacher-meeting-student.model');
+const GatePass = require('./academic/gate-pass.model');
 const LibraryBook = require('./academic/library-book.model');
 const LibraryIssue = require('./academic/library-issue.model');
+const LibraryBookRequest = require('./academic/library-book-request.model');
+const LibraryImportBatch = require('./academic/library-import-batch.model');
+const LibraryImportBatchRow = require('./academic/library-import-batch-row.model');
 const FeeFine = require('./financial/fee-fine.model');
 const DynamicEntityRecord = require('./shared/dynamic-entity-record.model');
 const SchoolOpsRecord = DynamicEntityRecord;
@@ -50,10 +63,15 @@ const OnlineExamQuestion = require('./academic/online-exam-question.model');
 const OnlineExamAttempt = require('./academic/online-exam-attempt.model');
 const ExamSeating = require('./academic/exam-seating.model');
 const ReportTemplate = require('./academic/exams/report-template.model')(sequelize);
+const ReportCardSetup = require('./academic/exams/report-card-setup.model');
+const ReportCardSetupExam = require('./academic/exams/report-card-setup-exam.model');
 const ExamReport = require('./academic/exams/exam-report.model')(sequelize);
+const StudentReportCardArchive = require('./academic/exams/student-report-card-archive.model');
 
 // Administration models
 const CertificateTemplate = require('./administration/certificate-template.model');
+const SettingsChangeLog = require('./administration/settings-change-log.model');
+const AuditEvent = require('./administration/audit-event.model');
 
 // Transport models
 const Vehicle = require('./transport/vehicle.model');
@@ -95,12 +113,15 @@ const models = {
   Transaction,
   SubscriptionRenewalRequest,
   Student,
+  StudentImportBatch,
+  StudentImportBatchRow,
   Parent,
   StudentParent,
   FeeType,
   FeeStructure,
   FeeInvoice,
   FeePayment,
+  FeeInvoiceAdjustment,
   AcademicYear,
   AcademicCalendar,
   Term,
@@ -122,14 +143,25 @@ const models = {
   Exam,
   ExamResult,
   ExamSchedule,
+  ExamSubjectMark,
   ExamHall,
   ExamPosition,
   MarkDistribution,
   StudentPromotion,
   StudentCategory,
   Homework,
+  HomeworkSubmission,
+  LiveClass,
+  LiveClassAttendance,
+  SyllabusUnit,
+  ParentTeacherMeeting,
+  ParentTeacherMeetingStudent,
+  GatePass,
   LibraryBook,
   LibraryIssue,
+  LibraryBookRequest,
+  LibraryImportBatch,
+  LibraryImportBatchRow,
   FeeFine,
   SchoolOpsRecord,
   DynamicEntityRecord: SchoolOpsRecord,
@@ -139,8 +171,13 @@ const models = {
   OnlineExamAttempt,
   ExamSeating,
   ReportTemplate,
+  ReportCardSetup,
+  ReportCardSetupExam,
   ExamReport,
+  StudentReportCardArchive,
   CertificateTemplate,
+  SettingsChangeLog,
+  AuditEvent,
   Vehicle,
   TransportRoute,
   VehicleRoute,
@@ -166,6 +203,8 @@ Object.values(models).forEach(model => {
     model.associate(models);
   }
 });
+
+require('~/services/shared/audit-trail.service').registerAuditHooks(models, AuditEvent);
 
 // Export all models after associations are established
 module.exports = {

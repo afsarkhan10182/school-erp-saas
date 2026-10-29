@@ -34,6 +34,14 @@
           </div>
         </div>
       </div>
+
+      <p
+        v-if="isAdmin && !form.branch_id"
+        class="mt-4 text-sm text-amber-700 dark:text-amber-300"
+        role="status"
+      >
+        Select a branch from the header to mark attendance.
+      </p>
     </div>
 
     <!-- Quick Setup Card -->
@@ -91,7 +99,7 @@
             v-model="form.date"
             type="date"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-colors"
-            :max="new Date().toISOString().split('T')[0]"
+            :max="todayLocalDate"
           />
           <!-- Working Day Status - Reserved Space -->
           <div class="mt-1 h-6 flex items-center">
@@ -559,6 +567,7 @@ import { useAttendance } from '~/composables/useAttendance';
 import { useAcademics } from '~/composables/useAcademics';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { Attendance } from '~/api';
+import { getLocalDateInputValue } from '~/utils/localDate';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 
@@ -618,6 +627,7 @@ const form = reactive({
   section_id: '',
   academic_year: ''
 });
+const todayLocalDate = ref(new Date().toISOString().slice(0, 10));
 
 watch(selectedBranchId, async newBranchId => {
   form.branch_id = newBranchId || '';
@@ -1071,7 +1081,16 @@ const submitAttendance = async () => {
     // Create session first, then save attendance using composable
     const sessionId = await createAttendanceSession();
     await saveAttendance(sessionId, records, true);
-    showToast('Attendance submitted successfully - Parents will be notified', 'success');
+    try {
+      await Attendance.notifyAbsentees(sessionId);
+      showToast('Attendance published and parent notification requests processed.', 'success');
+    } catch (notificationError: any) {
+      const message = notificationError?.response?.data?.message || notificationError?.message;
+      showToast(
+        `Attendance was published, but parent notifications failed${message ? `: ${message}` : '.'}`,
+        'warning'
+      );
+    }
 
     // Refresh the current data to show updated values
     await loadStudentsForAttendance();
@@ -1113,6 +1132,9 @@ watch(() => form.date, debouncedCheckWorkingDay);
 // Initialize
 onMounted(async () => {
   try {
+    todayLocalDate.value = getLocalDateInputValue();
+    form.date = todayLocalDate.value;
+
     // Load academic settings first
     attendanceSettings.value = await getAttendanceSettings();
     workingDays.value = await getWorkingDays();
@@ -1133,11 +1155,10 @@ onMounted(async () => {
     } else if (isAdmin.value) {
       // Admin: Load branches for their school directly
       form.school_id = user.value?.school_id || '';
-      form.branch_id =
-        user.value?.branch_id || '';
+      form.branch_id = selectedBranchId.value || '';
       if (form.branch_id) await fetchClasses({ branchId: form.branch_id });
-    } else if (isBranchAdmin.value) {
-      // Branch Admin: Load classes for their branch directly
+    } else if (isBranchAdmin.value || user.value?.role === 'teacher') {
+      // Branch Admin and Teacher: load classes within their assigned branch.
       form.school_id = user.value?.school_id || '';
       form.branch_id = user.value?.branch_id || '';
       await fetchClasses({ branchId: form.branch_id });

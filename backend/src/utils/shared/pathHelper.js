@@ -27,6 +27,39 @@ function resolveUploadsPath(...segments) {
   return path.join(resolvedDir, ...segments);
 }
 
+function resolvePrivateStudyMaterialsPath(...segments) {
+  const privateDir = config.uploads.privateStudyMaterialsDir;
+  const resolvedDir = privateDir.startsWith('./')
+    ? path.join(BACKEND_ROOT, privateDir.slice(2))
+    : privateDir;
+  const privateRoot = path.resolve(resolvedDir);
+  const publicRoot = path.resolve(resolveUploadsPath());
+  const relative = path.relative(publicRoot, privateRoot);
+  if (!relative || (!relative.startsWith(`..${path.sep}`) && relative !== '..') || path.isAbsolute(relative)) {
+    throw new Error('Private study material storage must be outside the public uploads directory');
+  }
+  return path.join(privateRoot, ...segments);
+}
+
+function resolvePrivateReportCardsPath(...segments) {
+  const privateDir = config.uploads.privateReportCardsDir;
+  const resolvedDir = privateDir.startsWith('./')
+    ? path.join(BACKEND_ROOT, privateDir.slice(2))
+    : privateDir;
+  const privateRoot = path.resolve(resolvedDir);
+  const publicRoot = path.resolve(resolveUploadsPath());
+  const publicRelative = path.relative(publicRoot, privateRoot);
+  if (!publicRelative || (!publicRelative.startsWith(`..${path.sep}`) && publicRelative !== '..') || path.isAbsolute(publicRelative)) {
+    throw new Error('Private report-card storage must be outside the public uploads directory');
+  }
+  const target = path.resolve(privateRoot, ...segments);
+  const targetRelative = path.relative(privateRoot, target);
+  if (targetRelative.startsWith(`..${path.sep}`) || targetRelative === '..' || path.isAbsolute(targetRelative)) {
+    throw new Error('Invalid private report-card path');
+  }
+  return target;
+}
+
 // Resolve templates path (config-driven)
 function resolveTemplatesPath(...segments) {
   const templatesDir = config.templates.dir;
@@ -42,5 +75,7 @@ module.exports = {
   resolveProjectPath,
   resolveBackendPath,
   resolveUploadsPath,
+  resolvePrivateStudyMaterialsPath,
+  resolvePrivateReportCardsPath,
   resolveTemplatesPath
 };

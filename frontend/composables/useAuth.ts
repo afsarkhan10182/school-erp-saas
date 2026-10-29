@@ -20,17 +20,26 @@ export const useAuth = () => {
         // 2. Post-logout redirect (saved before logout)
         // 3. Role home (portal for student/parent)
         let destination = redirectTo;
+        const role = authStore.userRole || authStore.currentUser?.role;
 
         if (!destination && import.meta.client) {
           const savedRedirect = sessionStorage.getItem('post-logout-redirect');
           if (savedRedirect) {
-            destination = savedRedirect;
-            // Clear saved redirect after use
             sessionStorage.removeItem('post-logout-redirect');
+            const isFamily = role === 'student' || role === 'parent';
+            const isSuper = role === 'super_admin';
+            if (isFamily && !savedRedirect.startsWith('/portal')) {
+              // ignore non-portal redirect for family
+            } else if (!isSuper && savedRedirect.startsWith('/saas')) {
+              // ignore saas redirect for non-superadmin
+            } else if (isSuper && !savedRedirect.startsWith('/saas')) {
+              // ignore non-saas redirect for superadmin
+            } else {
+              destination = savedRedirect;
+            }
           }
         }
 
-        const role = authStore.userRole || authStore.currentUser?.role;
         destination = destination || homePathForRole(role);
         await navigateTo(destination, { replace: true });
         return result;

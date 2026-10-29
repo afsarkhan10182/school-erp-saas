@@ -95,6 +95,14 @@ const updateFeeSettings = async (req, res, next) => {
       throw new ApiError(400, 'Fee settings are required');
     }
 
+    const lateFeePercentage =
+      feeSettings.lateFeePercentage == null || feeSettings.lateFeePercentage === ''
+        ? 5.0
+        : Number(feeSettings.lateFeePercentage);
+    if (!Number.isFinite(lateFeePercentage) || lateFeePercentage < 0 || lateFeePercentage > 50) {
+      throw new ApiError(400, 'Late fee percentage must be between 0 and 50');
+    }
+
     // Update school fee settings
     const schoolId = req.schoolId || req.user?.school_id;
 
@@ -116,7 +124,7 @@ const updateFeeSettings = async (req, res, next) => {
       defaultPaymentModel: feeSettings.defaultPaymentModel || 'monthly',
       defaultInstallmentsCount: parseInt(feeSettings.defaultInstallmentsCount) || 4,
       defaultMonthlyMonths: parseInt(feeSettings.defaultMonthlyMonths) || 12,
-      lateFeePercentage: parseFloat(feeSettings.lateFeePercentage) || 5.0,
+      lateFeePercentage,
       paymentMethods: {
         cash: feeSettings.paymentMethods?.cash !== false,
         bank_transfer: feeSettings.paymentMethods?.bank_transfer !== false,

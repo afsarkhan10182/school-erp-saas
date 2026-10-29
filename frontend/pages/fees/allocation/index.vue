@@ -73,8 +73,21 @@
         </div>
       </div>
 
+      <p v-if="hasSearched" class="text-xs text-gray-500 dark:text-gray-400">
+        Invoice totals below cover all fee groups for the selected students.
+      </p>
+
+      <ConfirmDialog
+        :show="showRemovalConfirmation"
+        title="Remove fee allocations?"
+        :message="`This will remove ${pendingRemovalCount} existing fee allocation${pendingRemovalCount === 1 ? '' : 's'} from the selected roster. Continue?`"
+        confirm-label="Remove allocations"
+        @close="showRemovalConfirmation = false"
+        @confirm="confirmSaveAllocation"
+      />
+
       <!-- Overview Stats Header -->
-      <div v-if="hasSearched" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div v-if="hasSearched" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
         <div
           class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between"
         >
@@ -109,6 +122,20 @@
             </p>
           </div>
           <AlertCircle class="w-8 h-8 text-amber-500 opacity-80" />
+        </div>
+
+        <div
+          v-for="metric in feeMetrics"
+          :key="metric.key"
+          class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between"
+        >
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ metric.label }}</p>
+            <p class="text-lg font-bold text-gray-900 dark:text-white">
+              ₹{{ formatCurrency(metric.value) }}
+            </p>
+          </div>
+          <span class="text-xl font-semibold text-indigo-500 opacity-80">₹</span>
         </div>
       </div>
 
@@ -182,6 +209,9 @@
                 <th class="p-4">Roll No</th>
                 <th class="p-4">Student Name</th>
                 <th class="p-4">Class / Section</th>
+                <th class="p-4 text-right">Billed</th>
+                <th class="p-4 text-right">Paid</th>
+                <th class="p-4 text-right">Due</th>
                 <th class="p-4">Status</th>
               </tr>
             </thead>
@@ -213,6 +243,15 @@
                 <td class="p-4 text-gray-600 dark:text-gray-300">
                   {{ student.class?.name || '—' }}
                   <span v-if="student.sectionInfo">({{ student.sectionInfo.name }})</span>
+                </td>
+                <td class="p-4 text-right tabular-nums">
+                  ₹{{ formatCurrency(student.total_billed) }}
+                </td>
+                <td class="p-4 text-right tabular-nums">
+                  ₹{{ formatCurrency(student.total_paid) }}
+                </td>
+                <td class="p-4 text-right tabular-nums">
+                  ₹{{ formatCurrency(student.total_due) }}
                 </td>
                 <td class="p-4">
                   <span
@@ -255,6 +294,7 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 const { showToast } = useToast();
 const { selectedBranchId } = useGlobalBranch();
@@ -263,6 +303,7 @@ const { classes, sections, fetchClasses, fetchSections } = useAcademics();
 const isLoading = ref(false);
 const isSaving = ref(false);
 const hasSearched = ref(false);
+const showRemovalConfirmation = ref(false);
 const searchTerm = ref('');
 
 const students = ref([]);
@@ -305,6 +346,44 @@ const filteredStudents = computed(() => {
     return fullName.includes(term) || adm.includes(term) || roll.includes(term);
   });
 });
+
+const feeMetrics = computed(() => [
+  {
+    key: 'billed',
+    label: 'Billed',
+    value: students.value.reduce(
+      (sum, student) => sum + Number(student.total_billed || 0),
+      0
+    )
+  },
+  {
+    key: 'paid',
+    label: 'Collected',
+    value: students.value.reduce(
+      (sum, student) => sum + Number(student.total_paid || 0),
+      0
+    )
+  },
+  {
+    key: 'due',
+    label: 'Outstanding',
+    value: students.value.reduce(
+      (sum, student) => sum + Number(student.total_due || 0),
+      0
+    )
+  }
+]);
+
+const pendingRemovalCount = computed(
+  () =>
+    students.value.filter(
+      student =>
+        student.is_allocated && !selectedStudentIds.value.has(String(student.id))
+    ).length
+);
+
+const formatCurrency = amount =>
+  Number(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 
 const isAllSelected = computed(() => {
   if (!students.value.length) return false;
@@ -382,17 +461,35 @@ const toggleSelectAll = () => {
 
 const saveAllocation = async () => {
   if (!canFetch.value) return;
+  if (pendingRemovalCount.value) {
+    showRemovalConfirmation.value = true;
+    return;
+  }
 
+  await persistAllocation();
+};
+
+const confirmSaveAllocation = async () => {
+  showRemovalConfirmation.value = false;
+  await persistAllocation();
+};
+
+const persistAllocation = async () => {
   isSaving.value = true;
   try {
     const res = await FeeAllocationAPI.saveAllocation({
       class_id: filters.class_id,
       section_id: filters.section_id,
       fee_group_id: filters.fee_group_id,
+      branch_id: filters.branch_id || undefined,
       student_ids: Array.from(selectedStudentIds.value)
     });
 
     showToast(res.data?.message || 'Fee allocation saved successfully!', 'success');
+    students.value = students.value.map(student => ({
+      ...student,
+      is_allocated: selectedStudentIds.value.has(String(student.id))
+    }));
   } catch (error) {
     showToast(error.response?.data?.message || 'Error saving allocation', 'error');
   } finally {

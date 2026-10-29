@@ -335,7 +335,12 @@
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
               >Subscription Plan *</label
             >
-            <select v-model="form.subscriptionData.plan_code" required class="form-select">
+            <select
+              v-model="form.subscriptionData.plan_code"
+              required
+              class="form-select"
+              @change="handleStatusChange"
+            >
               <option value="">Select a plan</option>
               <option v-for="plan in plans" :key="plan.code" :value="plan.code">
                 {{ plan.name }} - ₹{{ plan.price }}/{{ plan.billing_cycle }}
@@ -344,7 +349,12 @@
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Status *</label>
-            <select v-model="form.subscriptionData.status" required class="form-select">
+            <select
+              v-model="form.subscriptionData.status"
+              required
+              class="form-select"
+              @change="handleStatusChange"
+            >
               <option value="trial">Trial</option>
               <option value="active">Active</option>
               <option value="suspended">Suspended</option>
@@ -364,13 +374,13 @@
             />
           </div>
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
-              >Start Date *</label
-            >
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
+              Start Date<span v-if="form.subscriptionData.status === 'trial'"> *</span>
+            </label>
             <input
               v-model="form.subscriptionData.start_date"
               type="date"
-              required
+              :required="form.subscriptionData.status === 'trial'"
               class="form-input"
               @change="autoSetTrialEndDate"
             />
@@ -848,12 +858,49 @@ const autoFillCurrencySymbol = () => {
 // Auto-set end date for trial status
 const autoSetTrialEndDate = () => {
   if (form.value.subscriptionData.status === 'trial') {
-    const startDate = new Date(form.value.subscriptionData.start_date);
+    const [year, month, day] = form.value.subscriptionData.start_date.split('-').map(Number);
+    const startDate = new Date(year, month - 1, day);
     const trialDays = form.value.subscriptionData.trial_days;
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + trialDays);
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+    startDate.setDate(startDate.getDate() + trialDays);
+    form.value.subscriptionData.end_date = [
+      startDate.getFullYear(),
+      String(startDate.getMonth() + 1).padStart(2, '0'),
+      String(startDate.getDate()).padStart(2, '0')
+    ].join('-');
   }
+};
+
+const handleStatusChange = () => {
+  if (form.value.subscriptionData.status === 'trial') {
+    autoSetTrialEndDate();
+    return;
+  }
+
+  const cycle = selectedPlan.value?.billing_cycle;
+  if (form.value.subscriptionData.status !== 'active' || !cycle) return;
+  if (cycle === 'lifetime') {
+    form.value.subscriptionData.end_date = '';
+    return;
+  }
+
+  if (!form.value.subscriptionData.start_date) {
+    const today = new Date();
+    form.value.subscriptionData.start_date = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0')
+    ].join('-');
+  }
+
+  const [year, month, day] = form.value.subscriptionData.start_date.split('-').map(Number);
+  const endDate = new Date(year, month - 1, day);
+  if (cycle === 'monthly') endDate.setMonth(endDate.getMonth() + 1);
+  if (cycle === 'yearly') endDate.setFullYear(endDate.getFullYear() + 1);
+  form.value.subscriptionData.end_date = [
+    endDate.getFullYear(),
+    String(endDate.getMonth() + 1).padStart(2, '0'),
+    String(endDate.getDate()).padStart(2, '0')
+  ].join('-');
 };
 
 const selectedPlan = computed(() => {

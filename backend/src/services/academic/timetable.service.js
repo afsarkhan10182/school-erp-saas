@@ -605,10 +605,13 @@ class TimetableService extends BaseService {
           sunday: []
         }
       };
+      const days = ['', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
       timetables.forEach(timetable => {
         timetable.slots.forEach(slot => {
-          teacherSchedule.schedule[slot.day_of_week].push({
+          const day = days[slot.day_of_week];
+          if (!day) return;
+          teacherSchedule.schedule[day].push({
             ...slot.toJSON(),
             class: timetable.class,
             section: timetable.section

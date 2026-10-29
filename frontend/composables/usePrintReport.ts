@@ -17,6 +17,7 @@ export interface PrintOptions {
   showFilters?: boolean;
   showFooter?: boolean;
   autoPrint?: boolean;
+  printWindow?: Window | null;
 }
 
 export const usePrintReport = () => {
@@ -43,13 +44,22 @@ export const usePrintReport = () => {
 
       // Show print preview or print directly
       if (options.autoPrint) {
-        await printDirectly(htmlContent);
+        await printDirectly(htmlContent, options.printWindow);
       } else {
         await showPrintPreview(htmlContent, reportData.title);
       }
     } catch (error) {
       throw new Error('Failed to print report');
     }
+  };
+
+  const openPrintWindow = (): Window | null => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write('<!doctype html><title>Preparing report</title><p>Preparing report…</p>');
+      printWindow.document.close();
+    }
+    return printWindow;
   };
 
   // Generate print HTML content
@@ -552,8 +562,8 @@ export const usePrintReport = () => {
   // Note: calculateSummary function removed - now using shared utility calculateReportSummary
 
   // Print directly without preview
-  const printDirectly = async (htmlContent: string): Promise<void> => {
-    const printWindow = window.open('', '_blank');
+  const printDirectly = async (htmlContent: string, targetWindow?: Window | null): Promise<void> => {
+    const printWindow = targetWindow || window.open('', '_blank');
     if (!printWindow) {
       throw new Error('Please allow popups to print the report');
     }
@@ -563,8 +573,8 @@ export const usePrintReport = () => {
 
     // Wait for content to load, then trigger print
     setTimeout(() => {
+      printWindow.focus();
       printWindow.print();
-      printWindow.close();
     }, 1000);
   };
 
@@ -583,6 +593,7 @@ export const usePrintReport = () => {
   };
 
   return {
-    printReport
+    printReport,
+    openPrintWindow
   };
 };

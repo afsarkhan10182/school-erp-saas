@@ -37,6 +37,7 @@ const examHallRoutes = require('./academic/exams/exam-hall.routes');
 const examResultRoutes = require('./academic/exams/exam-result.routes');
 const examReportRoutes = require('./academic/exams/exam-report.routes');
 const examReportsRoutes = require('./academic/exam-reports');
+const reportCardSetupRoutes = require('./academic/exams/report-card-setup.routes');
 const examPositionsRoutes = require('./academic/exam-positions');
 const examPublicationRoutes = require('./academic/exam-publication');
 const gradingSystemRoutes = require('./academic/grading-system.routes');
@@ -49,6 +50,7 @@ const exportRoutes = require('./shared/export.routes');
 
 // Settings routes
 const settingsRoutes = require('./administration/settings/system-setting.routes');
+const auditTrailRoutes = require('./administration/audit-trail.routes');
 
 // Certificate template routes
 const certificateTemplateRoutes = require('./administration/certificate-template.routes');
@@ -60,6 +62,11 @@ const studentCategoryRoutes = require('./academic/student-category.routes');
 const parentRoutes = require('./academic/parent.routes');
 const feeFineRoutes = require('./financial/fee-fine.routes');
 const homeworkRoutes = require('./academic/homework.routes');
+const liveClassRoutes = require('./academic/live-class.routes');
+const syllabusRoutes = require('./academic/syllabus.routes');
+const studyMaterialRoutes = require('./academic/study-material.routes');
+const classworkRoutes = require('./academic/classwork.routes');
+const parentTeacherMeetingRoutes = require('./academic/parent-teacher-meeting.routes');
 const libraryRoutes = require('./academic/library.routes');
 const dynamicEntitiesRoutes = require('./shared/dynamic-entities.routes');
 const publicDynamicEntitiesRoutes = require('./shared/public-dynamic-entities.routes');
@@ -68,6 +75,7 @@ const reportsRoutes = require('./shared/reports.routes');
 const cardTemplateRoutes = require('./academic/card-template.routes');
 const examSeatingRoutes = require('./academic/exam-seating.routes');
 const onlineExamRoutes = require('./academic/online-exam.routes');
+const gatePassRoutes = require('./shared/gate-pass.routes');
 
 // Upload routes
 const uploadRoutes = require('./shared/uploads.routes');
@@ -93,6 +101,11 @@ router.use('/student-categories', studentCategoryRoutes);
 router.use('/parents', parentRoutes);
 router.use('/fee-fines', feeFineRoutes);
 router.use('/homeworks', homeworkRoutes);
+router.use('/live-classes', liveClassRoutes);
+router.use('/syllabus', syllabusRoutes);
+router.use('/study-materials', studyMaterialRoutes);
+router.use('/classwork', classworkRoutes);
+router.use('/ptm', parentTeacherMeetingRoutes);
 router.use('/library', libraryRoutes);
 router.use('/entities', dynamicEntitiesRoutes);
 router.use('/portal', portalRoutes);
@@ -100,6 +113,7 @@ router.use('/reports', reportsRoutes);
 router.use('/cards', cardTemplateRoutes);
 router.use('/exam-seatings', examSeatingRoutes);
 router.use('/online-exams', onlineExamRoutes);
+router.use('/gate-passes', gatePassRoutes);
 router.use('/fee-types', feeTypeRoutes);
 router.use('/fee-structures', feeStructureRoutes);
 router.use('/fee-invoices', feeInvoiceRoutes);
@@ -131,6 +145,7 @@ router.use('/exam-results', examResultRoutes);
 // Mount specific routes first (before catch-all routes)
 // examReportsRoutes must come first to handle /download/:reportId before catch-all routes
 router.use('/exam-reports', examReportsRoutes);
+router.use('/exam-reports/setups', reportCardSetupRoutes);
 router.use('/exam-reports', examReportRoutes);
 router.use('/exam-publication', examPublicationRoutes);
 router.use('/grading-systems', gradingSystemRoutes);
@@ -150,6 +165,7 @@ router.use('/attendance-notifications', attendanceNotificationRoutes);
 router.use('/export', exportRoutes);
 // Settings routes - consolidated namespace
 router.use('/settings', settingsRoutes);
+router.use('/audit-trail', auditTrailRoutes);
 
 // Certificate template routes
 router.use('/certificate-templates', certificateTemplateRoutes);

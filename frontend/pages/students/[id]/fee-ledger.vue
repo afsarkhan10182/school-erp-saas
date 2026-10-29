@@ -7,11 +7,16 @@
           <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Student Fee Ledger</h1>
             <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-              Complete payment history for {{ student?.first_name }} {{ student?.last_name }}
+              {{
+                student
+                  ? `Complete payment history for ${getStudentFullName(student)}`
+                  : 'Complete payment history'
+              }}
             </p>
           </div>
           <div class="flex space-x-3">
             <button
+              v-if="student"
               @click="showAllReceiptsModal = true"
               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
             >
@@ -41,12 +46,12 @@
             <div>
               <p class="text-sm text-gray-500 dark:text-gray-400">Class</p>
               <p class="font-medium text-gray-900 dark:text-white">
-                {{ student.current_class }}{{ student.section ? `-${student.section}` : '' }}
+                {{ student.current_class || student.class || '—' }}{{ student.section ? `-${student.section}` : '' }}
               </p>
             </div>
             <div>
               <p class="text-sm text-gray-500 dark:text-gray-400">Academic Year</p>
-              <p class="font-medium text-gray-900 dark:text-white">{{ student.academic_year }}</p>
+              <p class="font-medium text-gray-900 dark:text-white">{{ student.academic_year || '—' }}</p>
             </div>
             <div>
               <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>
@@ -54,12 +59,14 @@
                 :class="{
                   'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':
                     student.status === 'active',
+                  'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200':
+                    !student.status,
                   'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200':
-                    student.status !== 'active'
+                    student.status && student.status !== 'active'
                 }"
                 class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
               >
-                {{ student.status }}
+                {{ student.status || '—' }}
               </span>
             </div>
           </div>
@@ -150,7 +157,7 @@
       </div>
 
       <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
+      <div v-if="student" class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
         <div class="px-4 py-5 sm:p-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="relative">
@@ -159,8 +166,13 @@
               >
               <select v-model="filters.academic_year" @change="fetchLedger" class="input-field">
                 <option value="">All Years</option>
-                <option value="2024-2025">2024-2025</option>
-                <option value="2023-24">2023-24</option>
+                <option
+                  v-for="year in academicYears"
+                  :key="year.id || year.name"
+                  :value="year.name"
+                >
+                  {{ year.name }}
+                </option>
               </select>
             </div>
             <div class="relative">
@@ -352,6 +364,7 @@
                     Payment History
                   </button>
                   <button
+                    v-if="canAdjustInvoices"
                     @click="adjustInvoice(invoice)"
                     class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                   >
@@ -385,8 +398,9 @@
       </div>
     </div>
 
+    <Teleport to="body">
     <!-- Payment Modal -->
-    <div v-if="showPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+    <div v-if="showPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100000]">
       <div
         class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -437,11 +451,9 @@
                 required
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
               >
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="upi">UPI</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="cheque">Cheque</option>
+                <option v-for="method in paymentMethodOptions" :key="method.value" :value="method.value">
+                  {{ method.label }}
+                </option>
               </select>
             </div>
 
@@ -478,7 +490,7 @@
     </div>
 
     <!-- Adjustment Modal -->
-    <div v-if="showAdjustmentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+    <div v-if="showAdjustmentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100000]">
       <div
         class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -520,6 +532,7 @@
               <textarea
                 v-model="adjustmentForm.adjustment_reason"
                 rows="3"
+                maxlength="500"
                 required
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
               ></textarea>
@@ -542,12 +555,39 @@
               </button>
             </div>
           </form>
+
+          <div class="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700">
+            <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Adjustment history</h4>
+            <p v-if="isLoadingAdjustmentHistory" class="mt-2 text-sm text-gray-500">
+              Loading adjustment history…
+            </p>
+            <p v-else-if="adjustmentHistory.length === 0" class="mt-2 text-sm text-gray-500">
+              No adjustments recorded.
+            </p>
+            <ul v-else class="mt-2 max-h-40 space-y-2 overflow-y-auto">
+              <li
+                v-for="adjustment in adjustmentHistory"
+                :key="adjustment.id"
+                class="rounded border border-gray-200 p-2 text-sm dark:border-gray-700"
+              >
+                <div class="font-medium text-gray-900 dark:text-white">
+                  {{ adjustment.adjustment_type === 'waive' ? 'Waiver' : 'Fee added' }}
+                  · ₹{{ formatCurrency(adjustment.adjustment_amount) }}
+                  · {{ formatDate(adjustment.created_at) }}
+                </div>
+                <p class="mt-1 text-gray-600 dark:text-gray-300">{{ adjustment.adjustment_reason }}</p>
+                <p v-if="adjustment.createdBy" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  By {{ adjustment.createdBy.first_name }} {{ adjustment.createdBy.last_name }}
+                </p>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Payment History Modal -->
-    <div v-if="showPaymentHistoryModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+    <div v-if="showPaymentHistoryModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100000]">
       <div
         class="relative top-10 mx-auto p-5 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -651,9 +691,16 @@
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       @click="viewReceipt(payment)"
-                      class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                      class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
                     >
                       View Receipt
+                    </button>
+                    <button
+                      v-if="canReversePayments && payment.payment_status === 'completed'"
+                      @click="openReversePayment(payment)"
+                      class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                    >
+                      Reverse
                     </button>
                   </td>
                 </tr>
@@ -671,8 +718,47 @@
       </div>
     </div>
 
+    <!-- Payment Reversal Modal -->
+    <div v-if="showReversalModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100000]">
+      <div class="relative top-20 mx-auto p-5 border w-96 max-w-[calc(100%-2rem)] shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Reverse Payment</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+          This reverses the full ₹{{ formatCurrency(selectedPayment?.payment_amount || 0) }} ledger entry and restores the invoice balance. It does not issue an external gateway refund.
+        </p>
+        <form @submit.prevent="submitPaymentReversal">
+          <label for="reversal-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Reason (required)
+          </label>
+          <textarea
+            id="reversal-reason"
+            v-model="reversalReason"
+            maxlength="500"
+            required
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white"
+          />
+          <div class="mt-4 flex justify-end gap-3">
+            <button
+              type="button"
+              @click="showReversalModal = false"
+              class="px-4 py-2 text-sm border rounded-md text-gray-700 dark:text-gray-200 dark:border-gray-600"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting || !reversalReason.trim()"
+              class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
+              {{ isSubmitting ? 'Reversing…' : 'Reverse Payment' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Receipt Modal -->
-    <div v-if="showReceiptModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+    <div v-if="showReceiptModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100000]">
       <div
         class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -717,7 +803,7 @@
     </div>
 
     <!-- All Receipts Modal -->
-    <div v-if="showAllReceiptsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+    <div v-if="showAllReceiptsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100000]">
       <div
         class="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -763,13 +849,23 @@
                     class="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <div class="font-medium text-gray-900 dark:text-white text-sm">
-                      {{ receipt.is_grouped ? receipt.receipt_group_id : receipt.invoice_number }}
+                      {{
+                        receipt.is_grouped
+                          ? receipt.receipt_group_id
+                          : receipt.receipt_number || receipt.invoice_number
+                      }}
                     </div>
                     <div class="text-xs text-gray-500 dark:text-gray-400">
                       {{ formatDate(receipt.payment_date) }} - ₹{{
                         formatCurrency(receipt.payment_amount)
                       }}
                     </div>
+                    <span
+                      v-if="receipt.payment_status === 'reversed'"
+                      class="mt-1 inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                    >
+                      Reversed
+                    </span>
                     <div
                       v-if="receipt.months_covered && receipt.months_covered > 1"
                       class="text-xs text-indigo-600 dark:text-indigo-400"
@@ -834,21 +930,31 @@
         </div>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useFeeSettings } from '~/utils/settings';
+import { getEnabledFeePaymentMethods } from '~/utils/feePaymentMethods';
 import { FileText, CheckCircle, DollarSign, AlertTriangle, Search, X } from 'lucide-vue-next';
 import { Students, Schools, FeeInvoices } from '~/api';
+import { AcademicYears } from '~/api/academic/academic-years';
 import { useToast } from '~/composables/useToast';
 import Pagination from '~/components/ui/Pagination.vue';
 import ReceiptViewer from '~/components/financial/ReceiptViewer.vue';
+import { useAuthStore } from '~/stores/auth';
 
 const route = useRoute();
 const studentId = route.params.id;
+const authStore = useAuthStore();
 const { showSuccess, showError } = useToast();
+const canAdjustInvoices = computed(() =>
+  ['admin', 'super_admin', 'branch_admin'].includes(authStore.currentUser?.role)
+);
+const canReversePayments = computed(() => ['admin', 'super_admin'].includes(authStore.currentUser?.role));
 
 const student = ref(null);
 const ledgerData = ref(null);
@@ -859,18 +965,23 @@ const pageSize = ref(50);
 const showPaymentModal = ref(false);
 const showAdjustmentModal = ref(false);
 const showPaymentHistoryModal = ref(false);
+const showReversalModal = ref(false);
 const showReceiptModal = ref(false);
 const showAllReceiptsModal = ref(false);
+const adjustmentHistory = ref([]);
+const isLoadingAdjustmentHistory = ref(false);
 const selectedInvoice = ref(null);
 const paymentHistory = ref(null);
 const isLoadingPayments = ref(false);
 const selectedPayment = ref(null);
+const reversalReason = ref('');
 const selectedReceipt = ref(null);
 const selectedReceiptFromList = ref(null);
 const allReceipts = ref([]);
 const isLoadingReceipts = ref(false);
 const isLoadingReceiptContent = ref(false);
 const schoolData = ref({});
+const academicYears = ref([]);
 
 const filters = ref({
   academic_year: '',
@@ -883,6 +994,14 @@ const paymentForm = ref({
   payment_date: new Date().toISOString().split('T')[0],
   notes: ''
 });
+const paymentMethodOptions = ref(getEnabledFeePaymentMethods());
+const { getPaymentMethods } = useFeeSettings();
+const loadPaymentMethodOptions = async () => {
+  paymentMethodOptions.value = getEnabledFeePaymentMethods(await getPaymentMethods());
+  if (!paymentMethodOptions.value.some(({ value }) => value === paymentForm.value.payment_method)) {
+    paymentForm.value.payment_method = paymentMethodOptions.value[0]?.value || '';
+  }
+};
 
 const adjustmentForm = ref({
   adjustment_type: 'waive',
@@ -893,6 +1012,8 @@ const adjustmentForm = ref({
 
 // Fetch student details
 const fetchStudent = async () => {
+  if (authStore.currentUser?.role === 'accountant') return;
+
   try {
     const response = await Students.getById(studentId);
     student.value = response.data;
@@ -928,6 +1049,15 @@ const fetchStudent = async () => {
   }
 };
 
+const fetchAcademicYears = async () => {
+  try {
+    const response = await AcademicYears.getDropdown();
+    academicYears.value = Array.isArray(response.data) ? response.data : [];
+  } catch {
+    academicYears.value = [];
+  }
+};
+
 // Fetch ledger data
 const fetchLedger = async () => {
   if (!studentId) {
@@ -944,6 +1074,9 @@ const fetchLedger = async () => {
       limit: pageSize.value
     });
     ledgerData.value = response.data;
+    if (authStore.currentUser?.role === 'accountant') {
+      student.value = response.data.student;
+    }
   } catch (error) {
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
@@ -981,11 +1114,21 @@ const submitPayment = async () => {
 };
 
 // Adjust invoice
-const adjustInvoice = invoice => {
+const adjustInvoice = async invoice => {
   selectedInvoice.value = invoice;
   adjustmentForm.value.adjustment_amount = '';
   adjustmentForm.value.adjustment_reason = '';
+  adjustmentHistory.value = [];
   showAdjustmentModal.value = true;
+  isLoadingAdjustmentHistory.value = true;
+  try {
+    const response = await FeeInvoices.getAdjustments(invoice.id);
+    adjustmentHistory.value = response.data || [];
+  } catch (error) {
+    showError('Unable to load adjustment history. Please try again.');
+  } finally {
+    isLoadingAdjustmentHistory.value = false;
+  }
 };
 
 const submitAdjustment = async () => {
@@ -1025,6 +1168,29 @@ const showPaymentHistory = invoice => {
       showPaymentHistoryModal.value = true;
       isLoadingPayments.value = false;
     });
+};
+
+const openReversePayment = payment => {
+  selectedPayment.value = payment;
+  reversalReason.value = '';
+  showReversalModal.value = true;
+};
+
+const submitPaymentReversal = async () => {
+  if (!selectedPayment.value || !reversalReason.value.trim()) return;
+  isSubmitting.value = true;
+  try {
+    await FeeInvoices.reversePayment(selectedPayment.value.id, reversalReason.value.trim());
+    showReversalModal.value = false;
+    await fetchLedger();
+    const response = await FeeInvoices.getInvoicePayments(selectedInvoice.value.id);
+    paymentHistory.value = response.data;
+    showSuccess('Payment reversed. The original receipt remains in the audit history.');
+  } catch (error) {
+    showError(error.response?.data?.message || 'Error reversing payment. Please try again.');
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
 // View receipt
@@ -1290,9 +1456,16 @@ const fetchAllReceipts = async () => {
       if (ledgerResponse.data.invoices) {
         ledgerResponse.data.invoices.forEach(invoice => {
           // Only show invoices that have been paid
-          if (invoice.paid_amount > 0) {
+          if (
+            invoice.paid_amount > 0 ||
+            invoice.payments?.some(payment => payment.payment_status === 'reversed')
+          ) {
             // Check if this invoice has multiple payments
-            if (invoice.payments && invoice.payments.length > 1) {
+            if (
+              invoice.payments &&
+              (invoice.payments.length > 1 ||
+                invoice.payments.some(payment => payment.payment_status === 'reversed'))
+            ) {
               // Create separate receipt entries for each payment
               invoice.payments.forEach((payment, index) => {
                 const receiptData = {
@@ -1303,6 +1476,10 @@ const fetchAllReceipts = async () => {
                   payment_amount: parseFloat(payment.payment_amount),
                   payment_method: payment.payment_method,
                   payment_date: payment.payment_date,
+                  payment_status: payment.payment_status,
+                  reversed_at: payment.reversed_at,
+                  reversal_reason: payment.reversal_reason,
+                  reversed_by: payment.reversed_by,
 
                   is_grouped: false,
                   receipt_type: 'individual',
@@ -1510,6 +1687,7 @@ const getPaymentStatusClass = status => {
   const classes = {
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    reversed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     refunded: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
   };
@@ -1520,6 +1698,7 @@ const getPaymentStatusText = status => {
   const texts = {
     pending: 'Pending',
     completed: 'Completed',
+    reversed: 'Reversed',
     refunded: 'Refunded',
     failed: 'Failed'
   };
@@ -1541,6 +1720,7 @@ const onPageSizeChange = newPageSize => {
 
 // Helper function to get student full name
 const getStudentFullName = student => {
+  if (student.name) return student.name;
   const firstName = student.first_name;
   const lastName = student.last_name;
 
@@ -1567,8 +1747,10 @@ const getInvoiceNumber = invoice => {
 };
 
 onMounted(() => {
+  loadPaymentMethodOptions();
   fetchStudent();
   fetchLedger();
+  fetchAcademicYears();
 });
 </script>
 

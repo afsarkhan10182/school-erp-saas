@@ -1,13 +1,100 @@
-const { Exam, ExamResult, Student, Class, Section, ExamPosition } = require('~/models');
+const {
+  Exam,
+  Student,
+  Class,
+  Section,
+  ExamPosition,
+  ClassTeacher,
+  SubjectTeacher
+} = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
+const { getResolvedExamResults } = require('~/services/academic/subject-mark-rollup.service');
+const ReportCardService = require('~/services/academic/report-card.service');
+
+const gradeFor = (percentage, gradingSystem, reportCards) =>
+  percentage == null ? null : reportCards.calculateGrade(Number(percentage), gradingSystem);
+
+const isPassing = (percentage, gradingSystem) => {
+  if (percentage == null) return false;
+  const scale = gradingSystem.gradeScales.find(
+    item => Number(percentage) >= item.min_percentage && Number(percentage) <= item.max_percentage
+  );
+  return typeof scale?.is_passing === 'boolean'
+    ? scale.is_passing
+    : Number(percentage) >= Number(gradingSystem.passing_percentage ?? 35);
+};
+
+const resolvePositionScope = async (req, examId, classId, sectionId) => {
+  const schoolId = req.schoolId || req.user.school_id;
+  if (!schoolId) return { error: { status: 400, message: 'School context is required' } };
+
+  const branchId =
+    req.branchId ||
+    (['admin', 'super_admin'].includes(req.user.role) ? undefined : req.user.branch_id);
+  const classWhere = { id: classId, school_id: schoolId };
+  if (branchId) classWhere.branch_id = branchId;
+  const classItem = await Class.findOne({
+    where: classWhere,
+    attributes: ['id', 'school_id', 'branch_id']
+  });
+  if (!classItem) return { error: { status: 404, message: 'Class not found' } };
+
+  if (req.user.role === 'teacher') {
+    const assignmentWhere = {
+      teacher_id: req.user.id,
+      class_id: classItem.id,
+      school_id: schoolId,
+      branch_id: classItem.branch_id
+    };
+    const [classAssignment, subjectAssignment] = await Promise.all([
+      ClassTeacher.findOne({ where: { ...assignmentWhere, is_active: true }, attributes: ['id'] }),
+      SubjectTeacher.findOne({ where: assignmentWhere, attributes: ['id'] })
+    ]);
+    if (!classAssignment && !subjectAssignment) {
+      return { error: { status: 403, message: 'Not assigned to this class' } };
+    }
+  }
+
+  const exam = await Exam.findOne({
+    where: {
+      id: examId,
+      school_id: schoolId,
+      [Op.or]: [{ branch_id: classItem.branch_id }, { branch_id: null }]
+    },
+    attributes: ['id']
+  });
+  if (!exam) return { error: { status: 404, message: 'Exam not found for this class' } };
+
+  if (sectionId) {
+    const section = await Section.findOne({
+      where: {
+        id: sectionId,
+        class_id: classItem.id,
+        school_id: schoolId,
+        branch_id: classItem.branch_id
+      },
+      attributes: ['id', 'school_id', 'branch_id']
+    });
+    if (!section) return { error: { status: 404, message: 'Section not found for this class' } };
+  }
+
+  return {
+    scope: {
+      school_id: schoolId,
+      branch_id: classItem.branch_id,
+      class_id: classItem.id,
+      ...(sectionId && { section_id: sectionId })
+    }
+  };
+};
 
 /**
  * Get students for position management
  */
 const getStudentsForPositions = async (req, res) => {
   try {
-    const { exam_id, class_id, school_id, branch_id } = req.query;
+    const { exam_id, class_id, section_id } = req.query;
 
     // Validate required parameters
     if (!exam_id || !class_id) {
@@ -17,21 +104,19 @@ const getStudentsForPositions = async (req, res) => {
       });
     }
 
-    // Get students based on class
-    const { section_id } = req.query;
-    const whereClause = {
-      class_id: class_id,
-      school_id: school_id || req.user.school_id,
-      branch_id: branch_id || req.user.branch_id,
-      status: 'active'
-    };
-
-    if (section_id) {
-      whereClause.section_id = section_id;
+    const resolved = await resolvePositionScope(req, exam_id, class_id, section_id);
+    if (resolved.error) {
+      return res.status(resolved.error.status).json({ success: false, message: resolved.error.message });
     }
-
+    const scope = resolved.scope;
     const students = await Student.findAll({
-      where: whereClause,
+      where: {
+        class_id: scope.class_id,
+        school_id: scope.school_id,
+        branch_id: scope.branch_id,
+        status: 'active',
+        ...(scope.section_id && { section_id: scope.section_id })
+      },
       include: [
         {
           model: Class,
@@ -49,16 +134,12 @@ const getStudentsForPositions = async (req, res) => {
     });
 
     // Get exam results for these students
-    const examResults = await ExamResult.findAll({
-      where: {
-        exam_id: exam_id,
-        student_id: {
-          [Op.in]: students.map(s => s.id)
-        },
-        school_id: school_id || req.user.school_id,
-        branch_id: branch_id || req.user.branch_id
-      }
+    const exam = await Exam.findOne({ where: { id: exam_id, school_id: scope.school_id } });
+    const examResults = await getResolvedExamResults({
+      exams: exam ? [exam] : [], students, schoolId: scope.school_id, branchId: scope.branch_id
     });
+    const reportCards = new ReportCardService();
+    const gradingSystem = await reportCards.getGradingSystem(scope.school_id);
 
     // Get existing positions
     const existingPositions = await ExamPosition.findAll({
@@ -67,8 +148,8 @@ const getStudentsForPositions = async (req, res) => {
         student_id: {
           [Op.in]: students.map(s => s.id)
         },
-        school_id: school_id || req.user.school_id,
-        branch_id: branch_id || req.user.branch_id
+        school_id: scope.school_id,
+        branch_id: scope.branch_id
       }
     });
 
@@ -77,6 +158,7 @@ const getStudentsForPositions = async (req, res) => {
     const positionsMap = {};
 
     examResults.forEach(result => {
+      result.grade = gradeFor(result.percentage, gradingSystem, reportCards);
       resultsMap[result.student_id] = result;
     });
 
@@ -119,6 +201,52 @@ const getStudentsForPositions = async (req, res) => {
   }
 };
 
+const getPositionStats = async (req, res) => {
+  try {
+    const { exam_id, class_id } = req.query;
+    if (!exam_id || !class_id) {
+      return res.status(400).json({ success: false, message: 'Exam ID and Class ID are required' });
+    }
+
+    const resolved = await resolvePositionScope(req, exam_id, class_id);
+    if (resolved.error) {
+      return res.status(resolved.error.status).json({ success: false, message: resolved.error.message });
+    }
+    const scope = resolved.scope;
+    const students = await Student.findAll({
+      where: { class_id: scope.class_id, school_id: scope.school_id, branch_id: scope.branch_id, status: 'active' },
+      attributes: ['id']
+    });
+    const positions = await ExamPosition.findAll({
+      where: {
+        exam_id,
+        student_id: { [Op.in]: students.map(student => student.id) },
+        school_id: scope.school_id,
+        branch_id: scope.branch_id
+      },
+      attributes: ['is_passed', 'percentage']
+    });
+    const passed = positions.filter(position => position.is_passed).length;
+    const averagePercentage = positions.length
+      ? positions.reduce((sum, position) => sum + (Number(position.percentage) || 0), 0) / positions.length
+      : 0;
+
+    return res.json({
+      success: true,
+      data: {
+        total: positions.length,
+        passed,
+        failed: positions.length - passed,
+        pass_rate: positions.length ? (passed / positions.length) * 100 : 0,
+        average_percentage: averagePercentage
+      }
+    });
+  } catch (error) {
+    logger.error('Error loading position statistics:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load position statistics' });
+  }
+};
+
 /**
  * Calculate positions automatically
  */
@@ -134,66 +262,52 @@ const calculatePositions = async (req, res) => {
       });
     }
 
-    // Get students with their exam results
     const { section_id } = req.body;
-    const whereClause = {
-      class_id: class_id,
-      school_id: req.user.school_id,
-      branch_id: req.user.branch_id,
-      status: 'active'
-    };
-
-    if (section_id) {
-      whereClause.section_id = section_id;
+    const resolved = await resolvePositionScope(req, exam_id, class_id, section_id);
+    if (resolved.error) {
+      return res.status(resolved.error.status).json({ success: false, message: resolved.error.message });
     }
-
+    const scope = resolved.scope;
     const students = await Student.findAll({
-      where: whereClause,
-      include: [
-        {
-          model: ExamResult,
-          as: 'examResults',
-          where: { exam_id: exam_id },
-          required: true
-        }
-      ],
+      where: {
+        class_id: scope.class_id,
+        school_id: scope.school_id,
+        branch_id: scope.branch_id,
+        status: 'active',
+        ...(scope.section_id && { section_id: scope.section_id })
+      },
       order: [['roll_number', 'ASC']]
     });
+    const exam = await Exam.findOne({ where: { id: exam_id, school_id: scope.school_id } });
+    const resolvedResults = await getResolvedExamResults({
+      exams: exam ? [exam] : [], students, schoolId: scope.school_id, branchId: scope.branch_id
+    });
+    const resultsByStudent = new Map(
+      [...resolvedResults.values()].map(result => [result.student_id, result])
+    );
+    const reportCards = new ReportCardService();
+    const gradingSystem = await reportCards.getGradingSystem(scope.school_id);
+    resultsByStudent.forEach(result => {
+      result.grade = gradeFor(result.percentage, gradingSystem, reportCards);
+    });
+    const studentsToRank = students.filter(student => {
+      const result = resultsByStudent.get(student.id);
+      return result && (include_absent || !result.is_absent);
+    });
 
-    // Filter out absent students if not including them
-    let studentsToRank = students;
-    if (!include_absent) {
-      studentsToRank = students.filter(student => !student.examResults[0]?.is_absent);
-    }
+    const scoreFor = student => {
+      const result = resultsByStudent.get(student.id);
+      if (calculation_method === 'percentage') return Number(result?.percentage) || 0;
+      if (calculation_method === 'grade_points') {
+        return Number(
+          gradingSystem.gradeScales.find(scale => scale.grade === result?.grade)?.grade_points
+        ) || 0;
+      }
+      return Number(result?.marks_obtained) || 0;
+    };
 
     // Sort students based on calculation method
-    let sortedStudents = [];
-    switch (calculation_method) {
-      case 'total_marks':
-        sortedStudents = studentsToRank.sort(
-          (a, b) =>
-            (b.examResults[0]?.marks_obtained || 0) - (a.examResults[0]?.marks_obtained || 0)
-        );
-        break;
-      case 'percentage':
-        sortedStudents = studentsToRank.sort(
-          (a, b) => (b.examResults[0]?.percentage || 0) - (a.examResults[0]?.percentage || 0)
-        );
-        break;
-      case 'grade_points':
-        // Sort by grade points (assuming grade is numeric)
-        sortedStudents = studentsToRank.sort((a, b) => {
-          const gradeA = parseFloat(a.examResults[0]?.grade) || 0;
-          const gradeB = parseFloat(b.examResults[0]?.grade) || 0;
-          return gradeB - gradeA;
-        });
-        break;
-      default:
-        sortedStudents = studentsToRank.sort(
-          (a, b) =>
-            (b.examResults[0]?.marks_obtained || 0) - (a.examResults[0]?.marks_obtained || 0)
-        );
-    }
+    const sortedStudents = studentsToRank.sort((a, b) => scoreFor(b) - scoreFor(a));
 
     // Assign positions with proper tie handling
     const positions = [];
@@ -201,32 +315,12 @@ const calculatePositions = async (req, res) => {
 
     for (let i = 0; i < sortedStudents.length; i++) {
       const student = sortedStudents[i];
-      const result = student.examResults[0];
-      
-      // Get score based on calculation method
-      let score = 0;
-      if (calculation_method === 'percentage') {
-        score = result?.percentage || 0;
-      } else if (calculation_method === 'grade_points') {
-        score = parseFloat(result?.grade) || 0;
-      } else {
-        score = result?.marks_obtained || 0;
-      }
+      const result = resultsByStudent.get(student.id);
+      const score = scoreFor(student);
 
       // If this is not the first student and score is different, update position
       if (i > 0) {
-        const prevStudent = sortedStudents[i - 1];
-        const prevResult = prevStudent.examResults[0];
-        let prevScore = 0;
-        if (calculation_method === 'percentage') {
-          prevScore = prevResult?.percentage || 0;
-        } else if (calculation_method === 'grade_points') {
-          prevScore = parseFloat(prevResult?.grade) || 0;
-        } else {
-          prevScore = prevResult?.marks_obtained || 0;
-        }
-
-        if (score !== prevScore) {
+        if (score !== scoreFor(sortedStudents[i - 1])) {
           currentPosition = i + 1;
         }
       }
@@ -269,26 +363,41 @@ const savePositions = async (req, res) => {
       });
     }
 
+    const resolved = await resolvePositionScope(req, exam_id, class_id, req.body.section_id);
+    if (resolved.error) {
+      return res.status(resolved.error.status).json({ success: false, message: resolved.error.message });
+    }
+    const scope = resolved.scope;
+
     const results = [];
     const errors = [];
 
-    // Get exam results for all students to get marks/percentage/grade
-    const studentIds = positions.map(p => p.student_id);
-    const examResults = await ExamResult.findAll({
+    const studentIds = [...new Set(positions.map(position => position.student_id))];
+    const scopedStudents = await Student.findAll({
       where: {
-        exam_id: exam_id,
-        student_id: {
-          [Op.in]: studentIds
-        },
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id
-      }
+        id: { [Op.in]: studentIds },
+        class_id: scope.class_id,
+        school_id: scope.school_id,
+        branch_id: scope.branch_id,
+        status: 'active',
+        ...(scope.section_id && { section_id: scope.section_id })
+      },
+      attributes: ['id', 'class_id', 'section_id']
     });
-
-    const resultsMap = {};
-    examResults.forEach(result => {
-      resultsMap[result.student_id] = result;
+    const scopedStudentIds = scopedStudents.map(student => student.id);
+    const scopedStudentRows = scopedStudents.map(student => student);
+    const exam = await Exam.findOne({ where: { id: exam_id, school_id: scope.school_id } });
+    const resolvedResults = await getResolvedExamResults({
+      exams: exam ? [exam] : [],
+      students: scopedStudentRows,
+      schoolId: scope.school_id,
+      branchId: scope.branch_id
     });
+    const resultsMap = Object.fromEntries(
+      [...resolvedResults.values()].map(result => [result.student_id, result])
+    );
+    const reportCards = new ReportCardService();
+    const gradingSystem = await reportCards.getGradingSystem(scope.school_id);
 
     // Process each position
     for (const positionData of positions) {
@@ -307,8 +416,10 @@ const savePositions = async (req, res) => {
         // Check if position already exists
         const existingPosition = await ExamPosition.findOne({
           where: {
-            exam_id: exam_id,
-            student_id: student_id
+            exam_id,
+            student_id,
+            school_id: scope.school_id,
+            branch_id: scope.branch_id
           }
         });
 
@@ -318,12 +429,12 @@ const savePositions = async (req, res) => {
           position: position,
           total_marks: result.marks_obtained || 0,
           percentage: result.percentage || 0,
-          grade: result.grade || null,
-          is_passed: result.percentage >= 35, // Default pass percentage
+          grade: gradeFor(result.percentage, gradingSystem, reportCards),
+          is_passed: isPassing(result.percentage, gradingSystem),
           teacher_comment: teacher_comment && teacher_comment.trim() !== '' ? teacher_comment.trim() : null,
           principal_comment: principal_comment && principal_comment.trim() !== '' ? principal_comment.trim() : null,
-          school_id: req.user.school_id,
-          branch_id: req.user.branch_id,
+          school_id: scope.school_id,
+          branch_id: scope.branch_id,
           created_by: req.user.id,
           updated_by: req.user.id
         };
@@ -393,6 +504,7 @@ const savePositions = async (req, res) => {
 
 module.exports = {
   getStudentsForPositions,
+  getPositionStats,
   calculatePositions,
   savePositions
 };

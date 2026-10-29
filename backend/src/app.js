@@ -11,6 +11,7 @@ const { swaggerSpec, swaggerUi } = require('./config/swagger');
 const { testConnection } = require('./config/database');
 const { connectRedis, isRedisEnabled } = require('./config/redis');
 const { logger } = require('./utils/shared/logger');
+const resolveCorsOrigin = require('./utils/shared/corsOrigin');
 const routes = require('./routes');
 const config = require('./config/config');
 
@@ -59,7 +60,7 @@ class App {
     // CORS
     this.app.use(
       cors({
-        origin: process.env.CORS_ORIGIN || '*',
+        origin: (origin, callback) => callback(null, resolveCorsOrigin(config.cors.origin, origin)),
         credentials: true
       })
     );

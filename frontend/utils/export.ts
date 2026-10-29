@@ -56,6 +56,10 @@ export const calculateReportSummary = (data: any[], reportType: string) => {
     } else if (reportType === 'attendance') {
       summaryLabel = 'TOTAL RECORDS';
       amountLabel = 'TOTAL RECORDS';
+    } else if (reportType === 'transactions') {
+      totalAmount = data.reduce((sum: number, row: any) => sum + parseAmount(row.amount), 0);
+      summaryLabel = 'TOTAL TRANSACTIONS';
+      amountLabel = 'TOTAL AMOUNT';
     } else if (reportType === 'collections') {
       totalAmount = data.reduce((sum: number, row: any) => {
         const amount = row.payment_amount || row.amount || 0;
@@ -153,7 +157,18 @@ export const validateExportOptions = (
   format: string,
   columns: ExportColumn[]
 ): string | null => {
-  const supportedReportTypes = ['receipts', 'fees', 'students', 'attendance'];
+  const supportedReportTypes = [
+    'receipts',
+    'fees',
+    'students',
+    'attendance',
+    'library',
+    'transactions',
+    'homeworks',
+    'gate_passes',
+    'visitors',
+    'admission_enquiries'
+  ];
   const supportedFormats = ['pdf', 'excel', 'csv', 'print'];
 
   if (!supportedReportTypes.includes(reportType)) {

@@ -25,6 +25,14 @@
       </div>
     </div>
 
+    <p
+      v-if="!selectedBranchId"
+      role="status"
+      class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-200"
+    >
+      Choose a specific branch in the global selector to view or manage its timetables.
+    </p>
+
       <!-- Selection Controls -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-md mb-6">
         <div class="px-4 py-5 sm:px-6">
@@ -558,7 +566,7 @@ import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 const {
   currentBranch,
   currentSchool,
-  selectedBranchId: globalSelectedBranchId,
+  effectiveBranchId: globalEffectiveBranchId,
   branchScopeParams
 } = useGlobalBranch();
 
@@ -566,9 +574,7 @@ const {
 const { showToast } = useToast();
 const { isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const authStore = useAuthStore();
-const selectedBranchId = computed(
-  () => globalSelectedBranchId.value || authStore.user?.branch_id || ''
-);
+const selectedBranchId = computed(() => globalEffectiveBranchId.value);
 const { printReport } = usePrintReport();
 const {
   // Timetables composable
@@ -628,13 +634,13 @@ const quickParams = ref({
 
 // Week days
 const weekDays = [
-  { value: 1, label: 'SUNDAY' },
-  { value: 2, label: 'MONDAY' },
-  { value: 3, label: 'TUESDAY' },
-  { value: 4, label: 'WEDNESDAY' },
-  { value: 5, label: 'THURSDAY' },
-  { value: 6, label: 'FRIDAY' },
-  { value: 7, label: 'SATURDAY' }
+  { value: 1, label: 'MONDAY' },
+  { value: 2, label: 'TUESDAY' },
+  { value: 3, label: 'WEDNESDAY' },
+  { value: 4, label: 'THURSDAY' },
+  { value: 5, label: 'FRIDAY' },
+  { value: 6, label: 'SATURDAY' },
+  { value: 7, label: 'SUNDAY' }
 ];
 
 // Dynamic periods based on chronological order of time slots
@@ -765,15 +771,16 @@ const canLoadSchedule = computed(() => {
 // Methods
 
 watch(selectedBranchId, async newVal => {
-  if (newVal) {
-    selectedClass.value = '';
-    selectedSection.value = '';
-    selectedStream.value = '';
-    schedule.value = [];
-    hasAppliedFilters.value = false;
-    await loadAcademicDataForBranch();
-    await fetchTeachers({ branchId: newVal });
-  }
+  selectedClass.value = '';
+  selectedSection.value = '';
+  selectedStream.value = '';
+  schedule.value = [];
+  timetable.value = null;
+  hasAppliedFilters.value = false;
+  if (!newVal) return;
+
+  await loadAcademicDataForBranch();
+  await fetchTeachers({ branchId: newVal });
 });
 
 const onClassChange = async () => {
@@ -1355,6 +1362,11 @@ const prepareTimetableForPrint = () => {
 
 // Initialize
 onMounted(async () => {
+  if (authStore.currentUser?.role === 'teacher') {
+    await navigateTo('/academic/timetables', { replace: true });
+    return;
+  }
+
   // Initialize the timetables composable
   await initialize();
 });

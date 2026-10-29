@@ -12,6 +12,7 @@ const Homework = sequelize.define(
     title: { type: DataTypes.STRING(255), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     due_date: { type: DataTypes.DATEONLY, allowNull: false },
+    academic_year: { type: DataTypes.STRING(20), allowNull: true },
     class_id: { type: DataTypes.UUID, allowNull: false },
     section_id: { type: DataTypes.UUID, allowNull: true },
     subject_id: { type: DataTypes.UUID, allowNull: true },
@@ -33,6 +34,7 @@ Homework.associate = models => {
   Homework.belongsTo(models.Class, { foreignKey: 'class_id', as: 'class' });
   Homework.belongsTo(models.Section, { foreignKey: 'section_id', as: 'section' });
   Homework.belongsTo(models.Subject, { foreignKey: 'subject_id', as: 'subject' });
+  Homework.hasMany(models.HomeworkSubmission, { foreignKey: 'homework_id', as: 'submissions' });
 };
 
 module.exports = Homework;

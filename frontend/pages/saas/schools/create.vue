@@ -356,6 +356,7 @@
               required
               class="form-select"
               :disabled="plansLoading"
+              @change="handleStatusChange"
             >
               <option value="">{{ plansLoading ? 'Loading plans...' : 'Select a plan' }}</option>
               <option v-for="plan in plans" :key="plan.code" :value="plan.code">
@@ -417,7 +418,11 @@
               class="form-input bg-gray-100 dark:bg-gray-700"
             />
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Auto-calculated based on billing cycle
+              {{
+                form.subscriptionData.status === 'trial'
+                  ? 'Auto-calculated from trial duration'
+                  : 'Auto-calculated based on billing cycle'
+              }}
             </p>
           </div>
         </div>
@@ -717,6 +722,16 @@ const { createSchoolWithSubscription, plans, fetchPlans, loading, error } = useS
 const adminEmailError = ref('');
 const isSchoolCodeValid = ref(true);
 const plansLoading = ref(false);
+const getLocalDateInputValue = () => {
+  return formatDateInput(new Date());
+};
+const formatDateInput = date => {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+const dateFromInput = value => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
 
 const form = ref({
   schoolData: {
@@ -744,7 +759,7 @@ const form = ref({
   subscriptionData: {
     plan_code: '',
     status: 'trial',
-    start_date: new Date().toISOString().split('T')[0],
+    start_date: getLocalDateInputValue(),
     end_date: '',
     payment_amount: '',
     payment_method: 'offline_cash',
@@ -869,41 +884,39 @@ const validateSchoolCode = () => {
 // Auto-set end date for trial status
 const autoSetTrialEndDate = () => {
   if (form.value.subscriptionData.status === 'trial') {
-    const startDate = new Date(form.value.subscriptionData.start_date);
+    const startDate = dateFromInput(form.value.subscriptionData.start_date);
     const trialDays = form.value.subscriptionData.trial_days;
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + trialDays);
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+    startDate.setDate(startDate.getDate() + trialDays);
+    form.value.subscriptionData.end_date = formatDateInput(startDate);
   }
 };
 
 // Handle status change to update end date
 const handleStatusChange = () => {
   if (form.value.subscriptionData.status === 'trial') {
-    const startDate = new Date(form.value.subscriptionData.start_date);
+    const startDate = dateFromInput(form.value.subscriptionData.start_date);
     const trialDays = form.value.subscriptionData.trial_days;
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + trialDays);
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+    startDate.setDate(startDate.getDate() + trialDays);
+    form.value.subscriptionData.end_date = formatDateInput(startDate);
   } else if (
     form.value.subscriptionData.status === 'active' &&
-    selectedPlan?.billing_cycle === 'monthly'
+    selectedPlan.value?.billing_cycle === 'monthly'
   ) {
-    const startDate = new Date(form.value.subscriptionData.start_date);
+    const startDate = dateFromInput(form.value.subscriptionData.start_date);
     const endDate = new Date(startDate);
     endDate.setMonth(startDate.getMonth() + 1);
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+    form.value.subscriptionData.end_date = formatDateInput(endDate);
   } else if (
     form.value.subscriptionData.status === 'active' &&
-    selectedPlan?.billing_cycle === 'yearly'
+    selectedPlan.value?.billing_cycle === 'yearly'
   ) {
-    const startDate = new Date(form.value.subscriptionData.start_date);
+    const startDate = dateFromInput(form.value.subscriptionData.start_date);
     const endDate = new Date(startDate);
     endDate.setFullYear(startDate.getFullYear() + 1);
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+    form.value.subscriptionData.end_date = formatDateInput(endDate);
   } else if (
     form.value.subscriptionData.status === 'active' &&
-    (selectedPlan?.billing_cycle === 'lifetime' || selectedPlan?.code === 'LIFETIME')
+    (selectedPlan.value?.billing_cycle === 'lifetime' || selectedPlan.value?.code === 'LIFETIME')
   ) {
     // Lifetime plans have no end date
     form.value.subscriptionData.end_date = '';
@@ -1040,7 +1053,7 @@ const handleSubmit = async () => {
             subscriptionData: {
               plan_code: '',
               status: 'trial',
-              start_date: new Date().toISOString().split('T')[0],
+              start_date: getLocalDateInputValue(),
               end_date: '',
               payment_amount: '',
               payment_method: 'offline_cash',
@@ -1057,6 +1070,7 @@ const handleSubmit = async () => {
               send_email: true
             }
           };
+          autoSetTrialEndDate();
 
           // Clear file inputs
           fileInputs.value = {};
@@ -1088,6 +1102,7 @@ const closeSuccessModal = () => {
 
 // Fetch plans on mount
 onMounted(async () => {
+  autoSetTrialEndDate();
   plansLoading.value = true;
   try {
     await fetchPlans({ is_active: true });
